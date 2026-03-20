@@ -1,0 +1,90 @@
+package com.indolyn.rill.core.storage;
+
+import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.catalog.TableInfo;
+import com.indolyn.rill.core.common.model.Column;
+import com.indolyn.rill.core.common.model.DataType;
+import com.indolyn.rill.core.common.model.Schema;
+import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.disk.DiskManager;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class CatalogTest {
+
+    private final String TEST_DB_FILE = "test_catalog.db";
+    private DiskManager diskManager;
+    private BufferPoolManager bufferPoolManager;
+    private Catalog catalog;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        new File(TEST_DB_FILE).delete();
+        diskManager = new DiskManager(TEST_DB_FILE);
+        diskManager.open();
+        bufferPoolManager = new BufferPoolManager(10, diskManager, "LRU");
+        catalog = new Catalog(bufferPoolManager);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        diskManager.close();
+        new File(TEST_DB_FILE).delete();
+    }
+
+    @Test
+    void testCreateTableAndGetTable() throws IOException {
+        // 1. 定义一个新表的 Schema
+        Schema studentSchema = new Schema(Arrays.asList(
+                new Column("id", DataType.INT),
+                new Column("name", DataType.VARCHAR)
+        ));
+
+        // 2. 创建表
+        String tableName = "student";
+        catalog.createTable(tableName, studentSchema);
+
+        // 3. 从 Catalog 中获取表信息并验证
+        TableInfo retrievedTable = catalog.getTable(tableName);
+        assertNotNull(retrievedTable, "应该能获取到创建的表");
+        assertEquals(tableName, retrievedTable.getTableName());
+        assertEquals(2, retrievedTable.getSchema().getColumns().size());
+        assertEquals("id", retrievedTable.getSchema().getColumns().get(0).getName());
+        assertEquals(DataType.VARCHAR, retrievedTable.getSchema().getColumns().get(1).getType());
+
+        System.out.println("表 " + tableName + " 创建并验证成功。");
+    }
+
+    @Test
+    void testCatalogPersistence() throws IOException {
+        // --- 第一次会话 ---
+        Schema schema = new Schema(Arrays.asList(new Column("data", DataType.VARCHAR)));
+        catalog.createTable("my_table", schema);
+
+        // --- FIX: 在关闭前，强制将所有缓存的更改写入磁盘 ---
+        bufferPoolManager.flushAllPages();
+
+        diskManager.close();
+        System.out.println("数据库关闭，数据已持久化。");
+
+        // --- 第二次会话 ---
+        System.out.println("重新打开数据库...");
+        diskManager = new DiskManager(TEST_DB_FILE);
+        diskManager.open();
+        bufferPoolManager = new BufferPoolManager(10, diskManager, "LRU");
+        catalog = new Catalog(bufferPoolManager);
+
+        TableInfo tableInfo = catalog.getTable("my_table");
+        assertNotNull(tableInfo, "重启后应该能加载到 my_table");
+        assertEquals("my_table", tableInfo.getTableName());
+
+        System.out.println("目录持久化测试成功！");
+    }
+}
