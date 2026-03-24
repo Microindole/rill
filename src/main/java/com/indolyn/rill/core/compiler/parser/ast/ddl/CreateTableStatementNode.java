@@ -3,6 +3,7 @@ package com.indolyn.rill.core.compiler.parser.ast.ddl;
 import com.indolyn.rill.core.compiler.parser.ast.StatementNode;
 import com.indolyn.rill.core.compiler.parser.ast.expression.ColumnDefinitionNode;
 import com.indolyn.rill.core.compiler.parser.ast.expression.IdentifierNode;
+
 import java.util.List;
 
 /**
@@ -11,4 +12,5 @@ import java.util.List;
  */
 public record CreateTableStatementNode(
     IdentifierNode tableName, List<ColumnDefinitionNode> columns, IdentifierNode primaryKeyColumn)
-    implements StatementNode {}
+    implements StatementNode {
+}

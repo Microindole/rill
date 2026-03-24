@@ -7,14 +7,14 @@ import com.indolyn.rill.core.common.model.Schema;
  * @description: 所有执行计划节点的抽象基类
  */
 public abstract class PlanNode {
-  // 每个计划节点都应该能描述它输出的元组的模式(Schema)
-  private final Schema outputSchema;
+    // 每个计划节点都应该能描述它输出的元组的模式(Schema)
+    private final Schema outputSchema;
 
-  public PlanNode(Schema outputSchema) {
-    this.outputSchema = outputSchema;
-  }
+    public PlanNode(Schema outputSchema) {
+        this.outputSchema = outputSchema;
+    }
 
-  public Schema getOutputSchema() {
-    return outputSchema;
-  }
+    public Schema getOutputSchema() {
+        return outputSchema;
+    }
 }

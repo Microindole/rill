@@ -2,6 +2,7 @@ package com.indolyn.rill.core.executor;
 
 import com.indolyn.rill.core.common.model.Schema;
 import com.indolyn.rill.core.common.model.Tuple;
+
 import java.io.IOException;
 
 /**
@@ -10,19 +11,19 @@ import java.io.IOException;
  */
 public interface TupleIterator {
 
-  /**
-   * 获取下一条元组
-   *
-   * @return 如果存在，则返回下一条元组；否则返回 null
-   */
-  Tuple next() throws IOException;
+    /**
+     * 获取下一条元组
+     *
+     * @return 如果存在，则返回下一条元组；否则返回 null
+     */
+    Tuple next() throws IOException;
 
-  /**
-   * 检查是否还有更多元组
-   *
-   * @return 如果有则返回 true
-   */
-  boolean hasNext() throws IOException;
+    /**
+     * 检查是否还有更多元组
+     *
+     * @return 如果有则返回 true
+     */
+    boolean hasNext() throws IOException;
 
-  Schema getOutputSchema();
+    Schema getOutputSchema();
 }

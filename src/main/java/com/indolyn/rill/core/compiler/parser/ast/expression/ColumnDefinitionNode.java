@@ -7,4 +7,5 @@ import com.indolyn.rill.core.compiler.parser.ast.AstNode;
  * @description: 用于 CREATE TABLE 语句中的列定义
  */
 public record ColumnDefinitionNode(IdentifierNode columnName, IdentifierNode dataType)
-    implements AstNode {}
+    implements AstNode {
+}

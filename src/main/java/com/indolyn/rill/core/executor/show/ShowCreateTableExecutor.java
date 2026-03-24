@@ -4,31 +4,32 @@ import com.indolyn.rill.core.common.model.Schema;
 import com.indolyn.rill.core.common.model.Tuple;
 import com.indolyn.rill.core.compiler.planner.plan.show.ShowCreateTablePlanNode;
 import com.indolyn.rill.core.executor.TupleIterator;
+
 import java.io.IOException;
 
 public class ShowCreateTableExecutor implements TupleIterator {
 
-  private final ShowCreateTablePlanNode plan;
-  private boolean executed = false;
+    private final ShowCreateTablePlanNode plan;
+    private boolean executed = false;
 
-  public ShowCreateTableExecutor(ShowCreateTablePlanNode plan) {
-    this.plan = plan;
-  }
+    public ShowCreateTableExecutor(ShowCreateTablePlanNode plan) {
+        this.plan = plan;
+    }
 
-  @Override
-  public Tuple next() throws IOException {
-    // 我们不返回任何行，所以这个方法总是返回 null
-    return null;
-  }
+    @Override
+    public Tuple next() throws IOException {
+        // 我们不返回任何行，所以这个方法总是返回 null
+        return null;
+    }
 
-  @Override
-  public boolean hasNext() throws IOException {
-    // 因为我们不返回任何行，所以总是不存在下一行
-    return false;
-  }
+    @Override
+    public boolean hasNext() throws IOException {
+        // 因为我们不返回任何行，所以总是不存在下一行
+        return false;
+    }
 
-  @Override
-  public Schema getOutputSchema() {
-    return plan.getOutputSchema();
-  }
+    @Override
+    public Schema getOutputSchema() {
+        return plan.getOutputSchema();
+    }
 }

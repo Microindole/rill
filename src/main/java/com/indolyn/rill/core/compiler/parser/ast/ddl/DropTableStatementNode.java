@@ -8,4 +8,5 @@ import com.indolyn.rill.core.compiler.parser.ast.expression.IdentifierNode;
  *
  * @param tableName 要删除的表名
  */
-public record DropTableStatementNode(IdentifierNode tableName) implements StatementNode {}
+public record DropTableStatementNode(IdentifierNode tableName) implements StatementNode {
+}

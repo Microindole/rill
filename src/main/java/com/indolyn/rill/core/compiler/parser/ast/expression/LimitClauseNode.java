@@ -7,4 +7,5 @@ import com.indolyn.rill.core.compiler.parser.ast.AstNode;
  *
  * @param limit 限制返回的行数
  */
-public record LimitClauseNode(int limit) implements AstNode {}
+public record LimitClauseNode(int limit) implements AstNode {
+}

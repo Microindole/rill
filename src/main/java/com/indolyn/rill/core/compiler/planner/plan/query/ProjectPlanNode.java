@@ -8,14 +8,14 @@ import com.indolyn.rill.core.compiler.planner.plan.PlanNode;
  * @description: 投影操作的执行计划节点
  */
 public class ProjectPlanNode extends PlanNode {
-  private final PlanNode child;
+    private final PlanNode child;
 
-  public ProjectPlanNode(PlanNode child, Schema outputSchema) {
-    super(outputSchema); // Project 会改变 Schema
-    this.child = child;
-  }
+    public ProjectPlanNode(PlanNode child, Schema outputSchema) {
+        super(outputSchema); // Project 会改变 Schema
+        this.child = child;
+    }
 
-  public PlanNode getChild() {
-    return child;
-  }
+    public PlanNode getChild() {
+        return child;
+    }
 }

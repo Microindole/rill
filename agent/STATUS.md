@@ -23,8 +23,10 @@
 - 清理了 `core` 对 `access` 的直接反向依赖，会话抽象已下沉到 `core.session`
 - 建立了 `app` 最小骨架：service registry、query service、health controller
 - 增加了 `.gitattributes`，统一跨平台换行策略
-- 增加了 Java 格式化基础设施：`spotless` + `.editorconfig`
-- 将 Java 格式化实现切换为 `google-java-format`
+- 增加了 `.editorconfig`，统一基础缩进与换行规则
+- 建立了 IntelliJ IDEA Java 代码风格基准文件
+- 已按 IntelliJ IDEA 项目级代码风格对整仓 Java 文件完成一次重格式化
+- 完成数据库内核第一批核心重构：`Planner`、`SemanticAnalyzer`、`ExecutionEngine` 已从巨型 `instanceof` 分发改为注册式处理结构
 
 ## 已确认事实
 
@@ -42,8 +44,9 @@
 - 当前 `core` 已不再直接依赖 `access`、`tools`、`app`
 - 当前 `app` 已开始作为 Spring Boot 外层适配层调用 `core`
 - 当前已开始统一仓库换行策略，减少 Windows 环境下的提交噪音
-- 当前已建立 Java 主代码格式化基线，避免继续依赖 IDE 私有格式化
-- 当前 Java 格式化策略已明确选用更主流的 `google-java-format`
+- 当前 Java 代码风格基准改为 IntelliJ IDEA 默认风格变体：4 空格缩进、`{` 行尾
+- 当前主代码与测试代码都已按新的 IDEA 风格统一过一轮
+- 当前编译器与执行器主分发点已开始遵守开闭原则，新增语句/计划类型不再必须改动单一超长方法
 - 终端和 Maven 的 JDK 版本曾存在不一致，需要坚持 Java 21
 
 ## 用户已确定的总体规划
@@ -57,19 +60,19 @@
 
 ## 当前主要待办
 
-1. 继续清理和收敛入口设计
+1. 继续重构数据库内核，优先拆解编译器与执行器内部职责
 2. 将现有入口进一步收口到统一 launcher
 3. 开始数据库内核与 Spring Boot 适配层的边界强化
 4. 继续完善 `app` 层的 controller / service / dto 结构
 5. 再评估是否拆成 `rill-core` / `rill-app` 两个 Maven 模块
-6. 再进入更深层的设计模式与架构重构
+6. 再进入测试补强与更深层的模式重构
 
 ## 最近一次变更
 
-- 将 `spotless` 的 Java formatter 切换为 `google-java-format`
-- 影响范围：Java 代码格式、团队规范、后续格式化结果
-- 当前结果：Java 代码将按更主流的 Java 风格统一格式
-- 下一步建议：运行一次 `./mvnw spotless:apply` 并检查格式化结果
+- 移除了会与 IDEA 默认风格冲突的 Maven Java formatter，并完成一次整仓 IDEA 风格重格式化
+- 影响范围：Java 主代码、测试代码、IDE 项目配置、团队协作规范
+- 当前结果：项目以 `code-style/intellij-java-style.xml` 和 `.idea/codeStyles` 作为 Java 风格基准，JDK 21 下 `package` 通过
+- 下一步建议：后续提交尽量按“功能改动”和“纯格式化改动”分开，避免再次出现超大混合提交
 
 ## 当前建议顺序
 

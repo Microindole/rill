@@ -5,56 +5,56 @@ import java.net.Socket;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServerRemote {
-  public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
 
-    // 我们不再在启动时初始化一个全局的 QueryProcessor 和 RecoveryManager
-    // 恢复操作将在首次加载数据库时在 QueryProcessor 构造函数内部隐式完成。
-    System.out.println(
-        "rill server template started. Ready to create database handlers per connection.");
+        // 我们不再在启动时初始化一个全局的 QueryProcessor 和 RecoveryManager
+        // 恢复操作将在首次加载数据库时在 QueryProcessor 构造函数内部隐式完成。
+        System.out.println(
+            "rill server template started. Ready to create database handlers per connection.");
 
-    int port = parsePort(args, 9999, "RILL_MYSQL_PORT");
-    ServerSocket serverSocket = new ServerSocket(port);
-    System.out.println("Listening on port " + port + " for MySQL protocol connections...");
+        int port = parsePort(args, 9999, "RILL_MYSQL_PORT");
+        ServerSocket serverSocket = new ServerSocket(port);
+        System.out.println("Listening on port " + port + " for MySQL protocol connections...");
 
-    // 添加关闭钩子
-    Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread(
-                () -> {
-                  System.out.println("Shutting down server...");
-                  // 如果有全局资源需要清理，可以在这里添加
-                }));
+        // 添加关闭钩子
+        Runtime.getRuntime()
+            .addShutdownHook(
+                new Thread(
+                    () -> {
+                        System.out.println("Shutting down server...");
+                        // 如果有全局资源需要清理，可以在这里添加
+                    }));
 
-    AtomicInteger connectionCounter = new AtomicInteger(0);
+        AtomicInteger connectionCounter = new AtomicInteger(0);
 
-    while (true) {
-      Socket clientSocket = serverSocket.accept();
-      int connectionId = connectionCounter.incrementAndGet();
-      System.out.println(
-          "Client connected: "
-              + clientSocket.getInetAddress()
-              + " (Connection ID: "
-              + connectionId
-              + ")");
+        while (true) {
+            Socket clientSocket = serverSocket.accept();
+            int connectionId = connectionCounter.incrementAndGet();
+            System.out.println(
+                "Client connected: "
+                    + clientSocket.getInetAddress()
+                    + " (Connection ID: "
+                    + connectionId
+                    + ")");
 
-      // 每个 handler 管理自己的 QueryProcessor 实例
-      MysqlProtocolHandler handler = new MysqlProtocolHandler(clientSocket, connectionId);
-      new Thread(handler).start();
-    }
-  }
-
-  private static int parsePort(String[] args, int defaultPort, String envName) {
-    if (args != null) {
-      for (String arg : args) {
-        if (arg != null && arg.startsWith("--port=")) {
-          return Integer.parseInt(arg.substring("--port=".length()));
+            // 每个 handler 管理自己的 QueryProcessor 实例
+            MysqlProtocolHandler handler = new MysqlProtocolHandler(clientSocket, connectionId);
+            new Thread(handler).start();
         }
-      }
     }
-    String envPort = System.getenv(envName);
-    if (envPort != null && !envPort.isBlank()) {
-      return Integer.parseInt(envPort.trim());
+
+    private static int parsePort(String[] args, int defaultPort, String envName) {
+        if (args != null) {
+            for (String arg : args) {
+                if (arg != null && arg.startsWith("--port=")) {
+                    return Integer.parseInt(arg.substring("--port=".length()));
+                }
+            }
+        }
+        String envPort = System.getenv(envName);
+        if (envPort != null && !envPort.isBlank()) {
+            return Integer.parseInt(envPort.trim());
+        }
+        return defaultPort;
     }
-    return defaultPort;
-  }
 }

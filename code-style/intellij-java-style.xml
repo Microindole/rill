@@ -1,0 +1,23 @@
+<component name="ProjectCodeStyleConfiguration">
+    <code_scheme name="RillIntelliJDefault" version="173">
+        <option name="OTHER_INDENT_OPTIONS">
+            <value>
+                <option name="INDENT_SIZE" value="4" />
+                <option name="CONTINUATION_INDENT_SIZE" value="8" />
+                <option name="TAB_SIZE" value="4" />
+                <option name="USE_TAB_CHARACTER" value="false" />
+                <option name="SMART_TABS" value="false" />
+            </value>
+        </option>
+        <codeStyleSettings language="JAVA">
+            <option name="RIGHT_MARGIN" value="120" />
+            <indentOptions>
+                <option name="INDENT_SIZE" value="4" />
+                <option name="CONTINUATION_INDENT_SIZE" value="8" />
+                <option name="TAB_SIZE" value="4" />
+                <option name="USE_TAB_CHARACTER" value="false" />
+                <option name="SMART_TABS" value="false" />
+            </indentOptions>
+        </codeStyleSettings>
+    </code_scheme>
+</component>
