@@ -36,38 +36,89 @@
 
 这代表 Spring Boot 不再只是一个启动壳，而是开始成为正式的外层适配层。
 
-### 2. SQL 编译层
+### 2. SQL 处理层
 
 主要路径：
 
-- `core.compiler.lexer`
-- `core.compiler.parser`
-- `core.compiler.semantic`
-- `core.compiler.planner`
+- `core.sql.ast`
+- `core.sql.lexer`
+- `core.sql.parser`
+- `core.sql.semantic`
+- `core.sql.planner`
 - PlanNode 体系
 
 ### 3. 执行层
 
 主要路径：
 
-- `core.engine.QueryProcessor`
-- `core.engine.ExecutionEngine`
-- `core.executor.*`
-- `core.executor.TupleIterator`
+- `core.execution.QueryProcessor`
+- `core.execution.ExecutionEngine`
+- `core.execution.operator.*`
+- `core.execution.operator.TupleIterator`
+
+当前这一层内部也开始出现明确协作者：
+
+- `QueryRuntime` 负责数据库运行时初始化
+- `QueryCompiler` 负责 SQL 的 parse / analyze / plan 编译流程
+- `BuiltInCommandHandler` 负责 `CRASH_NOW / FLUSH_BUFFER` 这类内建命令
+- `StatementTableNameResolver` 负责从 AST 提取协议层需要的表名
+- `QueryResultRenderer` 负责结果文本渲染
+- `ExecutionSupport` 负责 `TableHeap` 与谓词构造辅助
+- `ProjectionColumnResolver` 负责投影列索引解析
+- `QueryExecutorBuilder` 负责查询类执行器的递归装配
 
 ### 4. 元数据与存储层
 
 主要组件：
 
 - `core.catalog.*`
+- `core.model.*`
+- `core.exception.*`
 - `core.storage.*`
-- `core.DatabaseManager`
+- `core.storage.database.DatabaseManager`
+
+当前这一层内部已经开始继续拆细：
+
+- `Catalog` 负责目录主编排
+- `PermissionRegistry` 负责用户/权限缓存与权限匹配
+- `CatalogMetadataStore` 负责 `_catalog_tables / _catalog_columns` 的读写细节
+- `IndexRegistry` 负责索引元数据的注册、查询和移除
+- `UserDirectoryStore` 负责 `_catalog_users / _catalog_privileges` 的读写细节
 
 ### 5. 事务与恢复层
 
 主要组件：
 
 - `core.transaction.*`
+
+当前恢复链路已经开始从单一长方法拆成阶段方法：
+
+- Analysis
+- Redo
+- Undo
+- DDL 日志应用
+- DML 日志应用
+
+当前这一层内部也开始出现明确协作者：
+
+- `RecoveryManager` 负责恢复阶段编排
+- `RecoveryApplier` 负责具体物理 redo / undo 操作
+
+SQL 编译链路的 DML 分支也已经开始继续拆细：
+
+- `Planner` 负责语句级规划分发
+- `SelectPlanBuilder`、`InsertPlanBuilder`、`DeletePlanBuilder`、`UpdatePlanBuilder` 负责分语句构建计划
+- `SemanticAnalyzer` 负责语句级语义分发
+- `SelectSemanticValidator`、`InsertSemanticValidator`、`DeleteSemanticValidator`、`UpdateSemanticValidator` 负责分语句校验
+- `SemanticValidationSupport` 负责 DML 单表权限、列存在性、字面量类型兼容等共享校验
+
+定义类与权限类分支也已经继续拆细：
+
+- `CreateTablePlanBuilder`、`CreateIndexPlanBuilder`、`AlterTablePlanBuilder`、`DropTablePlanBuilder` 负责 DDL 计划构建
+- `CreateUserPlanBuilder`、`GrantPlanBuilder` 负责权限类计划构建
+- `CreateTableSemanticValidator`、`AlterTableSemanticValidator`、`DropTableSemanticValidator` 负责 DDL 语义校验
+- `CreateUserSemanticValidator`、`GrantSemanticValidator` 负责权限类语义校验
+- `DefinitionValidationSupport` 负责 root 权限要求、列定义数据类型等共享定义校验
 
 ### 6. 客户端与工具层
 
@@ -141,6 +192,9 @@ Spring Boot 在后续应主要承担 Web UI 和服务化承载角色，而不是
 - Spring Boot 适配层是否真正只做外层承载
 
 当前已完成的一步是：会话抽象已下沉到 `core.session`，`core` 不再直接依赖 `access.protocol.Session`。
+当前已完成的另一项结构清理是：`core.common` 已被拆除，基础模型与异常已迁移到 `core.model` 和 `core.exception`。
+当前已完成的第三项结构收口是：`core.compiler` 已重命名为 `core.sql`，`core.engine` 与 `core.executor` 已合并为 `core.execution`。
+当前已完成的第四项结构收口是：AST 已从 `core.sql.parser.ast` 提升为独立的 `core.sql.ast`。
 
 ### 4. 下一阶段会引入更多外部能力
 

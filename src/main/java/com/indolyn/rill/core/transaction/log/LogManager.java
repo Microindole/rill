@@ -85,7 +85,6 @@ public class LogManager {
             if (bytesRead != recordSize) break;
 
             ByteBuffer buffer = ByteBuffer.wrap(recordBytes);
-            // 注意：恢复时我们不知道是哪个表的Schema，所以传null
             records.add(LogRecord.fromBytes(buffer, null));
             currentPosition += recordSize;
         }

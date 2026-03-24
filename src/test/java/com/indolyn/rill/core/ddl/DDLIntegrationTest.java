@@ -2,7 +2,7 @@ package com.indolyn.rill.core.ddl;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.indolyn.rill.core.engine.QueryProcessor;
+import com.indolyn.rill.core.execution.QueryProcessor;
 
 import java.io.File;
 import java.io.IOException;

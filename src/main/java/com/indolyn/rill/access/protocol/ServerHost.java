@@ -1,10 +1,10 @@
 package com.indolyn.rill.access.protocol;
 
-import com.indolyn.rill.core.compiler.lexer.Lexer;
-import com.indolyn.rill.core.compiler.parser.Parser;
-import com.indolyn.rill.core.compiler.parser.ast.StatementNode;
-import com.indolyn.rill.core.compiler.parser.ast.dcl.GrantStatementNode;
-import com.indolyn.rill.core.engine.QueryProcessor;
+import com.indolyn.rill.core.sql.lexer.Lexer;
+import com.indolyn.rill.core.sql.parser.Parser;
+import com.indolyn.rill.core.sql.ast.StatementNode;
+import com.indolyn.rill.core.sql.ast.statement.GrantStatementNode;
+import com.indolyn.rill.core.execution.QueryProcessor;
 import com.indolyn.rill.core.session.Session;
 
 import java.io.BufferedReader;
@@ -172,3 +172,4 @@ public class ServerHost {
         return defaultPort;
     }
 }
+

@@ -1,7 +1,7 @@
 package com.indolyn.rill.tools;
 
-import com.indolyn.rill.core.common.model.Schema;
-import com.indolyn.rill.core.common.model.Tuple;
+import com.indolyn.rill.core.model.Schema;
+import com.indolyn.rill.core.model.Tuple;
 
 import java.util.ArrayList;
 import java.util.List;

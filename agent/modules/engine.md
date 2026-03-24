@@ -6,10 +6,10 @@
 
 主要组件：
 
-- `core.engine.QueryProcessor`
-- `core.engine.ExecutionEngine`
-- `core.executor.*`
-- `core.executor.TupleIterator`
+- `core.execution.QueryProcessor`
+- `core.execution.ExecutionEngine`
+- `core.execution.operator.*`
+- `core.execution.operator.TupleIterator`
 
 ## 当前链路
 
@@ -30,4 +30,8 @@ AST -> PlanNode -> Executor Tree -> Tuple/Result
 ## 当前重构进展
 
 - `ExecutionEngine` 已从巨型 `instanceof` 分发改为注册式执行器工厂映射
+- `WHERE`/过滤谓词的 AST 到执行谓词转换已下沉到 `PredicateFactory`
+- `QueryProcessor` 已拆出 `QueryCompiler`、`BuiltInCommandHandler`、`StatementTableNameResolver`
+- `ExecutionEngine` 已拆出 `QueryExecutorBuilder`，查询类执行器的递归装配不再堆在总控类中
+- 当前 `ExecutionEngine` 已按 command/query 两段注册执行器工厂
 - 当前新增 `PlanNode` 类型时，可以优先增加工厂注册与专属构建方法，避免继续膨胀单一方法

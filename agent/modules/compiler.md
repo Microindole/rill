@@ -4,10 +4,10 @@
 
 本模块负责 SQL 的编译前半段处理，主要包括：
 
-- `core.compiler.lexer`
-- `core.compiler.parser`
-- `core.compiler.semantic`
-- `core.compiler.planner`
+- `core.sql.lexer`
+- `core.sql.parser`
+- `core.sql.semantic`
+- `core.sql.planner`
 - AST 与 PlanNode 体系
 
 ## 当前主链路
@@ -30,4 +30,13 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 
 - `Planner` 已从单一超长 `instanceof` 分发改为注册式语句计划映射
 - `SemanticAnalyzer` 已从单一超长条件分支改为注册式语义规则分发
+- `SELECT` 语句的计划构建已下沉到 `SelectPlanBuilder`
+- `SELECT` 语句的语义检查已下沉到 `SelectSemanticValidator`
+- `INSERT / UPDATE / DELETE` 的计划构建已分别下沉到独立的 DML builder
+- `INSERT / UPDATE / DELETE` 的语义检查已分别下沉到独立的 DML validator
+- 单表 DML 的权限、列校验、字面量类型兼容规则已收口到 `SemanticValidationSupport`
+- `CREATE / ALTER / DROP / CREATE INDEX / CREATE USER / GRANT` 的计划构建已继续下沉到独立 builder
+- `CREATE / ALTER / DROP / CREATE USER / GRANT` 的语义校验已继续下沉到独立 validator
+- root 权限要求与列定义类型校验已收口到 `DefinitionValidationSupport`
+- `ShowTables` 已并入统一 validator 注册体系，`Planner` 与 `SemanticAnalyzer` 中大部分桥接方法已被移除
 - 当前新增语句类型时，优先新增规则注册和专属处理器，而不是继续扩写单一方法

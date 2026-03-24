@@ -26,7 +26,25 @@
 - 增加了 `.editorconfig`，统一基础缩进与换行规则
 - 建立了 IntelliJ IDEA Java 代码风格基准文件
 - 已按 IntelliJ IDEA 项目级代码风格对整仓 Java 文件完成一次重格式化
+- 完成数据库内核第二批职责下沉：`SELECT` 计划构建、`SELECT` 语义检查、谓词构建已拆出独立组件
+- 完成 `core` 目录第一批结构清理：移除 `core.common`，拆分为 `core.model` 与 `core.exception`
+- 完成 `core` 主模块命名重构：`compiler -> sql`，`engine/executor -> execution`
+- 完成 `core.sql.ast` 提升：AST 已从 `sql.parser.ast` 提升为独立中间层
+- 完成 `DatabaseManager` 下沉：从 `core` 根级移动到 `core.storage.database`
+- 完成 `Catalog` 第一轮瘦身：权限缓存与匹配逻辑已下沉到 `PermissionRegistry`
+- 完成 `Catalog` 第二轮瘦身：系统表读写细节已下沉到 `CatalogMetadataStore`
+- 完成 `Catalog` 第三轮瘦身：索引元数据注册与查询已下沉到 `IndexRegistry`
+- 完成 `Catalog` 第四轮瘦身：用户目录与权限目录页操作已下沉到 `UserDirectoryStore`
+- 完成 `RecoveryManager` 第一轮瘦身：恢复流程已拆分为 analysis / redo / undo / DML 应用方法
+- 完成 `RecoveryManager` 第二轮瘦身：DDL 恢复分支已下沉为独立方法
+- 完成 `RecoveryManager` 第三轮瘦身：物理 redo / undo 操作已下沉到 `RecoveryApplier`
+- 完成 `QueryProcessor` 第一轮瘦身：运行时初始化已下沉到 `QueryRuntime`，结果渲染已下沉到 `QueryResultRenderer`
+- 完成 `ExecutionEngine` 第一轮瘦身：重复装配细节已下沉到 `ExecutionSupport` 和 `ProjectionColumnResolver`
 - 完成数据库内核第一批核心重构：`Planner`、`SemanticAnalyzer`、`ExecutionEngine` 已从巨型 `instanceof` 分发改为注册式处理结构
+- 完成编译链路第二轮职责下沉：`INSERT / UPDATE / DELETE` 的计划构建已拆为独立 builder，DML 语义校验已拆为独立 validator，并引入 `SemanticValidationSupport` 统一单表校验支持
+- 完成编译链路第三轮职责下沉：`CREATE / ALTER / DROP / CREATE INDEX / CREATE USER / GRANT` 的计划构建与语义校验已继续拆为独立 builder / validator，并引入 `DefinitionValidationSupport`
+- 完成编译链路第四轮收口：`Planner` 与 `SemanticAnalyzer` 中的桥接方法已基本移除，`ShowTables` 也已纳入统一 validator 注册结构
+- 完成执行链路第二轮职责下沉：`QueryProcessor` 已拆出 `QueryCompiler / BuiltInCommandHandler / StatementTableNameResolver`，`ExecutionEngine` 已拆出 `QueryExecutorBuilder`
 
 ## 已确认事实
 
@@ -47,6 +65,16 @@
 - 当前 Java 代码风格基准改为 IntelliJ IDEA 默认风格变体：4 空格缩进、`{` 行尾
 - 当前主代码与测试代码都已按新的 IDEA 风格统一过一轮
 - 当前编译器与执行器主分发点已开始遵守开闭原则，新增语句/计划类型不再必须改动单一超长方法
+- 当前 `Planner`、`SemanticAnalyzer`、`ExecutionEngine` 已进一步退化为编排层，核心细节开始下沉
+- 当前 `core` 顶层目录已收敛为 `catalog / exception / execution / model / session / sql / storage / transaction`
+- 当前 `core.sql` 主链路已明确为 `lexer / parser / ast / semantic / planner`
+- 当前 `catalog` 与 `transaction` 已开始从巨型流程类转向协作者 + 阶段方法结构
+- 当前 `Catalog` 已形成 `Catalog + PermissionRegistry + CatalogMetadataStore + IndexRegistry + UserDirectoryStore` 的初步协作结构
+- 当前 `transaction` 已形成 `RecoveryManager + RecoveryApplier` 的恢复协作结构
+- 当前 `execution` 已形成 `QueryProcessor + QueryRuntime + QueryResultRenderer + ExecutionEngine + ExecutionSupport + ProjectionColumnResolver` 的初步协作结构
+- 当前 `execution` 已进一步形成 `QueryProcessor + QueryCompiler + BuiltInCommandHandler + StatementTableNameResolver + ExecutionEngine + QueryExecutorBuilder` 的执行协作结构
+- 当前 `core.sql` 已形成 `Planner + Select/Insert/Delete/UpdatePlanBuilder` 与 `SemanticAnalyzer + Select/Insert/Delete/UpdateSemanticValidator` 的初步协作结构
+- 当前 `core.sql` 已进一步形成 `CreateTable/CreateIndex/AlterTable/DropTable/CreateUser/Grant` 级别的 builder / validator 协作者，`Planner` 与 `SemanticAnalyzer` 已接近纯语句分发层
 - 终端和 Maven 的 JDK 版本曾存在不一致，需要坚持 Java 21
 
 ## 用户已确定的总体规划
@@ -60,7 +88,7 @@
 
 ## 当前主要待办
 
-1. 继续重构数据库内核，优先拆解编译器与执行器内部职责
+1. 继续重构数据库内核，优先清理剩余导入噪音与测试侧历史结构，并开始补执行链路/编译链路测试
 2. 将现有入口进一步收口到统一 launcher
 3. 开始数据库内核与 Spring Boot 适配层的边界强化
 4. 继续完善 `app` 层的 controller / service / dto 结构
@@ -69,10 +97,10 @@
 
 ## 最近一次变更
 
-- 移除了会与 IDEA 默认风格冲突的 Maven Java formatter，并完成一次整仓 IDEA 风格重格式化
-- 影响范围：Java 主代码、测试代码、IDE 项目配置、团队协作规范
-- 当前结果：项目以 `code-style/intellij-java-style.xml` 和 `.idea/codeStyles` 作为 Java 风格基准，JDK 21 下 `package` 通过
-- 下一步建议：后续提交尽量按“功能改动”和“纯格式化改动”分开，避免再次出现超大混合提交
+- 调整了 `QueryProcessor` 与 `ExecutionEngine` 的内部结构，拆出 SQL 编译、内建命令处理、表名解析和查询执行器装配协作者
+- 影响范围：执行链路、MySQL 协议辅助查询、执行模块文档
+- 当前结果：`Planner`、`SemanticAnalyzer`、`Catalog`、`RecoveryManager`、`QueryProcessor`、`ExecutionEngine` 都已经从大类结构转向“编排层 + 协作者”的形态，JDK 21 下 `package` 通过
+- 下一步建议：开始收口测试结构和剩余导入噪音，并补一轮针对编译链路与执行链路的回归测试
 
 ## 当前建议顺序
 

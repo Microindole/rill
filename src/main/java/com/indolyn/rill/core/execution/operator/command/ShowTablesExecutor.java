@@ -1,0 +1,76 @@
+package com.indolyn.rill.core.execution.operator.command;
+
+import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.model.Column;
+import com.indolyn.rill.core.model.DataType;
+import com.indolyn.rill.core.model.Schema;
+import com.indolyn.rill.core.model.Tuple;
+import com.indolyn.rill.core.model.Value;
+import com.indolyn.rill.core.sql.planner.plan.command.ShowTablesPlanNode;
+import com.indolyn.rill.core.execution.operator.TupleIterator;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+/**
+ * 执行 SHOW TABLES 语句的执行器。
+ */
+public class ShowTablesExecutor implements TupleIterator {
+
+    private final ShowTablesPlanNode plan;
+    private final Catalog catalog;
+    private final Schema outputSchema;
+    private Iterator<Tuple> resultIterator;
+
+    public ShowTablesExecutor(ShowTablesPlanNode plan, Catalog catalog) {
+        this.plan = plan;
+        this.catalog = catalog;
+        // SHOW TABLES 的输出 Schema 是固定的
+        this.outputSchema = new Schema(List.of(new Column("Tables", DataType.VARCHAR)));
+        this.resultIterator = null;
+    }
+
+    private void generateTableList() {
+        // 从 Catalog 获取所有表名
+        List<String> tableNames = catalog.getAllTableNames();
+
+        // 过滤掉内部系统表 (以 "_" 开头)
+        tableNames.removeIf(name -> name.startsWith("_"));
+
+        // 按字母排序
+        Collections.sort(tableNames);
+
+        List<Tuple> resultTuples = new ArrayList<>();
+        for (String tableName : tableNames) {
+            resultTuples.add(new Tuple(Collections.singletonList(new Value(tableName))));
+        }
+        this.resultIterator = resultTuples.iterator();
+    }
+
+    @Override
+    public Tuple next() throws IOException {
+        if (resultIterator == null) {
+            generateTableList();
+        }
+        if (resultIterator.hasNext()) {
+            return resultIterator.next();
+        }
+        return null;
+    }
+
+    @Override
+    public boolean hasNext() throws IOException {
+        if (resultIterator == null) {
+            generateTableList();
+        }
+        return resultIterator.hasNext();
+    }
+
+    @Override
+    public Schema getOutputSchema() {
+        return outputSchema;
+    }
+}

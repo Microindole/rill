@@ -1,0 +1,95 @@
+package com.indolyn.rill.core.execution.operator.query;
+
+import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.catalog.IndexInfo;
+import com.indolyn.rill.core.model.*;
+import com.indolyn.rill.core.sql.planner.plan.command.DeletePlanNode;
+import com.indolyn.rill.core.execution.operator.TableHeap;
+import com.indolyn.rill.core.execution.operator.TupleIterator;
+import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.index.BPlusTree;
+import com.indolyn.rill.core.transaction.Transaction;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class DeleteExecutor implements TupleIterator {
+    private final TupleIterator child;
+    private final TableHeap tableHeap;
+    private final Transaction txn;
+    private boolean done = false;
+    private static final Schema AFFECTED_ROWS_SCHEMA =
+        new Schema(List.of(new Column("deleted_rows", DataType.INT)));
+
+    private final DeletePlanNode plan;
+    private final Catalog catalog;
+    private final BufferPoolManager bufferPoolManager;
+
+    public DeleteExecutor(
+        DeletePlanNode plan,
+        TupleIterator child,
+        TableHeap tableHeap,
+        Transaction txn,
+        Catalog catalog,
+        BufferPoolManager bufferPoolManager) {
+        this.plan = plan;
+        this.child = child;
+        this.tableHeap = tableHeap;
+        this.txn = txn;
+        this.catalog = catalog;
+        this.bufferPoolManager = bufferPoolManager;
+    }
+
+    @Override
+    public Tuple next() throws IOException {
+        if (done) {
+            return null;
+        }
+
+        List<Tuple> tuplesToDelete = new ArrayList<>();
+        while (child.hasNext()) {
+            tuplesToDelete.add(child.next());
+        }
+
+        tuplesToDelete.sort(
+            Comparator.comparing(
+                Tuple::getRid,
+                Comparator.comparingInt(RID::pageNum).thenComparingInt(RID::slotIndex).reversed()));
+
+        int deletedCount = 0;
+        for (Tuple tuple : tuplesToDelete) {
+            updateAllIndexesForDelete(tuple);
+            if (tableHeap.deleteTuple(tuple.getRid(), txn)) {
+                deletedCount++;
+            }
+        }
+        done = true;
+        return new Tuple(Collections.singletonList(new Value(deletedCount)));
+    }
+
+    private void updateAllIndexesForDelete(Tuple tuple) throws IOException {
+        String tableName = plan.getTableInfo().getTableName();
+        List<IndexInfo> indexes = catalog.getIndexesForTable(tableName);
+
+        for (IndexInfo indexInfo : indexes) {
+            BPlusTree index = new BPlusTree(bufferPoolManager, indexInfo.getRootPageId());
+            int keyColumnIndex =
+                plan.getTableInfo().getSchema().getColumnIndex(indexInfo.getColumnName());
+            Value key = tuple.getValues().get(keyColumnIndex);
+            index.delete(key);
+        }
+    }
+
+    @Override
+    public boolean hasNext() {
+        return !done;
+    }
+
+    @Override
+    public Schema getOutputSchema() {
+        return AFFECTED_ROWS_SCHEMA;
+    }
+}

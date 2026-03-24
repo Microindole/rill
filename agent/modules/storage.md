@@ -6,7 +6,7 @@
 
 主要组件：
 
-- `core.DatabaseManager`
+- `core.storage.database.DatabaseManager`
 - `core.catalog.*`
 - `core.storage.disk.DiskManager`
 - `core.storage.buffer.BufferPoolManager`

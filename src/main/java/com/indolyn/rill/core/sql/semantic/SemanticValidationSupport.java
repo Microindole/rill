@@ -1,0 +1,168 @@
+package com.indolyn.rill.core.sql.semantic;
+
+import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.catalog.TableInfo;
+import com.indolyn.rill.core.exception.SemanticException;
+import com.indolyn.rill.core.model.Column;
+import com.indolyn.rill.core.model.DataType;
+import com.indolyn.rill.core.sql.ast.ExpressionNode;
+import com.indolyn.rill.core.sql.ast.expression.BinaryExpressionNode;
+import com.indolyn.rill.core.sql.ast.expression.IdentifierNode;
+import com.indolyn.rill.core.sql.ast.expression.LiteralNode;
+import com.indolyn.rill.core.sql.lexer.TokenType;
+import com.indolyn.rill.core.session.Session;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
+class SemanticValidationSupport {
+
+    private final Catalog catalog;
+
+    SemanticValidationSupport(Catalog catalog) {
+        this.catalog = catalog;
+    }
+
+    void requireTablePermission(Session session, String tableName, String privilege) {
+        if (!catalog.hasPermission(session.getUsername(), tableName, privilege)) {
+            throw new SemanticException(
+                "Access denied for user '"
+                    + session.getUsername()
+                    + "'. "
+                    + privilege
+                    + " command denied on table '"
+                    + tableName
+                    + "'.");
+        }
+    }
+
+    TableInfo getTableOrThrow(String tableName) {
+        TableInfo tableInfo = catalog.getTable(tableName);
+        if (tableInfo == null) {
+            throw new SemanticException("Table '" + tableName + "' not found.");
+        }
+        return tableInfo;
+    }
+
+    Column checkColumnExists(TableInfo tableInfo, IdentifierNode columnIdentifier) {
+        String tableName = tableInfo.getTableName();
+        String columnName = columnIdentifier.getName();
+        String qualifier = columnIdentifier.getTableQualifier();
+
+        if (qualifier != null && !qualifier.equalsIgnoreCase(tableName)) {
+            throw new SemanticException(
+                "Table qualifier '"
+                    + qualifier
+                    + "' does not match the table '"
+                    + tableName
+                    + "' in FROM clause.");
+        }
+
+        return tableInfo.getSchema().getColumns().stream()
+            .filter(c -> c.getName().equalsIgnoreCase(columnName))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new SemanticException(
+                        "Column '" + columnName + "' not found in table '" + tableName + "'."));
+    }
+
+    DataType getLiteralType(LiteralNode literal) {
+        TokenType type = literal.literal().type();
+        if (type == TokenType.INTEGER_CONST) {
+            return DataType.INT;
+        }
+        if (type == TokenType.DECIMAL_CONST) {
+            return DataType.DECIMAL;
+        }
+        if (type == TokenType.STRING_CONST) {
+            return DataType.VARCHAR;
+        }
+        if (type == TokenType.TRUE || type == TokenType.FALSE) {
+            return DataType.BOOLEAN;
+        }
+        throw new SemanticException("Unsupported literal type: " + literal.literal().type());
+    }
+
+    void analyzeSingleTableExpression(ExpressionNode expr, TableInfo tableInfo) {
+        if (expr instanceof BinaryExpressionNode binaryExpr) {
+            TokenType opType = binaryExpr.operator().type();
+            if (opType == TokenType.AND || opType == TokenType.OR) {
+                analyzeSingleTableExpression(binaryExpr.left(), tableInfo);
+                analyzeSingleTableExpression(binaryExpr.right(), tableInfo);
+                return;
+            }
+
+            if (binaryExpr.left() instanceof IdentifierNode colNode
+                && binaryExpr.right() instanceof LiteralNode literalNode) {
+                Column column = checkColumnExists(tableInfo, colNode);
+                DataType expectedType = column.getType();
+                DataType actualType = getLiteralType(literalNode);
+                if (expectedType != actualType) {
+                    throw new SemanticException(
+                        "Data type mismatch for column '"
+                            + colNode.getFullName()
+                            + "'. Expected "
+                            + expectedType
+                            + " but got "
+                            + actualType
+                            + ".");
+                }
+                return;
+            }
+
+            throw new SemanticException("Unsupported expression format in WHERE clause.");
+        }
+    }
+
+    void validateLiteralAssignment(String columnName, DataType expectedType, LiteralNode literal) {
+        DataType actualType = getLiteralType(literal);
+
+        if (isCompatible(expectedType, actualType)) {
+            return;
+        }
+
+        if (expectedType == DataType.DATE && actualType == DataType.VARCHAR) {
+            validateDateLiteral(columnName, literal);
+            return;
+        }
+
+        throw new SemanticException(
+            "Data type mismatch for column '"
+                + columnName
+                + "'. Expected "
+                + expectedType
+                + " but got "
+                + actualType
+                + ".");
+    }
+
+    private boolean isCompatible(DataType expectedType, DataType actualType) {
+        if (expectedType == actualType) {
+            return true;
+        }
+        if (expectedType == DataType.DECIMAL && actualType == DataType.INT) {
+            return true;
+        }
+        if (expectedType == DataType.FLOAT
+            && (actualType == DataType.INT || actualType == DataType.DECIMAL)) {
+            return true;
+        }
+        if (expectedType == DataType.DOUBLE
+            && (actualType == DataType.INT
+                || actualType == DataType.DECIMAL
+                || actualType == DataType.FLOAT)) {
+            return true;
+        }
+        return expectedType == DataType.CHAR && actualType == DataType.VARCHAR;
+    }
+
+    private void validateDateLiteral(String columnName, LiteralNode literal) {
+        try {
+            LocalDate.parse(literal.literal().lexeme());
+        } catch (DateTimeParseException e) {
+            throw new SemanticException(
+                "Invalid DATE format for column '" + columnName + "'. Expected 'YYYY-MM-DD'.");
+        }
+    }
+}

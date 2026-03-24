@@ -1,6 +1,6 @@
 package com.indolyn.rill.core.catalog;
 
-import com.indolyn.rill.core.common.model.Schema;
+import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.storage.page.PageId;
 import lombok.Getter;
 

@@ -5,7 +5,7 @@ import static org.mockito.Mockito.when;
 
 import com.indolyn.rill.access.protocol.MysqlProtocolHandler;
 import com.indolyn.rill.core.catalog.Catalog;
-import com.indolyn.rill.core.engine.QueryProcessor;
+import com.indolyn.rill.core.execution.QueryProcessor;
 
 import java.io.*;
 import java.net.Socket;

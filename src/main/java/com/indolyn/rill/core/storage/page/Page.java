@@ -1,7 +1,7 @@
 package com.indolyn.rill.core.storage.page;
 
-import com.indolyn.rill.core.common.model.Schema;
-import com.indolyn.rill.core.common.model.Tuple;
+import com.indolyn.rill.core.model.Schema;
+import com.indolyn.rill.core.model.Tuple;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

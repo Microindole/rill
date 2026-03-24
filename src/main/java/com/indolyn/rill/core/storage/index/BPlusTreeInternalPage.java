@@ -1,6 +1,6 @@
 package com.indolyn.rill.core.storage.index;
 
-import com.indolyn.rill.core.common.model.Value;
+import com.indolyn.rill.core.model.Value;
 import com.indolyn.rill.core.storage.page.Page;
 
 import java.util.Comparator;

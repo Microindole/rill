@@ -1,9 +1,9 @@
 package com.indolyn.rill.core.transaction.log;
 
-import com.indolyn.rill.core.common.model.Column;
-import com.indolyn.rill.core.common.model.RID;
-import com.indolyn.rill.core.common.model.Schema;
-import com.indolyn.rill.core.common.model.Tuple;
+import com.indolyn.rill.core.model.Column;
+import com.indolyn.rill.core.model.RID;
+import com.indolyn.rill.core.model.Schema;
+import com.indolyn.rill.core.model.Tuple;
 
 import java.io.*;
 import java.nio.ByteBuffer;

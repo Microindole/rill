@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.indolyn.rill.core.catalog.Catalog;
 import com.indolyn.rill.core.catalog.TableInfo;
-import com.indolyn.rill.core.common.model.Column;
-import com.indolyn.rill.core.common.model.DataType;
-import com.indolyn.rill.core.common.model.Schema;
+import com.indolyn.rill.core.model.Column;
+import com.indolyn.rill.core.model.DataType;
+import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
 

@@ -1,7 +1,7 @@
 package com.indolyn.rill.access.gui;
 
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
-import com.indolyn.rill.core.compiler.lexer.TokenType;
+import com.indolyn.rill.core.sql.lexer.TokenType;
 import com.indolyn.rill.tools.DataReader;
 import com.indolyn.rill.tools.LogReader;
 

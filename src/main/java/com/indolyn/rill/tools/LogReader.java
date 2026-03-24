@@ -1,9 +1,9 @@
 package com.indolyn.rill.tools;
 
-import com.indolyn.rill.core.DatabaseManager;
+import com.indolyn.rill.core.storage.database.DatabaseManager;
 import com.indolyn.rill.core.catalog.Catalog;
-import com.indolyn.rill.core.common.model.Schema;
-import com.indolyn.rill.core.common.model.Tuple;
+import com.indolyn.rill.core.model.Schema;
+import com.indolyn.rill.core.model.Tuple;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
 import com.indolyn.rill.core.transaction.log.LogRecord;

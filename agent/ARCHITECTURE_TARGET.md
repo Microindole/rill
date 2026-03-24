@@ -44,10 +44,11 @@ src/main/java/com/indolyn/rill/
 
   core/
     catalog/
-    common/
-    compiler/
-    engine/
-    executor/
+    model/
+    exception/
+    sql/
+    execution/
+    session/
     storage/
     transaction/
 ```
@@ -91,19 +92,24 @@ Spring Boot 适配层。
 数据库内核主包。
 
 - `core.catalog`
-- `core.common`
-- `core.compiler`
-- `core.engine`
-- `core.executor`
+- `core.model`
+- `core.exception`
+- `core.sql`
+- `core.execution`
+- `core.session`
 - `core.storage`
 - `core.transaction`
-- `core.DatabaseManager`
+- `core.storage.database`
 
 这些是数据库本体。当前这一步已经完成第一阶段迁移，后续重点不再是“是否迁入 core”，而是“如何保证 core 不被外层反向污染”。
 
 当前已完成的关键净化动作：
 
 - `Session` 已下沉到 `core.session`
+- `core.common` 已拆分为 `core.model` 与 `core.exception`
+- `core.compiler` 已重命名为 `core.sql`
+- `core.engine` 与 `core.executor` 已合并为 `core.execution`
+- `core.sql.ast` 已从 `core.sql.parser.ast` 提升为独立中间层
 - `core` 不再直接依赖 `access` / `tools` / `app`
 - `app` 已建立最小 service / web 骨架，可作为未来 `rill-app` 模块前身
 
@@ -134,6 +140,7 @@ Spring Boot 适配层。
 当前结论非常明确：
 
 - 代码目录现在应该拆
+- 顶层目录应优先表达稳定职责，而不是 SQL 教材里的 `dcl / ddl / dml` 分类
 - 现在已经开始接近可拆模块状态，但仍建议先继续稳定 `app` 适配层
 - 下一步如果拆，优先拆成两个模块：`rill-core` 和 `rill-app`
 

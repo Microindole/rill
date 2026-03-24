@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.indolyn.rill.core.catalog.Catalog;
 import com.indolyn.rill.core.catalog.TableInfo;
-import com.indolyn.rill.core.common.model.*;
-import com.indolyn.rill.core.executor.TableHeap;
+import com.indolyn.rill.core.model.*;
+import com.indolyn.rill.core.execution.operator.TableHeap;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
 import com.indolyn.rill.core.transaction.log.LogManager;

@@ -1,6 +1,6 @@
 package com.indolyn.rill.app.service;
 
-import com.indolyn.rill.core.engine.QueryProcessor;
+import com.indolyn.rill.core.execution.QueryProcessor;
 import com.indolyn.rill.core.session.Session;
 
 import java.util.List;

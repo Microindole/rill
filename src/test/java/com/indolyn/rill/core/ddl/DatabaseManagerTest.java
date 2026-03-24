@@ -2,7 +2,7 @@ package com.indolyn.rill.core.ddl;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.indolyn.rill.core.DatabaseManager;
+import com.indolyn.rill.core.storage.database.DatabaseManager;
 
 import java.io.File;
 import java.util.List;

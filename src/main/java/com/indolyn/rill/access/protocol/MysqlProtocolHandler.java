@@ -1,16 +1,16 @@
 package com.indolyn.rill.access.protocol;
 
 import com.indolyn.rill.core.catalog.Catalog;
-import com.indolyn.rill.core.common.exception.ParseException;
-import com.indolyn.rill.core.common.exception.SemanticException;
-import com.indolyn.rill.core.common.model.Column;
-import com.indolyn.rill.core.common.model.Schema;
-import com.indolyn.rill.core.common.model.Tuple;
-import com.indolyn.rill.core.compiler.lexer.Lexer;
-import com.indolyn.rill.core.compiler.parser.Parser;
-import com.indolyn.rill.core.compiler.parser.ast.StatementNode;
-import com.indolyn.rill.core.engine.QueryProcessor;
-import com.indolyn.rill.core.executor.TupleIterator;
+import com.indolyn.rill.core.exception.ParseException;
+import com.indolyn.rill.core.exception.SemanticException;
+import com.indolyn.rill.core.model.Column;
+import com.indolyn.rill.core.model.Schema;
+import com.indolyn.rill.core.model.Tuple;
+import com.indolyn.rill.core.sql.lexer.Lexer;
+import com.indolyn.rill.core.sql.parser.Parser;
+import com.indolyn.rill.core.sql.ast.StatementNode;
+import com.indolyn.rill.core.execution.QueryProcessor;
+import com.indolyn.rill.core.execution.operator.TupleIterator;
 import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.transaction.Transaction;
 import com.indolyn.rill.core.transaction.TransactionManager;
@@ -551,7 +551,7 @@ public class MysqlProtocolHandler implements Runnable {
         for (Tuple tuple : tuples) {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             for (int i = 0; i < tuple.getValues().size(); i++) {
-                com.indolyn.rill.core.common.model.Value val = tuple.getValues().get(i);
+                com.indolyn.rill.core.model.Value val = tuple.getValues().get(i);
                 if (val.getValue() == null) {
                     bos.write(0xfb);
                 } else {
@@ -1058,3 +1058,4 @@ public class MysqlProtocolHandler implements Runnable {
         return null;
     }
 }
+

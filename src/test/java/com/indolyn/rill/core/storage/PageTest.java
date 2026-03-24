@@ -2,7 +2,7 @@ package com.indolyn.rill.core.storage;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.indolyn.rill.core.common.model.*;
+import com.indolyn.rill.core.model.*;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
 

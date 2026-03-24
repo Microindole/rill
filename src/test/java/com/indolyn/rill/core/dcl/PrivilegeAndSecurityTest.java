@@ -3,7 +3,7 @@ package com.indolyn.rill.core.dcl;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.indolyn.rill.core.engine.QueryProcessor;
+import com.indolyn.rill.core.execution.QueryProcessor;
 import com.indolyn.rill.core.session.Session;
 
 import java.io.File;

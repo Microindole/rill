@@ -2,8 +2,8 @@ package com.indolyn.rill.core.index;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.indolyn.rill.core.common.model.RID;
-import com.indolyn.rill.core.common.model.Value;
+import com.indolyn.rill.core.model.RID;
+import com.indolyn.rill.core.model.Value;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
 import com.indolyn.rill.core.storage.index.BPlusTree;
