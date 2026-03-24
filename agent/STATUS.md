@@ -22,6 +22,9 @@
 - 完成了 `core` 第一阶段迁移：数据库内核主包收敛到 `com.indolyn.rill.core.*`
 - 清理了 `core` 对 `access` 的直接反向依赖，会话抽象已下沉到 `core.session`
 - 建立了 `app` 最小骨架：service registry、query service、health controller
+- 增加了 `.gitattributes`，统一跨平台换行策略
+- 增加了 Java 格式化基础设施：`spotless` + `.editorconfig`
+- 将 Java 格式化实现切换为 `google-java-format`
 
 ## 已确认事实
 
@@ -38,6 +41,9 @@
 - 当前已完成数据库内核主包迁移：`catalog/common/compiler/engine/executor/storage/transaction/DatabaseManager` 已进入 `core`
 - 当前 `core` 已不再直接依赖 `access`、`tools`、`app`
 - 当前 `app` 已开始作为 Spring Boot 外层适配层调用 `core`
+- 当前已开始统一仓库换行策略，减少 Windows 环境下的提交噪音
+- 当前已建立 Java 主代码格式化基线，避免继续依赖 IDE 私有格式化
+- 当前 Java 格式化策略已明确选用更主流的 `google-java-format`
 - 终端和 Maven 的 JDK 版本曾存在不一致，需要坚持 Java 21
 
 ## 用户已确定的总体规划
@@ -60,10 +66,10 @@
 
 ## 最近一次变更
 
-- 完成 `core` 第一阶段迁移：数据库内核主包进入 `com.indolyn.rill.core.*`
-- 影响范围：数据库内核、入口层导入路径、测试导入路径、整体包结构
-- 当前结果：项目在单 Maven 模块下已形成 `app / access / tools / core` 四层主结构，且 `core` 已不再直接反向依赖外层包，并可正常打包
-- 下一步建议：继续收口 launcher 子命令，并完善 `app` 适配层，为后续两模块 Maven 拆分做准备
+- 将 `spotless` 的 Java formatter 切换为 `google-java-format`
+- 影响范围：Java 代码格式、团队规范、后续格式化结果
+- 当前结果：Java 代码将按更主流的 Java 风格统一格式
+- 下一步建议：运行一次 `./mvnw spotless:apply` 并检查格式化结果
 
 ## 当前建议顺序
 

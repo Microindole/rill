@@ -5,62 +5,57 @@ import com.indolyn.rill.core.common.model.Schema;
 import com.indolyn.rill.core.common.model.Tuple;
 import com.indolyn.rill.core.common.model.Value;
 import com.indolyn.rill.core.executor.TupleIterator;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 投影执行器，根据指定的列索引，从子执行器返回的元组中提取列。
- */
+/** 投影执行器，根据指定的列索引，从子执行器返回的元组中提取列。 */
 public class ProjectExecutor implements TupleIterator {
-    private final TupleIterator child;
-    private final List<Integer> columnIndexes;
-    private final Schema outputSchema;
+  private final TupleIterator child;
+  private final List<Integer> columnIndexes;
+  private final Schema outputSchema;
 
-    /**
-     * @param child          子执行器 (如 FilterExecutor 或 SeqScanExecutor)
-     * @param columnIndexes  需要保留的列的索引列表
-     */
-    public ProjectExecutor(TupleIterator child, List<Integer> columnIndexes) {
-        this.child = child;
-        this.columnIndexes = columnIndexes;
-        Schema inputSchema = child.getOutputSchema();
-        List<Column> projectedColumns = new ArrayList<>();
-        for (int index : columnIndexes) {
-            projectedColumns.add(inputSchema.getColumns().get(index));
-        }
-        this.outputSchema = new Schema(projectedColumns);
+  /**
+   * @param child 子执行器 (如 FilterExecutor 或 SeqScanExecutor)
+   * @param columnIndexes 需要保留的列的索引列表
+   */
+  public ProjectExecutor(TupleIterator child, List<Integer> columnIndexes) {
+    this.child = child;
+    this.columnIndexes = columnIndexes;
+    Schema inputSchema = child.getOutputSchema();
+    List<Column> projectedColumns = new ArrayList<>();
+    for (int index : columnIndexes) {
+      projectedColumns.add(inputSchema.getColumns().get(index));
+    }
+    this.outputSchema = new Schema(projectedColumns);
+  }
+
+  @Override
+  public Tuple next() throws IOException {
+    if (!hasNext()) {
+      return null;
     }
 
-    @Override
-    public Tuple next() throws IOException {
-        if (!hasNext()) {
-            return null;
-        }
-        
-        Tuple originalTuple = child.next();
-        if (originalTuple == null) {
-            return null;
-        }
-
-        List<Value> projectedValues = new ArrayList<>();
-        for (Integer index : columnIndexes) {
-            projectedValues.add(originalTuple.getValues().get(index));
-        }
-        
-        return new Tuple(projectedValues);
+    Tuple originalTuple = child.next();
+    if (originalTuple == null) {
+      return null;
     }
 
-    @Override
-    public boolean hasNext() throws IOException {
-        return child.hasNext();
+    List<Value> projectedValues = new ArrayList<>();
+    for (Integer index : columnIndexes) {
+      projectedValues.add(originalTuple.getValues().get(index));
     }
 
-    @Override
-    public Schema getOutputSchema() {
-        return this.outputSchema;
-    }
+    return new Tuple(projectedValues);
+  }
 
+  @Override
+  public boolean hasNext() throws IOException {
+    return child.hasNext();
+  }
+
+  @Override
+  public Schema getOutputSchema() {
+    return this.outputSchema;
+  }
 }
-

@@ -8,11 +8,10 @@ package com.indolyn.rill.core.compiler.lexer;
  */
 public record Token(TokenType type, String lexeme, int line, int column) {
 
-    @Override
-    public String toString() {
-        // 重写toString方法，方便调试和打印
-        return String.format("Token[Type=%-15s, Lexeme='%s', Position=%d:%d]",
-                type, lexeme, line, column);
-    }
+  @Override
+  public String toString() {
+    // 重写toString方法，方便调试和打印
+    return String.format(
+        "Token[Type=%-15s, Lexeme='%s', Position=%d:%d]", type, lexeme, line, column);
+  }
 }
-

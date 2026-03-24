@@ -1,7 +1,8 @@
 package com.indolyn.rill.core.compiler;
 
+import static org.junit.Assert.*;
+
 import com.indolyn.rill.core.catalog.Catalog;
-import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.common.model.Column;
 import com.indolyn.rill.core.common.model.DataType;
 import com.indolyn.rill.core.common.model.Schema;
@@ -12,21 +13,18 @@ import com.indolyn.rill.core.compiler.planner.Planner;
 import com.indolyn.rill.core.compiler.planner.plan.PlanNode;
 import com.indolyn.rill.core.compiler.planner.plan.ddl.CreateTablePlanNode;
 import com.indolyn.rill.core.compiler.planner.plan.dml.InsertPlanNode;
-import com.indolyn.rill.core.compiler.planner.plan.query.FilterPlanNode;
 import com.indolyn.rill.core.compiler.planner.plan.query.ProjectPlanNode;
 import com.indolyn.rill.core.compiler.planner.plan.query.SeqScanPlanNode;
 import com.indolyn.rill.core.compiler.semantic.SemanticAnalyzer;
+import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-
-import static org.junit.Assert.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * @author hidyouth
@@ -34,133 +32,140 @@ import static org.junit.Assert.*;
  */
 public class PlannerTest {
 
+  private final String TEST_DB_FILE = "test_planner.db";
+  private DiskManager diskManager;
+  private BufferPoolManager bufferPoolManager;
+  private Catalog catalog;
+  private Planner planner;
 
-    private final String TEST_DB_FILE = "test_planner.db";
-    private DiskManager diskManager;
-    private BufferPoolManager bufferPoolManager;
-    private Catalog catalog;
-    private Planner planner;
+  @Before
+  public void setUp() throws IOException {
+    new File(TEST_DB_FILE).delete();
+    diskManager = new DiskManager(TEST_DB_FILE);
+    diskManager.open();
+    bufferPoolManager = new BufferPoolManager(10, diskManager, "LRU");
+    catalog = new Catalog(bufferPoolManager);
+    planner = new Planner(catalog);
 
-    @Before
-    public void setUp() throws IOException {
-        new File(TEST_DB_FILE).delete();
-        diskManager = new DiskManager(TEST_DB_FILE);
-        diskManager.open();
-        bufferPoolManager = new BufferPoolManager(10, diskManager, "LRU");
-        catalog = new Catalog(bufferPoolManager);
-        planner = new Planner(catalog);
+    // 预先创建一张表用于测试
+    Schema schema =
+        new Schema(
+            Arrays.asList(new Column("id", DataType.INT), new Column("name", DataType.VARCHAR)));
+    catalog.createTable("users", schema);
+  }
 
-        // 预先创建一张表用于测试
-        Schema schema = new Schema(Arrays.asList(
-                new Column("id", DataType.INT),
-                new Column("name", DataType.VARCHAR)
-        ));
-        catalog.createTable("users", schema);
-    }
+  @After
+  public void tearDown() throws IOException {
+    diskManager.close();
+    new File(TEST_DB_FILE).delete();
+  }
 
-    @After
-    public void tearDown() throws IOException {
-        diskManager.close();
-        new File(TEST_DB_FILE).delete();
-    }
+  private PlanNode createPlanForSql(String sql) {
+    Lexer lexer = new Lexer(sql);
+    Parser parser = new Parser(lexer.tokenize());
+    StatementNode ast = parser.parse();
 
-    private PlanNode createPlanForSql(String sql) {
-        Lexer lexer = new Lexer(sql);
-        Parser parser = new Parser(lexer.tokenize());
-        StatementNode ast = parser.parse();
+    // 必须先经过语义分析
+    SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(catalog);
+    Session mockRootSession = Session.createAuthenticatedSession(-1, "root");
+    semanticAnalyzer.analyze(ast, mockRootSession);
 
-        // 必须先经过语义分析
-        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(catalog);
-        Session mockRootSession = Session.createAuthenticatedSession(-1, "root");
-        semanticAnalyzer.analyze(ast,mockRootSession);
+    return planner.createPlan(ast);
+  }
 
-        return planner.createPlan(ast);
-    }
+  @Test
+  public void testCreateTablePlan() {
+    System.out.println("--- Running test: testCreateTablePlan ---");
+    PlanNode plan = createPlanForSql("CREATE TABLE products (pid INT, pname VARCHAR);");
+    assertTrue(plan instanceof CreateTablePlanNode);
+    CreateTablePlanNode createPlan = (CreateTablePlanNode) plan;
+    assertEquals("products", createPlan.getTableName());
+    assertEquals(2, createPlan.getOutputSchema().getColumns().size());
+    System.out.println("Result: Test PASSED.\n");
+  }
 
-    @Test
-    public void testCreateTablePlan() {
-        System.out.println("--- Running test: testCreateTablePlan ---");
-        PlanNode plan = createPlanForSql("CREATE TABLE products (pid INT, pname VARCHAR);");
-        assertTrue(plan instanceof CreateTablePlanNode);
-        CreateTablePlanNode createPlan = (CreateTablePlanNode) plan;
-        assertEquals("products", createPlan.getTableName());
-        assertEquals(2, createPlan.getOutputSchema().getColumns().size());
-        System.out.println("Result: Test PASSED.\n");
-    }
+  @Test
+  public void testInsertPlan() {
+    System.out.println("--- Running test: testInsertPlan ---");
+    PlanNode plan = createPlanForSql("INSERT INTO users (id, name) VALUES (1, 'test');");
+    assertTrue(plan instanceof InsertPlanNode);
+    InsertPlanNode insertPlan = (InsertPlanNode) plan;
+    assertEquals("users", insertPlan.getTableInfo().getTableName());
+    assertEquals(1, insertPlan.getRawTuples().size());
+    assertEquals(1, insertPlan.getRawTuples().get(0).getValues().get(0).getValue());
+    System.out.println("Result: Test PASSED.\n");
+  }
 
-    @Test
-    public void testInsertPlan() {
-        System.out.println("--- Running test: testInsertPlan ---");
-        PlanNode plan = createPlanForSql("INSERT INTO users (id, name) VALUES (1, 'test');");
-        assertTrue(plan instanceof InsertPlanNode);
-        InsertPlanNode insertPlan = (InsertPlanNode) plan;
-        assertEquals("users", insertPlan.getTableInfo().getTableName());
-        assertEquals(1, insertPlan.getRawTuples().size());
-        assertEquals(1, insertPlan.getRawTuples().get(0).getValues().get(0).getValue());
-        System.out.println("Result: Test PASSED.\n");
-    }
+  @Test
+  public void testSimpleSelectPlan() {
+    System.out.println("--- Running test: testSimpleSelectPlan ---");
+    PlanNode plan = createPlanForSql("SELECT * FROM users;");
+    // 期望: SeqScan
+    assertTrue(plan instanceof SeqScanPlanNode);
+    assertEquals(2, plan.getOutputSchema().getColumns().size());
+    System.out.println("Result: Test PASSED.\n");
+  }
 
-    @Test
-    public void testSimpleSelectPlan() {
-        System.out.println("--- Running test: testSimpleSelectPlan ---");
-        PlanNode plan = createPlanForSql("SELECT * FROM users;");
-        // 期望: SeqScan
-        assertTrue(plan instanceof SeqScanPlanNode);
-        assertEquals(2, plan.getOutputSchema().getColumns().size());
-        System.out.println("Result: Test PASSED.\n");
-    }
+  @Test
+  public void testSelectWithProjectionPlan() {
+    System.out.println("--- Running test: testSelectWithProjectionPlan ---");
+    PlanNode plan = createPlanForSql("SELECT id FROM users;");
+    // 期望: Project -> SeqScan
+    assertTrue(plan instanceof ProjectPlanNode);
+    assertEquals(1, plan.getOutputSchema().getColumns().size());
+    assertEquals("id", plan.getOutputSchema().getColumns().get(0).getName());
 
-    @Test
-    public void testSelectWithProjectionPlan() {
-        System.out.println("--- Running test: testSelectWithProjectionPlan ---");
-        PlanNode plan = createPlanForSql("SELECT id FROM users;");
-        // 期望: Project -> SeqScan
-        assertTrue(plan instanceof ProjectPlanNode);
-        assertEquals(1, plan.getOutputSchema().getColumns().size());
-        assertEquals("id", plan.getOutputSchema().getColumns().get(0).getName());
+    ProjectPlanNode projectPlan = (ProjectPlanNode) plan;
+    assertTrue(projectPlan.getChild() instanceof SeqScanPlanNode);
+    System.out.println("Result: Test PASSED.\n");
+  }
 
-        ProjectPlanNode projectPlan = (ProjectPlanNode) plan;
-        assertTrue(projectPlan.getChild() instanceof SeqScanPlanNode);
-        System.out.println("Result: Test PASSED.\n");
-    }
+  @Test
+  public void testSelectWithFilterPlan() {
+    System.out.println(
+        "--- Running test: testSelectWithFilterPlan (Updated for Predicate Pushdown) ---");
+    PlanNode plan = createPlanForSql("SELECT * FROM users WHERE id = 1;");
 
-    @Test
-    public void testSelectWithFilterPlan() {
-        System.out.println("--- Running test: testSelectWithFilterPlan (Updated for Predicate Pushdown) ---");
-        PlanNode plan = createPlanForSql("SELECT * FROM users WHERE id = 1;");
+    // 验证：由于谓词下推，期望直接得到一个带有谓词的 SeqScanPlanNode
+    assertTrue(
+        "With predicate pushdown, the plan should be a SeqScanPlanNode",
+        plan instanceof SeqScanPlanNode);
+    SeqScanPlanNode scanPlan = (SeqScanPlanNode) plan;
 
-        // 验证：由于谓词下推，期望直接得到一个带有谓词的 SeqScanPlanNode
-        assertTrue("With predicate pushdown, the plan should be a SeqScanPlanNode", plan instanceof SeqScanPlanNode);
-        SeqScanPlanNode scanPlan = (SeqScanPlanNode) plan;
+    // 验证：SeqScanPlanNode 内部应该包含了 WHERE 子句的条件
+    assertNotNull(
+        "The SeqScanPlanNode should contain the predicate from the WHERE clause",
+        scanPlan.getPredicate());
 
-        // 验证：SeqScanPlanNode 内部应该包含了 WHERE 子句的条件
-        assertNotNull("The SeqScanPlanNode should contain the predicate from the WHERE clause", scanPlan.getPredicate());
+    assertEquals(2, plan.getOutputSchema().getColumns().size());
+    System.out.println("Result: Test PASSED.\n");
+  }
 
-        assertEquals(2, plan.getOutputSchema().getColumns().size());
-        System.out.println("Result: Test PASSED.\n");
-    }
+  @Test
+  public void testSelectWithFilterAndProjectionPlan() {
+    System.out.println(
+        "--- Running test: testSelectWithFilterAndProjectionPlan (Updated for Predicate Pushdown) ---");
+    PlanNode plan = createPlanForSql("SELECT name FROM users WHERE id > 10;");
 
-    @Test
-    public void testSelectWithFilterAndProjectionPlan() {
-        System.out.println("--- Running test: testSelectWithFilterAndProjectionPlan (Updated for Predicate Pushdown) ---");
-        PlanNode plan = createPlanForSql("SELECT name FROM users WHERE id > 10;");
+    // 期望: Project -> SeqScan (带有下推的谓词)
+    assertTrue(
+        "The top node of the plan should be ProjectPlanNode", plan instanceof ProjectPlanNode);
+    assertEquals(1, plan.getOutputSchema().getColumns().size());
+    assertEquals("name", plan.getOutputSchema().getColumns().get(0).getName());
 
-        // 期望: Project -> SeqScan (带有下推的谓词)
-        assertTrue("The top node of the plan should be ProjectPlanNode", plan instanceof ProjectPlanNode);
-        assertEquals(1, plan.getOutputSchema().getColumns().size());
-        assertEquals("name", plan.getOutputSchema().getColumns().get(0).getName());
+    ProjectPlanNode projectPlan = (ProjectPlanNode) plan;
 
-        ProjectPlanNode projectPlan = (ProjectPlanNode) plan;
+    // 验证：ProjectPlanNode 的子节点现在应该是带有谓词的 SeqScanPlanNode
+    assertTrue(
+        "The child of ProjectPlanNode should be SeqScanPlanNode due to predicate pushdown",
+        projectPlan.getChild() instanceof SeqScanPlanNode);
 
-        // 验证：ProjectPlanNode 的子节点现在应该是带有谓词的 SeqScanPlanNode
-        assertTrue("The child of ProjectPlanNode should be SeqScanPlanNode due to predicate pushdown", projectPlan.getChild() instanceof SeqScanPlanNode);
+    SeqScanPlanNode scanPlan = (SeqScanPlanNode) projectPlan.getChild();
 
-        SeqScanPlanNode scanPlan = (SeqScanPlanNode) projectPlan.getChild();
+    // 验证：SeqScanPlanNode 内部应该包含了 WHERE 子句的条件
+    assertNotNull(
+        "The underlying SeqScanPlanNode should contain the predicate", scanPlan.getPredicate());
 
-        // 验证：SeqScanPlanNode 内部应该包含了 WHERE 子句的条件
-        assertNotNull("The underlying SeqScanPlanNode should contain the predicate", scanPlan.getPredicate());
-
-        System.out.println("Result: Test PASSED.\n");
-    }
+    System.out.println("Result: Test PASSED.\n");
+  }
 }
-

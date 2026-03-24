@@ -3,7 +3,6 @@ package com.indolyn.rill.core.compiler.planner.plan.dml;
 import com.indolyn.rill.core.catalog.TableInfo;
 import com.indolyn.rill.core.common.model.Tuple;
 import com.indolyn.rill.core.compiler.planner.plan.PlanNode;
-
 import java.util.List;
 
 /**
@@ -11,22 +10,20 @@ import java.util.List;
  * @description: 插入操作的执行计划节点
  */
 public class InsertPlanNode extends PlanNode {
-    private final TableInfo tableInfo;
-    private final List<Tuple> rawTuples;
+  private final TableInfo tableInfo;
+  private final List<Tuple> rawTuples;
 
-    public InsertPlanNode(TableInfo tableInfo, List<Tuple> rawTuples) {
-        super(null); // INSERT 不向上层返回元组，所以输出 Schema 为 null
-        this.tableInfo = tableInfo;
-        this.rawTuples = rawTuples;
-    }
+  public InsertPlanNode(TableInfo tableInfo, List<Tuple> rawTuples) {
+    super(null); // INSERT 不向上层返回元组，所以输出 Schema 为 null
+    this.tableInfo = tableInfo;
+    this.rawTuples = rawTuples;
+  }
 
-    public TableInfo getTableInfo() {
-        return tableInfo;
-    }
+  public TableInfo getTableInfo() {
+    return tableInfo;
+  }
 
-    public List<Tuple> getRawTuples() {
-        return rawTuples;
-    }
+  public List<Tuple> getRawTuples() {
+    return rawTuples;
+  }
 }
-
-

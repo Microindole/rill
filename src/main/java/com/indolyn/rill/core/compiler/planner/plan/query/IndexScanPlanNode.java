@@ -6,27 +6,26 @@ import com.indolyn.rill.core.common.model.Value;
 import com.indolyn.rill.core.compiler.planner.plan.PlanNode;
 
 public class IndexScanPlanNode extends PlanNode {
-    private final TableInfo tableInfo;
-    private final IndexInfo indexInfo;
-    private final Value searchKey; // 要在索引中查找的键
+  private final TableInfo tableInfo;
+  private final IndexInfo indexInfo;
+  private final Value searchKey; // 要在索引中查找的键
 
-    public IndexScanPlanNode(TableInfo tableInfo, IndexInfo indexInfo, Value searchKey) {
-        super(tableInfo.getSchema());
-        this.tableInfo = tableInfo;
-        this.indexInfo = indexInfo;
-        this.searchKey = searchKey;
-    }
+  public IndexScanPlanNode(TableInfo tableInfo, IndexInfo indexInfo, Value searchKey) {
+    super(tableInfo.getSchema());
+    this.tableInfo = tableInfo;
+    this.indexInfo = indexInfo;
+    this.searchKey = searchKey;
+  }
 
-    public TableInfo getTableInfo() {
-        return tableInfo;
-    }
+  public TableInfo getTableInfo() {
+    return tableInfo;
+  }
 
-    public IndexInfo getIndexInfo() {
-        return indexInfo;
-    }
+  public IndexInfo getIndexInfo() {
+    return indexInfo;
+  }
 
-    public Value getSearchKey() {
-        return searchKey;
-    }
+  public Value getSearchKey() {
+    return searchKey;
+  }
 }
-

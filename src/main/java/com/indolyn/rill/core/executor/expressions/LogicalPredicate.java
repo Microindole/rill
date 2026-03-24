@@ -3,28 +3,25 @@ package com.indolyn.rill.core.executor.expressions;
 import com.indolyn.rill.core.common.model.Tuple;
 import java.io.IOException;
 
-/**
- * 逻辑谓词，用于处理 AND 和 OR 运算。
- */
+/** 逻辑谓词，用于处理 AND 和 OR 运算。 */
 public class LogicalPredicate extends AbstractPredicate {
-    private final AbstractPredicate left;
-    private final AbstractPredicate right;
-    private final String operator;
+  private final AbstractPredicate left;
+  private final AbstractPredicate right;
+  private final String operator;
 
-    public LogicalPredicate(AbstractPredicate left, AbstractPredicate right, String operator) {
-        this.left = left;
-        this.right = right;
-        this.operator = operator;
-    }
+  public LogicalPredicate(AbstractPredicate left, AbstractPredicate right, String operator) {
+    this.left = left;
+    this.right = right;
+    this.operator = operator;
+  }
 
-    @Override
-    public boolean evaluate(Tuple tuple) throws IOException {
-        return switch (operator) {
-            case "AND" -> left.evaluate(tuple) && right.evaluate(tuple);
-            case "OR" -> left.evaluate(tuple) || right.evaluate(tuple);
-            default -> throw new UnsupportedOperationException("Unsupported logical operator: " + operator);
-        };
-    }
+  @Override
+  public boolean evaluate(Tuple tuple) throws IOException {
+    return switch (operator) {
+      case "AND" -> left.evaluate(tuple) && right.evaluate(tuple);
+      case "OR" -> left.evaluate(tuple) || right.evaluate(tuple);
+      default ->
+          throw new UnsupportedOperationException("Unsupported logical operator: " + operator);
+    };
+  }
 }
-
-
