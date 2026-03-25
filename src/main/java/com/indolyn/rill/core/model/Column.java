@@ -1,9 +1,12 @@
 package com.indolyn.rill.core.model;
 
+import lombok.Getter;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@Getter
 public class Column {
     private final String name;
     private final DataType type;
@@ -11,14 +14,6 @@ public class Column {
     public Column(String name, DataType type) {
         this.name = name;
         this.type = type;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public DataType getType() {
-        return type;
     }
 
     public void write(DataOutputStream out) throws IOException {

@@ -1,8 +1,4 @@
-package com.indolyn.rill.core.expression;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-import com.indolyn.rill.core.execution.QueryProcessor;
+package com.indolyn.rill.core.execution;
 
 import java.io.File;
 import java.util.concurrent.CountDownLatch;

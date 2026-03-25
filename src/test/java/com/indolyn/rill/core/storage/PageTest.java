@@ -41,14 +41,14 @@ public class PageTest {
         assertEquals(1, retrievedTuple1.getValues().get(0).getValue());
         assertEquals("Alice", retrievedTuple1.getValues().get(1).getValue());
         assertEquals(20, retrievedTuple1.getValues().get(2).getValue());
-        System.out.println("Retrieved Tuple 1: " + retrievedTuple1.toString());
+        System.out.println("Retrieved Tuple 1: " + retrievedTuple1);
 
         Tuple retrievedTuple2 = page.getTuple(1, schema);
         assertNotNull(retrievedTuple2);
         assertEquals(2, retrievedTuple2.getValues().get(0).getValue());
         assertEquals("Bob", retrievedTuple2.getValues().get(1).getValue());
         assertEquals(25, retrievedTuple2.getValues().get(2).getValue());
-        System.out.println("Retrieved Tuple 2: " + retrievedTuple2.toString());
+        System.out.println("Retrieved Tuple 2: " + retrievedTuple2);
 
         // 6. 验证 getAllTuples
         List<Tuple> allTuples = page.getAllTuples(schema);

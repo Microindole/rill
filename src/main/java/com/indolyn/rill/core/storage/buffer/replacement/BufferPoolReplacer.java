@@ -8,8 +8,6 @@ import com.indolyn.rill.core.storage.page.PageId;
 public interface BufferPoolReplacer {
     /**
      * 将一个页标记为已使用（pin），不参与淘汰。
-     *
-     * @param pageId
      */
     void pin(PageId pageId);
 

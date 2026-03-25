@@ -148,7 +148,7 @@ public class MysqlProtocolHandler implements Runnable {
     }
 
     private boolean authenticate(Packet authPacket, byte[] salt, OutputStream out)
-        throws IOException, NoSuchAlgorithmException {
+        throws IOException {
         int pos = 4 + 4 + 1 + 23;
         int userStart = -1;
         for (int i = pos; i < authPacket.payload.length; i++) {
@@ -322,7 +322,6 @@ public class MysqlProtocolHandler implements Runnable {
                         int currentSeqId = serverSequenceId;
                         currentSeqId = sendResultSetHeader(out, currentSeqId, schema.getColumns().size());
                         // 在调用 sendFieldPackets 之前，为 effectiveTableName 提供一个非 null 的默认值
-                        String tableNameForPacket = (effectiveTableName == null) ? "" : effectiveTableName;
                         currentSeqId = sendFieldPackets(out, currentSeqId, schema, effectiveTableName);
                         currentSeqId = sendEofPacket(out, currentSeqId);
 
@@ -902,9 +901,6 @@ public class MysqlProtocolHandler implements Runnable {
                 case INT:
                     createTableSql.append("INT");
                     break;
-                case VARCHAR:
-                    createTableSql.append("VARCHAR(255)");
-                    break;
                 case DECIMAL:
                     createTableSql.append("DECIMAL(10,2)");
                     break;
@@ -914,6 +910,7 @@ public class MysqlProtocolHandler implements Runnable {
                 case BOOLEAN:
                     createTableSql.append("BOOLEAN");
                     break;
+                case VARCHAR:
                 default:
                     createTableSql.append("VARCHAR(255)");
             }
@@ -995,26 +992,13 @@ public class MysqlProtocolHandler implements Runnable {
             bos.write(writeLengthEncodedString(col.getName()));
 
             // 类型
-            String typeStr;
-            switch (col.getType()) {
-                case INT:
-                    typeStr = "int(11)";
-                    break;
-                case VARCHAR:
-                    typeStr = "varchar(255)";
-                    break;
-                case DECIMAL:
-                    typeStr = "decimal(10,2)";
-                    break;
-                case DATE:
-                    typeStr = "date";
-                    break;
-                case BOOLEAN:
-                    typeStr = "tinyint(1)";
-                    break;
-                default:
-                    typeStr = "varchar(255)";
-            }
+            String typeStr = switch (col.getType()) {
+                case INT -> "int(11)";
+                case DECIMAL -> "decimal(10,2)";
+                case DATE -> "date";
+                case BOOLEAN -> "tinyint(1)";
+                default -> "varchar(255)";
+            };
             bos.write(writeLengthEncodedString(typeStr));
 
             // Collation

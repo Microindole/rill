@@ -6,7 +6,6 @@ import com.indolyn.rill.core.model.RID;
 import com.indolyn.rill.core.model.Value;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
-import com.indolyn.rill.core.storage.index.BPlusTree;
 import com.indolyn.rill.core.storage.page.Page;
 
 import java.io.File;

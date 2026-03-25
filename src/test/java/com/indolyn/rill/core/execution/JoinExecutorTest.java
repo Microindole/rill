@@ -1,9 +1,7 @@
-package com.indolyn.rill.core.expression;
+package com.indolyn.rill.core.execution;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import com.indolyn.rill.core.execution.QueryProcessor;
 
 import java.io.File;
 import java.io.IOException;

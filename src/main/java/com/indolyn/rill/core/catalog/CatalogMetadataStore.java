@@ -58,7 +58,7 @@ final class CatalogMetadataStore {
         Page page = bufferPoolManager.getPage(tablesTableFirstPageId);
         List<Tuple> tuples = page.getAllTuples(tablesTableSchema);
         for (Tuple tuple : tuples) {
-            if ((int) tuple.getValues().get(0).getValue() == tableId) {
+            if ((int) tuple.getValues().getFirst().getValue() == tableId) {
                 return tuple;
             }
         }

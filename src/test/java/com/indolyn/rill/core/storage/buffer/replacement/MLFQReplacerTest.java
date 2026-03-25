@@ -3,7 +3,6 @@ package com.indolyn.rill.core.storage.buffer.replacement;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
-import com.indolyn.rill.core.storage.buffer.replacement.MLFQReplacer;
 import com.indolyn.rill.core.storage.disk.DiskManager;
 import com.indolyn.rill.core.storage.page.PageId;
 
@@ -172,13 +171,12 @@ public class MLFQReplacerTest {
             Queue<PageId> medium = getQueue(replacer, "mediumPriorityQueue");
             Queue<PageId> low = getQueue(replacer, "lowPriorityQueue");
 
-            System.out.println(
-                String.format(
-                    "  [State] High: %s, Medium: %s, Low: %s, PageTable Size: %d",
-                    formatQueue(high),
-                    formatQueue(medium),
-                    formatQueue(low),
-                    bufferPoolManager.getPageTable().size()));
+            System.out.printf(
+                "  [State] High: %s, Medium: %s, Low: %s, PageTable Size: %d%n",
+                formatQueue(high),
+                formatQueue(medium),
+                formatQueue(low),
+                bufferPoolManager.getPageTable().size());
         } catch (Exception e) {
             System.out.println("  [State]无法打印队列状态: " + e.getMessage());
         }

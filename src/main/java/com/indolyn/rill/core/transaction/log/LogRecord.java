@@ -35,10 +35,6 @@ public class LogRecord {
     private long prevLSN = -1;
     private LogType logType;
 
-    // private Tuple tuple;
-    // private Tuple oldTuple;
-    // private Tuple newTuple;
-
     // --- Payload for INSERT/DELETE ---
     private RID rid;
     private byte[] tupleBytes; // INSERT: new tuple bytes, DELETE: old tuple bytes

@@ -13,7 +13,7 @@ import com.indolyn.rill.core.transaction.log.LogManager;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,7 +48,7 @@ public class ConcurrencyTest {
         catalog = new Catalog(bufferPoolManager);
         testTableInfo =
             catalog.createTable(
-                "test_table", new Schema(Arrays.asList(new Column("id", DataType.INT))));
+                "test_table", new Schema(List.of(new Column("id", DataType.INT))));
     }
 
     @AfterEach

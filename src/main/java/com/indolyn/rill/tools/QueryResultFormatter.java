@@ -22,7 +22,7 @@ public class QueryResultFormatter {
     public static String format(Schema schema, List<Tuple> results) {
         if (schema == null || schema.getColumns().isEmpty()) {
             if (results.size() == 1) {
-                return results.get(0).getValues().get(0).toString();
+                return results.getFirst().getValues().getFirst().toString();
             }
             return "Query OK, " + results.size() + " rows affected.";
         }

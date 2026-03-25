@@ -1,9 +1,9 @@
 package com.indolyn.rill.access.protocol;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import com.indolyn.rill.access.protocol.MysqlProtocolHandler;
 import com.indolyn.rill.core.catalog.Catalog;
 import com.indolyn.rill.core.execution.QueryProcessor;
 
@@ -46,7 +46,7 @@ public class MysqlProtocolHandlerTest {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         deleteDirectory(new File("data/" + TEST_DB_NAME));
     }
 
@@ -105,9 +105,7 @@ public class MysqlProtocolHandlerTest {
         String serverResponseString = new String(serverResponseBytes, StandardCharsets.UTF_8);
 
         assertTrue(serverResponseBytes.length > 4, "Server should send some data.");
-        assertTrue(
-            serverResponseBytes[4] == 10,
-            "Server should send a handshake packet starting with protocol version 10.");
+        assertEquals(10, serverResponseBytes[4], "Server should send a handshake packet starting with protocol version 10.");
         assertTrue(
             serverResponseString.contains("rill"),
             "Handshake packet should contain the server version string 'rill'.");
@@ -122,9 +120,7 @@ public class MysqlProtocolHandlerTest {
         assertTrue(
             serverResponseBytes.length > handshakePacketLength,
             "Server should send more than just the handshake (i.e., an OK packet).");
-        assertTrue(
-            serverResponseBytes[handshakePacketLength + 4] == 0x00,
-            "Server should send an OK packet (starts with 0x00) after successful authentication.");
+        assertEquals(0x00, serverResponseBytes[handshakePacketLength + 4], "Server should send an OK packet (starts with 0x00) after successful authentication.");
         System.out.println("[SUCCESS] Handshake and authentication flow verified.");
     }
 

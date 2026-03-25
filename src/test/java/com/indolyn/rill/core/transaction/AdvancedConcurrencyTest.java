@@ -17,10 +17,6 @@ public class AdvancedConcurrencyTest {
     private LockManager lockManager;
     private TransactionManager transactionManager;
 
-    // 假设你有一个方法来初始化这些管理器
-
-    // ... setUp 和 tearDown 方法 ...
-
     @Test
     void testDeadlockScenario() throws InterruptedException {
         System.out.println("--- Test: Deadlock Detection/Prevention ---");

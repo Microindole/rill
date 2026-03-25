@@ -99,12 +99,6 @@ public class IndexIntegrationTest {
         System.out.println("  - DELETE后索引维护... OK");
 
         // 8. 测试 UPDATE (需要您已实现 UpdateExecutor 的索引维护逻辑)
-        // String updateSql = "UPDATE users SET name = 'updatedUser' WHERE id = 100;";
-        // queryProcessor.executeAndGetResult(updateSql);
-        // String selectUpdatedSql = "SELECT name FROM users WHERE id = 100;";
-        // String selectUpdatedResult = queryProcessor.executeAndGetResult(selectUpdatedSql);
-        // assertTrue(selectUpdatedResult.contains("updatedUser"), "UPDATE 操作后，未能通过索引找到更新后的数据！");
-        // System.out.println("  - UPDATE后索引维护... OK");
 
         System.out.println("\n[Phase 6] 清理阶段：删除表...");
         // 9. 删除表

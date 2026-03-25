@@ -19,10 +19,6 @@ import java.util.List;
 
 import org.junit.Test;
 
-/**
- * @author hidyouth
- * @description: Parser 类的单元测试 (使用 JUnit 4)
- */
 public class ParserTest {
 
     private StatementNode parseSql(String sql) {

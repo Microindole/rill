@@ -12,7 +12,6 @@ import com.indolyn.rill.core.storage.disk.DiskManager;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
 
-import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;

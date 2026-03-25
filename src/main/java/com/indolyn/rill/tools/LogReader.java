@@ -168,7 +168,6 @@ public class LogReader extends JFrame {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 if (columnIndex < 2) return Long.class;
-                if (columnIndex == 1) return Integer.class;
                 return String.class;
             }
         };

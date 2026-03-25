@@ -118,7 +118,6 @@ public class RecoveryManager {
                     return;
                 case INSERT, DELETE, UPDATE:
                     recoveryApplier.applyDmlLog(log, isUndo, fakeTxn);
-                    return;
             }
         } finally {
             releaseRecoveryLocks(fakeTxn);

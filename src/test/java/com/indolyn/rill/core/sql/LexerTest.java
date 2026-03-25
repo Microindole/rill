@@ -10,11 +10,6 @@ import java.util.List;
 
 import org.junit.Test;
 
-/**
- * @author hidyouth
- * @description: Lexer 类的单元测试 (使用 JUnit 4)
- * <p>这是一个标准的测试类，用于验证词法分析器的各种功能是否正确。
- */
 public class LexerTest {
 
     @Test

@@ -5,6 +5,7 @@ import com.indolyn.rill.core.model.Value;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.List;
 
 public class BPlusTree {
 
+    @Getter
     private int rootPageId;
     private final BufferPoolManager bufferPoolManager;
     private final Comparator<Value> keyComparator;
@@ -21,10 +23,6 @@ public class BPlusTree {
         this.bufferPoolManager = bufferPoolManager;
         this.rootPageId = rootPageId;
         this.keyComparator = Comparator.comparingInt(v -> (Integer) v.getValue());
-    }
-
-    public int getRootPageId() {
-        return rootPageId;
     }
 
     public boolean isEmpty() throws IOException {
@@ -190,7 +188,7 @@ public class BPlusTree {
 
         // 4. 重新填充旧节点 (这部分逻辑之前是正确的)
         oldNode.init(oldNode.page.getPageId().getPageNum(), oldNode.getParentPageId());
-        oldNode.setChildPageId(0, tempPointers.get(0));
+        oldNode.setChildPageId(0, tempPointers.getFirst());
         for (int i = 0; i < splitPoint; i++) {
             oldNode.insert(tempKeys.get(i), tempPointers.get(i + 1));
         }
@@ -390,7 +388,7 @@ public class BPlusTree {
         BPlusTreeNodePage node = getNode(pageId);
         if (node == null) return;
         String indent = "  ".repeat(level);
-        System.out.println(indent + node.toString());
+        System.out.println(indent + node);
 
         if (node.getNodeType() == BPlusTreeNodePage.NodeType.INTERNAL) {
             BPlusTreeInternalPage internal = (BPlusTreeInternalPage) node;

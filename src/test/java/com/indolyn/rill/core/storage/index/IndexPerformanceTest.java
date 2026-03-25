@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * 专门用于量化验证 B+树索引对查询性能提升效果的集成测试。 [调试增强版]
+ * 专门用于量化验证 B+树索引对查询性能提升效果的集成测试。
  */
 public class IndexPerformanceTest {
 
