@@ -2,6 +2,7 @@ package com.indolyn.rill.core.transaction;
 
 import com.indolyn.rill.core.catalog.Catalog;
 import com.indolyn.rill.core.catalog.TableInfo;
+import com.indolyn.rill.core.model.RID;
 import com.indolyn.rill.core.execution.operator.TableHeap;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.model.Tuple;
@@ -13,10 +14,13 @@ import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
 
+import lombok.Getter;
+
 final class RecoveryApplier {
     private final BufferPoolManager bufferPoolManager;
     private final Catalog catalog;
     private final LogManager logManager;
+    @Getter
     private final LockManager lockManager;
 
     RecoveryApplier(
@@ -126,7 +130,8 @@ final class RecoveryApplier {
         oldTuple.setRid(log.getRid());
 
         if (isUndo) {
-            tableHeap.updateTuple(oldTuple, log.getRid(), transaction, false);
+            restoreDeletedTuple(log.getRid());
+            deleteMatchingTuple(tableHeap, transaction, newTuple, log.getRid());
             return;
         }
 
@@ -150,5 +155,41 @@ final class RecoveryApplier {
             }
         }
         return false;
+    }
+
+    private void restoreDeletedTuple(RID rid) throws IOException {
+        PageId pageId = new PageId(rid.pageNum());
+        Page page = bufferPoolManager.getPage(pageId);
+        if (page.undoMarkTupleAsDeleted(rid.slotIndex())) {
+            bufferPoolManager.flushPage(pageId);
+        }
+    }
+
+    private void deleteMatchingTuple(
+        TableHeap tableHeap, Transaction transaction, Tuple expectedTuple, RID originalRid)
+        throws IOException {
+        RID matchingRid = findMatchingRid(tableHeap, transaction, expectedTuple, originalRid);
+        if (matchingRid != null) {
+            tableHeap.deleteTuple(matchingRid, transaction, false);
+        }
+    }
+
+    private RID findMatchingRid(
+        TableHeap tableHeap, Transaction transaction, Tuple expectedTuple, RID originalRid)
+        throws IOException {
+        tableHeap.initIterator(transaction);
+        while (tableHeap.hasNext()) {
+            Tuple currentTuple = tableHeap.next();
+            if (currentTuple == null || currentTuple.getRid() == null) {
+                continue;
+            }
+            if (currentTuple.getRid().equals(originalRid)) {
+                continue;
+            }
+            if (currentTuple.getValues().equals(expectedTuple.getValues())) {
+                return currentTuple.getRid();
+            }
+        }
+        return null;
     }
 }

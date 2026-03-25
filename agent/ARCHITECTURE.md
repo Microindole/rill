@@ -33,8 +33,11 @@
 - `app.service.QueryProcessorRegistry`
 - `app.service.RillQueryService`
 - `app.web.HealthController`
+- `app.service.QueryTraceService`
+- `app.web.QueryController`
 
 这代表 Spring Boot 不再只是一个启动壳，而是开始成为正式的外层适配层。
+当前 `web/` 目录下也已经起出了第一版前端骨架，采用 `Vue 3 + TypeScript + Vite + Pinia + Vue Router + Element Plus + Tailwind CSS + Vue Flow`。
 
 ### 2. SQL 处理层
 
@@ -149,6 +152,15 @@ SQL 编译链路的 DML 分支也已经开始继续拆细：
 
 Spring Boot 在后续应主要承担 Web UI 和服务化承载角色，而不是继续保留演示型启动副作用。
 当前已完成的修正是：Spring Boot 启动不再自动触发 `ShellRunner` 演示逻辑。
+Web UI 的第一阶段定位也已经明确：不是介绍页，而是数据库可视化控制台，重点展示 SQL 执行、结果返回、执行流程与源码映射。
+当前已经有第一版正式接口：
+
+- `POST /api/query/execute`
+- `GET /api/query/history`
+- `GET /api/query/trace/{traceId}`
+- `GET /api/health`
+
+当前 `app` 层返回给前端的结果已经以结构化 `rows / columns / traceSteps` 为主，`rawResult` 仅保留为辅助展示，不再作为前端表格数据来源。
 
 ## 当前主执行链路
 
@@ -200,6 +212,11 @@ Spring Boot 在后续应主要承担 Web UI 和服务化承载角色，而不是
 
 后续规划包含 Web UI、网络编程、Redis、submodule、自动化测试与 CI/CD，因此底层设计必须先稳定，否则会在扩展时迅速失控。
 
+### 5. Web UI 还处于骨架阶段
+
+当前 `web/` 已可独立构建，并已优先调用 Spring Boot 的真实查询接口；当前仍保留 mock 回退以保证前端独立开发。
+当前前后端已经按分离方式组织：前端通过环境变量指定 API 基地址，后端通过配置项管理 CORS，而不是在代码里硬编码联调地址。
+
 ## 重构方向
 
 近期重构目标：
@@ -209,3 +226,4 @@ Spring Boot 在后续应主要承担 Web UI 和服务化承载角色，而不是
 - 去掉非必要的启动副作用
 - 先补齐架构和状态文档，再做大功能改造
 - 在底层重构完成后，再推进 Web UI、网络能力和工程化体系
+- 以结构化 trace 为核心，把 Web UI 做成数据库执行链路的可观测性界面

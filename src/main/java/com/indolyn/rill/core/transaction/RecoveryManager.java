@@ -2,10 +2,12 @@ package com.indolyn.rill.core.transaction;
 
 import com.indolyn.rill.core.catalog.Catalog;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.page.PageId;
 import com.indolyn.rill.core.transaction.log.LogManager;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,19 +106,22 @@ public class RecoveryManager {
      */
     private void applyLog(LogRecord log, boolean isUndo) throws IOException {
         Transaction fakeTxn = new Transaction(log.getTransactionId());
-
-        switch (log.getLogType()) {
-            case BEGIN:
-            case COMMIT:
-            case ABORT:
-            case CLR:
-                return;
-            case CREATE_TABLE, DROP_TABLE, ALTER_TABLE:
-                recoveryApplier.applyDdlLog(log, isUndo);
-                return;
-            case INSERT, DELETE, UPDATE:
-                recoveryApplier.applyDmlLog(log, isUndo, fakeTxn);
-                break;
+        try {
+            switch (log.getLogType()) {
+                case BEGIN:
+                case COMMIT:
+                case ABORT:
+                case CLR:
+                    return;
+                case CREATE_TABLE, DROP_TABLE, ALTER_TABLE:
+                    recoveryApplier.applyDdlLog(log, isUndo);
+                    return;
+                case INSERT, DELETE, UPDATE:
+                    recoveryApplier.applyDmlLog(log, isUndo, fakeTxn);
+                    return;
+            }
+        } finally {
+            releaseRecoveryLocks(fakeTxn);
         }
     }
 
@@ -133,6 +138,12 @@ public class RecoveryManager {
             LogRecord.LogType.CLR,
             logToUndo.getPrevLSN()
         );
+    }
+
+    private void releaseRecoveryLocks(Transaction transaction) {
+        for (Integer pageIdNum : new ArrayList<>(transaction.getLockedPageIds())) {
+            recoveryApplier.getLockManager().unlock(transaction, new PageId(pageIdNum));
+        }
     }
 
     private static class TransactionMetadata {

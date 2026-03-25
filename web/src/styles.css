@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+:root {
+    color: #292524;
+    background:
+        radial-gradient(circle at top left, rgba(251, 191, 36, 0.18), transparent 28%),
+        radial-gradient(circle at right, rgba(249, 115, 22, 0.12), transparent 22%),
+        linear-gradient(180deg, #fffaf3 0%, #f5f5f4 100%);
+    font-family:
+        "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+}
+
+#app {
+    min-height: 100vh;
+}
+
+.studio-shell {
+    min-height: 100vh;
+    padding: 24px;
+}
+
+.studio-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.studio-header h1 {
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.15;
+}
+
+.eyebrow {
+    margin: 0 0 8px;
+    color: #c2410c;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.subtitle {
+    max-width: 780px;
+    margin: 10px 0 0;
+    color: #57534e;
+}
+
+.studio-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+    gap: 20px;
+}
+
+.panel {
+    border: 1px solid rgba(214, 211, 209, 0.9);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 45px rgba(28, 25, 23, 0.08);
+    padding: 18px;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.panel-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.panel-editor,
+.panel-flow {
+    grid-column: 1;
+}
+
+.panel-results,
+.panel-source {
+    grid-column: 2;
+}
+
+.summary-bar {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    color: #78716c;
+    font-size: 13px;
+}
+
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.db-input {
+    max-width: 220px;
+}
+
+.status-alert {
+    margin-top: 12px;
+}
+
+.trace-panel {
+    height: 360px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid #e7e5e4;
+    background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.trace-canvas {
+    height: 100%;
+}
+
+.source-list {
+    display: grid;
+    gap: 12px;
+    max-height: 620px;
+    overflow: auto;
+}
+
+.raw-result {
+    margin: 12px 0 0;
+    padding: 12px;
+    border-radius: 14px;
+    background: #1c1917;
+    color: #f5f5f4;
+    overflow: auto;
+    font-family: "Consolas", "SFMono-Regular", monospace;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.source-card {
+    border: 1px solid #e7e5e4;
+    border-radius: 18px;
+    padding: 14px;
+    background: #fffdfb;
+}
+
+.source-card h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+.source-card p {
+    margin: 0 0 10px;
+    color: #57534e;
+}
+
+.source-card dl {
+    margin: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.source-card dt {
+    font-size: 12px;
+    color: #9a3412;
+    margin-bottom: 2px;
+}
+
+.source-card dd {
+    margin: 0;
+    color: #292524;
+}
+
+.mono {
+    font-family: "Consolas", "SFMono-Regular", monospace;
+    font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+    .studio-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-editor,
+    .panel-flow,
+    .panel-results,
+    .panel-source {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 720px) {
+    .studio-shell {
+        padding: 14px;
+    }
+
+    .studio-header {
+        flex-direction: column;
+    }
+
+    .studio-header h1 {
+        font-size: 28px;
+    }
+
+    .summary-bar {
+        flex-direction: column;
+        gap: 6px;
+    }
+}

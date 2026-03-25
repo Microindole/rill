@@ -47,6 +47,37 @@ final class QueryResultRenderer {
         return builder.toString();
     }
 
+    String render(QueryResult queryResult) {
+        if (!queryResult.success()) {
+            return queryResult.message();
+        }
+        if (queryResult.schema() == null) {
+            return queryResult.message();
+        }
+        if (queryResult.results().isEmpty()) {
+            return "Query finished, 0 rows returned.";
+        }
+
+        List<String> columnNames = queryResult.schema().getColumnNames();
+        List<Integer> columnWidths = calculateColumnWidths(columnNames, queryResult.results());
+        StringBuilder builder = new StringBuilder();
+        builder.append(getSeparator(columnWidths)).append("\n");
+        builder.append(getRow(columnNames, columnWidths)).append("\n");
+        builder.append(getSeparator(columnWidths)).append("\n");
+
+        for (Tuple tuple : queryResult.results()) {
+            List<String> values =
+                tuple.getValues().stream()
+                    .map(value -> value.getValue() == null ? "NULL" : value.getValue().toString())
+                    .collect(Collectors.toList());
+            builder.append(getRow(values, columnWidths)).append("\n");
+        }
+
+        builder.append(getSeparator(columnWidths)).append("\n");
+        builder.append("Query finished, ").append(queryResult.results().size()).append(" rows returned.");
+        return builder.toString();
+    }
+
     private List<Tuple> collect(TupleIterator iterator) throws IOException {
         List<Tuple> results = new ArrayList<>();
         while (iterator.hasNext()) {

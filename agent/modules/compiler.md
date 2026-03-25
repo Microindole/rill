@@ -39,4 +39,6 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 - `CREATE / ALTER / DROP / CREATE USER / GRANT` 的语义校验已继续下沉到独立 validator
 - root 权限要求与列定义类型校验已收口到 `DefinitionValidationSupport`
 - `ShowTables` 已并入统一 validator 注册体系，`Planner` 与 `SemanticAnalyzer` 中大部分桥接方法已被移除
+- 对应测试目录已收口到 `src/test/java/com/indolyn/rill/core/sql`，原先按 `ddl / dcl` 打散的 SQL 集成测试已迁入 `core.sql.integration`
+- `PlannerTest`、`SemanticAnalyzerTest` 已改为 JUnit 5，并开始直接约束当前 builder / validator 结构下的关键行为
 - 当前新增语句类型时，优先新增规则注册和专属处理器，而不是继续扩写单一方法

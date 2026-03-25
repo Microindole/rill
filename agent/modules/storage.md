@@ -27,3 +27,10 @@
 - 明确存储层职责边界
 - 补强索引与目录元数据说明
 - 补充更多工程化约束和验证策略
+
+## 当前测试结构
+
+- `DatabaseManagerTest` 已迁入 `src/test/java/com/indolyn/rill/core/storage/database`
+- B+Tree 与索引相关测试已迁入 `src/test/java/com/indolyn/rill/core/storage/index`
+- 页面替换策略测试已迁入 `src/test/java/com/indolyn/rill/core/storage/buffer/replacement`
+- `CatalogTest` 已迁入 `src/test/java/com/indolyn/rill/core/catalog`，开始直接覆盖目录元数据、用户与权限持久化重载行为

@@ -40,3 +40,5 @@ data/
 exports/
 *.db
 *.data
+node_modules/
+web/dist/

@@ -20,6 +20,8 @@ import com.indolyn.rill.core.transaction.log.LogManager;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.Getter;
 
@@ -72,16 +74,24 @@ public class QueryProcessor {
     }
 
     public String executeAndGetResult(String sql, Session session) {
+        QueryResult queryResult = executeStructured(sql, session);
+        if (!queryResult.success()) {
+            return queryResult.message();
+        }
+        return queryResultRenderer.render(queryResult);
+    }
+
+    public QueryResult executeStructured(String sql, Session session) {
         Transaction txn = null;
         try {
             String builtInCommandResult = builtInCommandHandler.tryHandle(sql);
             if (builtInCommandResult != null) {
-                return builtInCommandResult;
+                return QueryResult.newSuccessResult(builtInCommandResult);
             }
 
             StatementNode ast = queryCompiler.parse(sql);
             if (ast == null) {
-                return "Empty statement.";
+                return QueryResult.newSuccessResult("Empty statement.");
             }
 
             if (ast instanceof CreateDatabaseStatementNode
@@ -90,7 +100,7 @@ public class QueryProcessor {
                 || ast instanceof UseDatabaseStatementNode) {
                 PlanNode plan = queryCompiler.compileSystemStatement(ast);
                 TupleIterator executor = executionEngine.execute(plan, null);
-                return queryResultRenderer.render(executor);
+                return collectQueryResult(executor);
             }
 
             txn = transactionManager.begin();
@@ -99,7 +109,7 @@ public class QueryProcessor {
             PlanNode plan = queryCompiler.compile(ast, session).plan();
             TupleIterator executor = executionEngine.execute(plan, txn);
 
-            String result = queryResultRenderer.render(executor);
+            QueryResult result = collectQueryResult(executor);
             transactionManager.commit(txn);
             return result;
         } catch (Exception e) {
@@ -115,7 +125,7 @@ public class QueryProcessor {
             PrintWriter pw = new PrintWriter(sw);
             e.printStackTrace(pw);
             System.err.println("Error details: " + sw.toString());
-            return "ERROR: " + e.getMessage();
+            return QueryResult.newErrorResult("ERROR: " + e.getMessage());
         }
     }
 
@@ -181,8 +191,41 @@ public class QueryProcessor {
         System.out.println(result);
     }
 
+    public String render(QueryResult queryResult) {
+        return queryResultRenderer.render(queryResult);
+    }
+
     public String getTableNameFromAst(StatementNode ast) {
         return statementTableNameResolver.resolve(ast);
+    }
+
+    private QueryResult collectQueryResult(TupleIterator iterator) throws IOException {
+        if (iterator == null) {
+            return QueryResult.newSuccessResult("Query OK.");
+        }
+
+        List<com.indolyn.rill.core.model.Tuple> tuples = new ArrayList<>();
+        while (iterator.hasNext()) {
+            com.indolyn.rill.core.model.Tuple tuple = iterator.next();
+            if (tuple != null) {
+                tuples.add(tuple);
+            }
+        }
+
+        if (iterator.getOutputSchema() == null) {
+            return QueryResult.newSuccessResult("Query OK.");
+        }
+
+        List<String> columnNames = iterator.getOutputSchema().getColumnNames();
+        if (!columnNames.isEmpty() && columnNames.get(0).endsWith("_rows")) {
+            if (tuples.isEmpty() || tuples.get(0).getValues().isEmpty()) {
+                return QueryResult.newSuccessResult("Query OK, 0 rows affected.");
+            }
+            int affectedRows = (Integer) tuples.get(0).getValues().get(0).getValue();
+            return QueryResult.newSuccessResult("Query OK, " + affectedRows + " rows affected.");
+        }
+
+        return QueryResult.newSelectResult(iterator.getOutputSchema(), tuples);
     }
 }
 

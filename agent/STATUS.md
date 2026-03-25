@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-阶段名称：总体规划已明确，正在进入“启动入口统一”阶段
+阶段名称：内核第一轮重构已基本完成，正在进入“Web UI 启动与入口收口并行”阶段
 
 ## 已完成
 
@@ -45,6 +45,15 @@
 - 完成编译链路第三轮职责下沉：`CREATE / ALTER / DROP / CREATE INDEX / CREATE USER / GRANT` 的计划构建与语义校验已继续拆为独立 builder / validator，并引入 `DefinitionValidationSupport`
 - 完成编译链路第四轮收口：`Planner` 与 `SemanticAnalyzer` 中的桥接方法已基本移除，`ShowTables` 也已纳入统一 validator 注册结构
 - 完成执行链路第二轮职责下沉：`QueryProcessor` 已拆出 `QueryCompiler / BuiltInCommandHandler / StatementTableNameResolver`，`ExecutionEngine` 已拆出 `QueryExecutorBuilder`
+- 完成测试目录第一轮收口：测试已按 `execution / sql / storage / transaction / access.protocol` 主结构迁移，旧的 `dcl / ddl / improve / index / Protocol / replacement` 测试目录已清理
+- 开始补执行链路回归测试：新增 `QueryCompilerTest` 与 `QueryProcessorTest`，覆盖新拆出的编译协作者和内建命令/协议归一化行为
+- 完成编译链路测试第一轮现代化：`PlannerTest` 与 `SemanticAnalyzerTest` 已改为 JUnit 5，并收口到当前计划/语义行为断言
+- 完成执行引擎测试第一轮补强：新增 `ExecutionEngineTest`，覆盖命令节点注册、查询节点注册以及不支持节点报错，并确认查询计划执行需要非空事务
+- 完成目录与恢复测试第一轮补强：新增 `CatalogTest`，修复 `RecoveryTest`，并补出恢复阶段锁释放和 `UPDATE` undo 的实现缺口
+- 完成 Web UI 第一轮启动：在 `web/` 下建立 `Vue 3 + TypeScript + Vite + Pinia + Vue Router + Element Plus + Tailwind CSS + Vue Flow` 前端骨架，并完成首次构建验证
+- 完成 Web API 第一轮打通：新增 `query / trace / history` 接口、CORS 配置、结构化 trace DTO，并让 `web/` 前端优先调用真实后端接口
+- 完成前后端分离第一轮收口：前端 API 地址改为环境变量配置，后端 CORS 改为配置项，`web/` 不再写死依赖 `localhost:8080`
+- 完成结构化结果下沉：`QueryProcessor` 已支持结构化结果执行，`app` 层不再解析文本表格来生成 rows/columns
 
 ## 已确认事实
 
@@ -71,11 +80,17 @@
 - 当前 `catalog` 与 `transaction` 已开始从巨型流程类转向协作者 + 阶段方法结构
 - 当前 `Catalog` 已形成 `Catalog + PermissionRegistry + CatalogMetadataStore + IndexRegistry + UserDirectoryStore` 的初步协作结构
 - 当前 `transaction` 已形成 `RecoveryManager + RecoveryApplier` 的恢复协作结构
+- 当前恢复流程已修复假事务持锁不释放的问题，redo/undo 不再在恢复阶段自阻塞
+- 当前恢复流程已修复 `UPDATE` 撤销不完整的问题，恢复时会恢复旧槽位并删除补写的新 tuple
 - 当前 `execution` 已形成 `QueryProcessor + QueryRuntime + QueryResultRenderer + ExecutionEngine + ExecutionSupport + ProjectionColumnResolver` 的初步协作结构
 - 当前 `execution` 已进一步形成 `QueryProcessor + QueryCompiler + BuiltInCommandHandler + StatementTableNameResolver + ExecutionEngine + QueryExecutorBuilder` 的执行协作结构
 - 当前 `core.sql` 已形成 `Planner + Select/Insert/Delete/UpdatePlanBuilder` 与 `SemanticAnalyzer + Select/Insert/Delete/UpdateSemanticValidator` 的初步协作结构
 - 当前 `core.sql` 已进一步形成 `CreateTable/CreateIndex/AlterTable/DropTable/CreateUser/Grant` 级别的 builder / validator 协作者，`Planner` 与 `SemanticAnalyzer` 已接近纯语句分发层
+- 当前测试主结构已按 `core.sql / core.execution / core.storage / core.transaction / access.protocol` 收口，目录语义开始与主代码一致
 - 终端和 Maven 的 JDK 版本曾存在不一致，需要坚持 Java 21
+- 当前 `web/` 已具备可构建的前端工程，并已优先调用 Spring Boot `query / trace / history` 接口，接口不可用时才回退到 mock 数据
+- 当前前后端已按分离部署思路收口：前端通过 `VITE_API_BASE_URL` 访问后端，后端通过 `app.web.cors.allowed-origins` 控制跨域
+- 当前 `app` 返回给前端的表格数据已来自 `core.execution.QueryResult`，不再依赖 `rawResult` 文本解析
 
 ## 用户已确定的总体规划
 
@@ -88,19 +103,19 @@
 
 ## 当前主要待办
 
-1. 继续重构数据库内核，优先清理剩余导入噪音与测试侧历史结构，并开始补执行链路/编译链路测试
+1. 继续重构数据库内核，优先补更多目录/恢复/存储回归测试，并继续清理测试内容里的历史注释和过时场景
 2. 将现有入口进一步收口到统一 launcher
 3. 开始数据库内核与 Spring Boot 适配层的边界强化
-4. 继续完善 `app` 层的 controller / service / dto 结构
-5. 再评估是否拆成 `rill-core` / `rill-app` 两个 Maven 模块
-6. 再进入测试补强与更深层的模式重构
+4. 继续完善 Web API，把 trace 从“阶段推断”推进到“执行链路真实埋点”
+5. 继续完善 `app` 层的 controller / service / dto 结构
+6. 再评估是否拆成 `rill-core` / `rill-app` 两个 Maven 模块
 
 ## 最近一次变更
 
-- 调整了 `QueryProcessor` 与 `ExecutionEngine` 的内部结构，拆出 SQL 编译、内建命令处理、表名解析和查询执行器装配协作者
-- 影响范围：执行链路、MySQL 协议辅助查询、执行模块文档
-- 当前结果：`Planner`、`SemanticAnalyzer`、`Catalog`、`RecoveryManager`、`QueryProcessor`、`ExecutionEngine` 都已经从大类结构转向“编排层 + 协作者”的形态，JDK 21 下 `package` 通过
-- 下一步建议：开始收口测试结构和剩余导入噪音，并补一轮针对编译链路与执行链路的回归测试
+- 建立了 Web API 第一版，并让 `web/` 前端优先调用真实后端接口；当前返回真实 SQL 执行结果、阶段级 trace、历史记录与 trace 查询接口
+- 影响范围：`app.dto`、`app.service.QueryTraceService`、`app.web.QueryController`、`app.config.WebCorsConfig`、`web/` store 与结果展示逻辑
+- 当前结果：后端 `package` 通过，前端 `build` 通过，WebUI 已从纯 mock 页面升级为“真实接口优先、结构化结果返回、mock 回退”的可运行骨架
+- 下一步建议：继续把 trace 事件从“阶段级推断”推进到“执行链路真实埋点”，并开始利用 `/api/query/history` 做前端历史面板
 
 ## 当前建议顺序
 

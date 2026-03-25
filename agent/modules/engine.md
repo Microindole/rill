@@ -34,4 +34,8 @@ AST -> PlanNode -> Executor Tree -> Tuple/Result
 - `QueryProcessor` 已拆出 `QueryCompiler`、`BuiltInCommandHandler`、`StatementTableNameResolver`
 - `ExecutionEngine` 已拆出 `QueryExecutorBuilder`，查询类执行器的递归装配不再堆在总控类中
 - 当前 `ExecutionEngine` 已按 command/query 两段注册执行器工厂
+- 对应测试目录已收口到 `src/test/java/com/indolyn/rill/core/execution`，谓词下推测试已并入 `core.execution.optimization`
+- 已新增 `QueryCompilerTest`、`QueryProcessorTest`，开始直接约束新拆出的执行协作者
+- 已新增 `ExecutionEngineTest`，开始直接约束执行器工厂注册与不支持节点报错行为
+- 当前查询类执行器测试需要显式事务，这与锁管理器约束保持一致
 - 当前新增 `PlanNode` 类型时，可以优先增加工厂注册与专属构建方法，避免继续膨胀单一方法
