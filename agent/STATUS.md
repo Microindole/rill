@@ -66,6 +66,7 @@
 - 完成系统层第九轮收口：新增 `PageAccess`，目录层已开始从 `BufferPoolManager` 直接依赖切到页访问接口
 - 完成系统层第十轮收口：恢复链路已开始从 `BufferPoolManager` 直接依赖切到 `PageAccess`
 - 完成系统层第十一轮收口：`TableHeap` 与执行支撑层已切到 `PageAccess`，恢复链路中的缓冲池桥接已移除
+- 完成统一构建入口修复：`mvnw.cmd / mvnw` 与 `scripts/build.* / scripts/rill.*` 已统一优先使用 `JAVA21_HOME`
 
 ## 已确认事实
 
@@ -115,6 +116,7 @@
 - 当前目录层已经开始从直接依赖 `BufferPoolManager` 转向依赖 `PageAccess`
 - 当前恢复链路也已开始复用 `PageAccess`，系统层上半部分的页访问边界更一致
 - 当前 `TableHeap` 也已开始复用 `PageAccess`，目录/恢复/表堆三条链路的页访问边界已统一
+- 当前 Maven Wrapper 与跨平台脚本已恢复可用，并能在显式提供 `JAVA21_HOME` 时稳定切到 Java 21
 
 ## 用户已确定的总体规划
 
@@ -136,10 +138,10 @@
 
 ## 最近一次变更
 
-- 建立了系统层第十一轮收口：`TableHeap / ExecutionSupport` 已切到 `PageAccess`，恢复链路中的缓冲池桥接已去掉
-- 影响范围：执行模块、事务恢复模块、系统层页访问边界
-- 当前结果：后端 `package` 通过，`RecoveryTest / CatalogTest / ExecutionEngineTest / DatabaseManagerTest` 通过，目录/恢复/表堆已开始共享同一套页访问抽象
-- 下一步建议：继续评估哪些执行器仍必须直接依赖 `BufferPoolManager`，逐步把上层只需要页访问能力的部分收敛到 `PageAccess`
+- 完成了工程收尾：`mvnw.cmd / mvnw` 已恢复，`scripts/build.* / scripts/rill.*` 已统一优先使用 `JAVA21_HOME`
+- 影响范围：构建入口、启动脚本、运行模块文档
+- 当前结果：`mvnw.cmd -v` 可在 `JAVA21_HOME` 下显示 Java 21，`scripts/build.cmd` 与 `scripts/rill.cmd help` 已验证通过
+- 下一步建议：继续评估哪些执行器仍必须直接依赖 `BufferPoolManager`，或者转回入口统一与 `app/core` 边界强化
 
 ## 当前建议顺序
 
@@ -156,7 +158,6 @@
 - 如果继续保留重复入口，后续文档和运行方式会持续分裂
 - 如果过早引入复杂外部组件，底层重构会被打断
 - 如果不持续更新文档，agent 协作质量会快速下降
-- 当前 `mvnw.cmd` 文件头已被污染，终端验证暂时需要走系统 Maven，后续应单独修复 wrapper
 
 ## 文档更新规则
 

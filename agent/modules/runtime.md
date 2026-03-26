@@ -144,6 +144,30 @@
 - `core` 现在已经独立成主内核包
 - 运行模块后续重点不再是“是否拆出 core”，而是“如何让 launcher、app、access 更干净地调用 core”
 
+## 当前构建与启动约定
+
+- `mvnw.cmd`、`mvnw` 已恢复为可用的统一构建入口
+- `scripts/build.cmd`、`scripts/build.sh` 统一负责打包
+- `scripts/rill.cmd`、`scripts/rill.sh` 统一负责运行 fat jar
+- 如果定义了 `JAVA21_HOME`，wrapper 与脚本都会优先使用该 JDK
+- 如果没有定义 `JAVA21_HOME`，则回退到当前 `JAVA_HOME / PATH`
+
+Windows 推荐：
+
+```bat
+set JAVA21_HOME=D:\Java
+scripts\build.cmd
+scripts\rill.cmd help
+```
+
+macOS / Linux 推荐：
+
+```sh
+export JAVA21_HOME=/path/to/jdk-21
+./scripts/build.sh
+./scripts/rill.sh help
+```
+
 ### 统一入口
 
 - `RillLauncher` 作为统一入口长期保留

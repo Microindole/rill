@@ -1,3 +1,4 @@
+<# : batch portion
 @REM ----------------------------------------------------------------------------
 @REM Licensed to the Apache Software Foundation (ASF) under one
 @REM or more contributor license agreements.  See the NOTICE file
@@ -25,6 +26,11 @@
 @REM   MVNW_USERNAME/MVNW_PASSWORD - user and password for downloading maven
 @REM   MVNW_VERBOSE - true: enable verbose log; others: silence the output
 @REM ----------------------------------------------------------------------------
+
+@IF NOT "%JAVA21_HOME%"=="" (
+  @SET "JAVA_HOME=%JAVA21_HOME%"
+  @SET "PATH=%JAVA_HOME%\bin;%PATH%"
+)
 
 @IF "%__MVNW_ARG0_NAME__%"=="" (SET __MVNW_ARG0_NAME__=%~nx0)
 @SET __MVNW_CMD__=

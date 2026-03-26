@@ -30,6 +30,22 @@ macOS / Linux:
 mvnw.cmd -DskipTests package
 ```
 
+如果本机同时存在多个 JDK，推荐显式提供 `JAVA21_HOME`，构建脚本和 Maven Wrapper 会优先使用它。
+
+Windows:
+
+```bat
+set JAVA21_HOME=D:\Java
+mvnw.cmd -DskipTests package
+```
+
+macOS / Linux:
+
+```sh
+export JAVA21_HOME=/path/to/jdk-21
+./mvnw -DskipTests package
+```
+
 打包后会生成可直接运行的 fat jar:
 
 ```text
@@ -43,6 +59,7 @@ java -jar target/...jar help
 Windows:
 
 ```bat
+set JAVA21_HOME=D:\Java
 scripts\rill.cmd help
 scripts\rill.cmd server --port=8848
 scripts\rill.cmd client --host=127.0.0.1 --port=8848 --user=root
@@ -51,6 +68,7 @@ scripts\rill.cmd client --host=127.0.0.1 --port=8848 --user=root
 macOS / Linux:
 
 ```sh
+export JAVA21_HOME=/path/to/jdk-21
 ./scripts/rill.sh help
 ./scripts/rill.sh server --port=8848
 ./scripts/rill.sh client --host=127.0.0.1 --port=8848 --user=root
