@@ -52,6 +52,33 @@ export JAVA21_HOME=/path/to/jdk-21
 java -jar target/...jar help
 ```
 
+## CI
+
+仓库当前已接入 GitHub Actions CI：
+
+- 后端：Java 21 + Maven 编译
+- 后端核心回归：`ParserTest / PlannerTest / SemanticAnalyzerTest / DataTypeTest / MysqlProtocolHandlerTest`
+- 前端：Node 22 + `npm ci` + `npm run build`
+
+CI 默认会在 `push`、`pull_request` 和手动触发时运行，并根据变更路径跳过不相关的前后端 job。
+
+说明：
+
+- 当前没有直接使用全量 `./mvnw verify` 作为 CI 主命令，因为仓库里仍有一批历史测试尚未完全收口
+- 现阶段先把稳定维护中的核心回归套件纳入正式 CI，后续再逐步扩大覆盖面
+
+## Dependabot
+
+仓库当前已启用 Dependabot，覆盖：
+
+- GitHub Actions
+- 根目录 Maven 依赖
+- `web/` 下的 npm 依赖
+
+默认按每周节奏创建依赖更新 PR。
+
+对于 `pull_request`，CI 还会额外执行依赖变更审查，避免高风险依赖更新直接进入主分支。
+
 ## Run Modes
 
 统一入口为 `com.indolyn.rill.RillLauncher`，因此 IDEA、VS Code、终端和部署环境都可以使用同一套启动方式。

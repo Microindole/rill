@@ -77,6 +77,9 @@
 - 完成 `NUMERIC(p,s)` 的 `UPDATE` 重启回归补强，并让协议层 `SHOW CREATE TABLE` 输出独立主键定义，`SHOW FULL COLUMNS` 返回 `PRI/NO`
 - 完成 DDL 列约束元数据第一轮贯通：`NOT NULL / DEFAULT / PRIMARY KEY` 已从 parser/AST 进入 planner、`Column`、catalog 持久化与重启恢复
 - 完成协议层 DDL 展示补齐：`SHOW CREATE TABLE` 已输出 `NOT NULL / DEFAULT / PRIMARY KEY / KEY`，`SHOW FULL COLUMNS` 与 `information_schema.columns` 也开始复用同一份空值、默认值和索引元数据
+- 完成 GitHub 自动化基础设施第一轮落地：新增后端 Maven + 前端 Vite 的 CI workflow，并补齐 Dependabot 对 GitHub Actions / Maven / npm 的更新策略
+- 完成 GitHub 自动化基础设施第二轮收口：CI 已加入路径变更检测、最小只读权限和前端构建产物上传，README 也已补齐 CI / Dependabot 说明
+- 完成 GitHub 自动化基础设施第三轮补强：PR 现在会额外执行 dependency review，依赖更新不再只靠构建是否通过来兜底
 
 ## 已确认事实
 
@@ -137,6 +140,10 @@
 - 当前 `NUMERIC(p,s)` 的精度/scale 约束也已覆盖 `UPDATE`，协议层 `SHOW CREATE TABLE` 已能输出 `PRIMARY KEY (...)`，`SHOW FULL COLUMNS` 也会为主键列返回 `PRI`
 - 当前 `NOT NULL / DEFAULT / PRIMARY KEY` 已不再只存在于建表语句文本里，列约束元数据会随 catalog 一起持久化并在数据库重启后恢复
 - 当前 MySQL 协议兼容层的 `SHOW CREATE TABLE / SHOW FULL COLUMNS / information_schema.columns` 已开始复用列约束和索引元数据，而不是只展示类型名
+- 当前仓库已经有可执行的 GitHub CI，会在 push / pull request 上校验后端编译、当前维护中的核心回归套件，以及前端 `npm run build`
+- 当前 Dependabot 已不再是空配置，已覆盖 GitHub Actions、根目录 Maven 依赖和 `web/` 下的 npm 依赖
+- 当前 CI 已能按变更路径跳过不相关 job，减少仅改文档或单侧代码时的无效构建
+- 当前 PR 也已开始执行依赖变更审查，Dependabot 和人工依赖升级都能得到一层额外风险检查
 
 ## 用户已确定的总体规划
 
@@ -194,10 +201,10 @@
 
 ## 最近一次变更
 
-- 完成了 DDL 列约束与协议展示的一轮补齐：`NOT NULL / DEFAULT / PRIMARY KEY` 已打通 parser、planner、`Column`、catalog 持久化与重启恢复，`SHOW CREATE TABLE` 也开始输出普通索引 `KEY`
-- 影响范围：`core.sql.lexer`、`core.sql.parser`、`core.sql.semantic`、`core.sql.planner`、`core.model`、`core.catalog`、`access.protocol`、`core.sql`/`access.protocol` 测试
-- 当前结果：`ParserTest / PlannerTest / SemanticAnalyzerTest / DataTypeTest / MysqlProtocolHandlerTest` 已通过，协议层 `SHOW CREATE TABLE / SHOW FULL COLUMNS / information_schema.columns` 已能展示 `NOT NULL / DEFAULT / PRIMARY KEY / KEY`
-- 下一步建议：继续补更完整的列约束与 DDL 方言能力，例如多列索引、唯一约束、`TIMESTAMP WITH TIME ZONE`，以及 `ALTER TABLE` 的更完整列约束变体
+- 完成了 GitHub 自动化基础设施第二轮补齐：CI 新增路径过滤、最小权限和前端产物上传，README 也已补上 CI / Dependabot 使用说明
+- 影响范围：`.github/workflows`、`.github/dependabot.yml`、`README.md`、`agent/STATUS.md`
+- 当前结果：仓库的 GitHub 自动化已经从“可运行”提升到“可协作使用”，可以按改动范围更精准地执行前后端校验
+- 下一步建议：继续评估测试矩阵、分支保护配套和更细粒度的 PR 失败提示
 
 ## 当前建议顺序
 

@@ -139,3 +139,9 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 - 当前协议层 `SHOW CREATE TABLE` 已能输出 `NOT NULL / DEFAULT / PRIMARY KEY / KEY`，`SHOW FULL COLUMNS` 与 `information_schema.columns` 也开始复用同一份列约束与索引元数据
 - 当前新增语句类型时，优先新增规则注册和专属处理器，而不是继续扩写单一方法
 - 当前 `SemanticAnalyzer` 与 `Planner` 已接入运行时 trace 埋点，会在实际分发时记录命中的 validator / builder 组件
+
+## 相关工程约束
+
+- 编译模块相关回归现在已纳入 GitHub CI 的后端 Maven 校验链路，当前先使用维护中的核心回归套件，避免 parser / semantic / planner 的改动只在本地通过
+- 前端 `web/` 已有独立构建步骤，因此涉及编译链路可视化或 Web UI 适配的改动也会受到 CI 中 `npm run build` 的约束
+- 与编译模块联动的依赖升级 PR 现在也会经过 dependency review，降低编译链路在依赖变更时无感退化的风险
