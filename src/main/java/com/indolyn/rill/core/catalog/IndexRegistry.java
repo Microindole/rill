@@ -5,17 +5,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-final class IndexRegistry {
+final class IndexRegistry implements IndexCatalogAccess {
     private final Map<String, IndexInfo> indices = new ConcurrentHashMap<>();
 
-    void createIndex(String indexName, String tableName, String columnName, int rootPageId) {
+    @Override
+    public void createIndex(String indexName, String tableName, String columnName, int rootPageId) {
         if (indices.containsKey(indexName)) {
             throw new IllegalStateException("Index '" + indexName + "' already exists.");
         }
         indices.put(indexName, new IndexInfo(indexName, tableName, columnName, rootPageId));
     }
 
-    void updateRootPageId(String indexName, int newRootPageId) {
+    @Override
+    public void updateRootPageId(String indexName, int newRootPageId) {
         IndexInfo indexInfo = indices.get(indexName);
         if (indexInfo == null) {
             throw new IllegalStateException(
@@ -24,7 +26,8 @@ final class IndexRegistry {
         indexInfo.setRootPageId(newRootPageId);
     }
 
-    IndexInfo getIndex(String tableName, String columnName) {
+    @Override
+    public IndexInfo getIndex(String tableName, String columnName) {
         for (IndexInfo indexInfo : indices.values()) {
             if (indexInfo.getTableName().equalsIgnoreCase(tableName)
                 && indexInfo.getColumnName().equalsIgnoreCase(columnName)) {
@@ -34,17 +37,20 @@ final class IndexRegistry {
         return null;
     }
 
-    IndexInfo getIndex(String indexName) {
+    @Override
+    public IndexInfo getIndex(String indexName) {
         return indices.get(indexName);
     }
 
-    List<IndexInfo> getIndexesForTable(String tableName) {
+    @Override
+    public List<IndexInfo> getIndexesForTable(String tableName) {
         return indices.values().stream()
             .filter(indexInfo -> indexInfo.getTableName().equalsIgnoreCase(tableName))
             .collect(Collectors.toList());
     }
 
-    void dropIndexesForTable(String tableName) {
+    @Override
+    public void dropIndexesForTable(String tableName) {
         List<String> indexesToRemove =
             indices.values().stream()
                 .filter(indexInfo -> indexInfo.getTableName().equalsIgnoreCase(tableName))

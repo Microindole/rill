@@ -36,7 +36,7 @@ build/
 
 
 ### project ###
-data/
+/data/
 exports/
 *.db
 *.data

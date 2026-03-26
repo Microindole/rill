@@ -1,9 +1,10 @@
 package com.indolyn.rill.core.catalog;
 
-import com.indolyn.rill.core.storage.database.DatabaseManager;
 import com.indolyn.rill.core.model.*;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
-import com.indolyn.rill.core.storage.disk.DiskManager;
+import com.indolyn.rill.core.storage.buffer.PageAccess;
+import com.indolyn.rill.core.storage.database.DatabasePathResolver;
+import com.indolyn.rill.core.storage.database.LocalDatabasePathResolver;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
 
@@ -17,15 +18,16 @@ import java.util.stream.Collectors;
  * 系统目录，负责管理数据库的所有元数据（表、列等）。 目录本身也作为特殊的表存储在磁盘上。
  */
 public class Catalog {
-    private final BufferPoolManager bufferPoolManager;
+    private final PageAccess pageAccess;
     // 内存中的缓存
     private final Map<String, TableInfo> tables;
     private final Map<String, Integer> tableIds;
     private final AtomicInteger nextTableId;
     private final PermissionRegistry permissionRegistry;
-    private final CatalogMetadataStore metadataStore;
-    private final IndexRegistry indexRegistry;
-    private final UserDirectoryStore userDirectoryStore;
+    private final PermissionReloadAccess permissionReloadAccess;
+    private final CatalogMetadataAccess metadataStore;
+    private final IndexCatalogAccess indexRegistry;
+    private final UserDirectoryAccess userDirectoryStore;
     // --- 元数据表的特殊定义 ---
     // 存储所有表的信息 (table_id, table_name, first_page_id)
     public static final String CATALOG_TABLES_TABLE_NAME = "_catalog_tables";
@@ -47,14 +49,25 @@ public class Catalog {
     private PageId privilegesTableFirstPageId;
 
     public Catalog(BufferPoolManager bufferPoolManager) throws IOException {
-        this.bufferPoolManager = bufferPoolManager;
+        this((PageAccess) bufferPoolManager, new LocalDatabasePathResolver());
+    }
+
+    public Catalog(PageAccess pageAccess, DatabasePathResolver pathResolver)
+        throws IOException {
+        this(pageAccess, CatalogCollaborators.createDefault(pageAccess, pathResolver));
+    }
+
+    Catalog(PageAccess pageAccess, CatalogCollaborators collaborators)
+        throws IOException {
+        this.pageAccess = pageAccess;
         this.tables = new ConcurrentHashMap<>();
         this.tableIds = new ConcurrentHashMap<>();
         this.nextTableId = new AtomicInteger(0);
-        this.permissionRegistry = new PermissionRegistry();
-        this.metadataStore = new CatalogMetadataStore(bufferPoolManager);
-        this.indexRegistry = new IndexRegistry();
-        this.userDirectoryStore = new UserDirectoryStore(bufferPoolManager, permissionRegistry);
+        this.permissionRegistry = collaborators.permissionRegistry();
+        this.permissionReloadAccess = collaborators.permissionReloadAccess();
+        this.metadataStore = collaborators.metadataAccess();
+        this.indexRegistry = collaborators.indexAccess();
+        this.userDirectoryStore = collaborators.userDirectoryAccess();
 
         // 定义元数据表的 Schema
         this.tablesTableSchema =
@@ -95,7 +108,7 @@ public class Catalog {
 
     private void loadCatalog() throws IOException {
         tablesTableFirstPageId = new PageId(0);
-        Page tablesPage = bufferPoolManager.getPage(tablesTableFirstPageId);
+        Page tablesPage = pageAccess.getPage(tablesTableFirstPageId);
 
         if (tablesPage.getAllTuples(tablesTableSchema).isEmpty()) {
             bootstrap();
@@ -158,19 +171,19 @@ public class Catalog {
     }
 
     private void bootstrap() throws IOException {
-        PageId pageZero = bufferPoolManager.newPage().getPageId();
+        PageId pageZero = pageAccess.newPage().getPageId();
         if (pageZero.getPageNum() != 0) {
             throw new IllegalStateException(
                 "Bootstrap failed: Expected to allocate Page 0, but got Page " + pageZero.getPageNum());
         }
-        columnsTableFirstPageId = bufferPoolManager.newPage().getPageId();
+        columnsTableFirstPageId = pageAccess.newPage().getPageId();
         if (columnsTableFirstPageId.getPageNum() != 1) {
             throw new IllegalStateException(
                 "Catalog bootstrap failed: _catalog_columns was not on Page 1, got "
                     + columnsTableFirstPageId.getPageNum());
         }
-        usersTableFirstPageId = bufferPoolManager.newPage().getPageId();
-        privilegesTableFirstPageId = bufferPoolManager.newPage().getPageId();
+        usersTableFirstPageId = pageAccess.newPage().getPageId();
+        privilegesTableFirstPageId = pageAccess.newPage().getPageId();
 
         int tablesTableId = nextTableId.getAndIncrement();
         int columnsTableId = nextTableId.getAndIncrement();
@@ -236,7 +249,7 @@ public class Catalog {
         if (tables.containsKey(tableName)) {
             throw new IllegalArgumentException("Table " + tableName + " already exists.");
         }
-        PageId firstPageId = bufferPoolManager.newPage().getPageId();
+        PageId firstPageId = pageAccess.newPage().getPageId();
         int newTableId = nextTableId.getAndIncrement();
         metadataStore.persistNewTable(
             tablesTableFirstPageId,
@@ -446,44 +459,7 @@ public class Catalog {
     }
 
     private void forceReloadPermissions() throws IOException {
-        permissionRegistry.clear();
-
-        DiskManager defaultDiskManager = null;
-        try {
-            String defaultDbPath = DatabaseManager.getDbFilePath("default");
-            defaultDiskManager = new DiskManager(defaultDbPath);
-            defaultDiskManager.open();
-            BufferPoolManager defaultBPM = new BufferPoolManager(10, defaultDiskManager, "LRU");
-
-            Page defaultTablesTablePage = defaultBPM.getPage(new PageId(0));
-            List<Tuple> catalogTuples = defaultTablesTablePage.getAllTuples(this.tablesTableSchema);
-
-            PageId usersPageId = null;
-            PageId privsPageId = null;
-
-            for (Tuple t : catalogTuples) {
-                String tableName = (String) t.getValues().get(1).getValue();
-                int pageId = (int) t.getValues().get(2).getValue();
-                if (CATALOG_USERS_TABLE_NAME.equals(tableName)) {
-                    usersPageId = new PageId(pageId);
-                }
-                if (CATALOG_PRIVILEGES_TABLE_NAME.equals(tableName)) {
-                    privsPageId = new PageId(pageId);
-                }
-            }
-
-            if (usersPageId == null || privsPageId == null) {
-                System.err.println("[Catalog.forceReload] 警告: 在 'default' 数据库中找不到用户或权限系统表。");
-                return;
-            }
-
-            UserDirectoryStore reloadStore = new UserDirectoryStore(defaultBPM, permissionRegistry);
-            reloadStore.loadUsers(usersPageId, usersTableSchema);
-            reloadStore.loadPrivileges(usersPageId, usersTableSchema, privsPageId, privilegesTableSchema);
-        } finally {
-            if (defaultDiskManager != null) {
-                defaultDiskManager.close();
-            }
-        }
+        permissionReloadAccess.reload(
+            permissionRegistry, tablesTableSchema, usersTableSchema, privilegesTableSchema);
     }
 }

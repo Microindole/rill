@@ -1,6 +1,7 @@
 package com.indolyn.rill.core.sql.planner;
 
 import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.execution.trace.TraceCollector;
 import com.indolyn.rill.core.sql.ast.StatementNode;
 import com.indolyn.rill.core.sql.ast.statement.AlterTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateDatabaseStatementNode;
@@ -62,11 +63,55 @@ public class Planner {
     public PlanNode createPlan(StatementNode ast) {
         StatementPlanner<StatementNode> planner = resolvePlanner(ast);
         if (planner != null) {
-            return planner.createPlan(ast);
+            PlanNode plan = planner.createPlan(ast);
+            String component = plannerComponentName(ast);
+            TraceCollector.record(
+                "planner",
+                component,
+                "src/main/java/com/indolyn/rill/core/sql/planner/" + component + ".java",
+                "build",
+                plan == null
+                    ? "当前语句未生成计划节点"
+                    : "生成计划节点 " + plan.getClass().getSimpleName());
+            return plan;
         }
 
         throw new UnsupportedOperationException(
             "Unsupported statement type for planning: " + ast.getClass().getSimpleName());
+    }
+
+    private String plannerComponentName(StatementNode ast) {
+        if (ast instanceof CreateTableStatementNode) {
+            return "CreateTablePlanBuilder";
+        }
+        if (ast instanceof CreateIndexStatementNode) {
+            return "CreateIndexPlanBuilder";
+        }
+        if (ast instanceof InsertStatementNode) {
+            return "InsertPlanBuilder";
+        }
+        if (ast instanceof SelectStatementNode) {
+            return "SelectPlanBuilder";
+        }
+        if (ast instanceof DeleteStatementNode) {
+            return "DeletePlanBuilder";
+        }
+        if (ast instanceof UpdateStatementNode) {
+            return "UpdatePlanBuilder";
+        }
+        if (ast instanceof DropTableStatementNode) {
+            return "DropTablePlanBuilder";
+        }
+        if (ast instanceof AlterTableStatementNode) {
+            return "AlterTablePlanBuilder";
+        }
+        if (ast instanceof CreateUserStatementNode) {
+            return "CreateUserPlanBuilder";
+        }
+        if (ast instanceof GrantStatementNode) {
+            return "GrantPlanBuilder";
+        }
+        return "Planner";
     }
 
     private void registerStatementPlanners() {
@@ -123,4 +168,3 @@ public class Planner {
         PlanNode createPlan(T statement);
     }
 }
-

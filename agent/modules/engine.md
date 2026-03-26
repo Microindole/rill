@@ -39,3 +39,4 @@ AST -> PlanNode -> Executor Tree -> Tuple/Result
 - 已新增 `ExecutionEngineTest`，开始直接约束执行器工厂注册与不支持节点报错行为
 - 当前查询类执行器测试需要显式事务，这与锁管理器约束保持一致
 - 当前新增 `PlanNode` 类型时，可以优先增加工厂注册与专属构建方法，避免继续膨胀单一方法
+- 当前 `ExecutionEngine` 已接入运行时 trace 埋点，会在实际命中执行器工厂时记录对应 executor 组件

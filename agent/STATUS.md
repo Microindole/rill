@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-阶段名称：内核第一轮重构已基本完成，正在进入“Web UI 启动与入口收口并行”阶段
+阶段名称：内核第一轮重构已基本完成，当前重心切回系统层边界抽象与工程收口
 
 ## 已完成
 
@@ -54,6 +54,18 @@
 - 完成 Web API 第一轮打通：新增 `query / trace / history` 接口、CORS 配置、结构化 trace DTO，并让 `web/` 前端优先调用真实后端接口
 - 完成前后端分离第一轮收口：前端 API 地址改为环境变量配置，后端 CORS 改为配置项，`web/` 不再写死依赖 `localhost:8080`
 - 完成结构化结果下沉：`QueryProcessor` 已支持结构化结果执行，`app` 层不再解析文本表格来生成 rows/columns
+- 完成真实 trace 埋点第一轮：`SemanticAnalyzer`、`Planner`、`ExecutionEngine` 已在实际分发点记录命中的 validator / builder / executor 组件
+- 完成系统层第一轮语义收口：新增系统层文档，并将 `QueryRuntime` 的基础设施初始化抽到默认组装器，减少运行时直接写死依赖
+- 完成系统层第二轮最小接口抽象：新增 `LogService`、`LockService`，并将事务/恢复/执行链路切到接口依赖
+- 完成系统层第三轮可替换边界抽象：新增 `RuntimeInfrastructureFactory`、`DatabasePathResolver`，并为本地单机运行保留默认实现
+- 完成系统层第四轮收口：`Catalog` 已改为依赖 `DatabasePathResolver`，默认权限重载不再直接写死本地数据库路径
+- 完成系统层第五轮收口：`Catalog` 的默认权限重载已下沉到独立协作者 `PermissionReloadAccess`
+- 完成系统层第六轮收口：`Catalog` 的元数据读写已开始依赖 `CatalogMetadataAccess` 接口
+- 完成系统层第七轮收口：用户目录与索引目录已分别开始依赖 `UserDirectoryAccess`、`IndexCatalogAccess`
+- 完成系统层第八轮收口：新增 `CatalogCollaborators`，`Catalog` 的默认协作者装配入口已显式化
+- 完成系统层第九轮收口：新增 `PageAccess`，目录层已开始从 `BufferPoolManager` 直接依赖切到页访问接口
+- 完成系统层第十轮收口：恢复链路已开始从 `BufferPoolManager` 直接依赖切到 `PageAccess`
+- 完成系统层第十一轮收口：`TableHeap` 与执行支撑层已切到 `PageAccess`，恢复链路中的缓冲池桥接已移除
 
 ## 已确认事实
 
@@ -91,6 +103,18 @@
 - 当前 `web/` 已具备可构建的前端工程，并已优先调用 Spring Boot `query / trace / history` 接口，接口不可用时才回退到 mock 数据
 - 当前前后端已按分离部署思路收口：前端通过 `VITE_API_BASE_URL` 访问后端，后端通过 `app.web.cors.allowed-origins` 控制跨域
 - 当前 `app` 返回给前端的表格数据已来自 `core.execution.QueryResult`，不再依赖 `rawResult` 文本解析
+- 当前 Web UI 的 trace 已开始使用运行时真实命中组件，而不是只靠阶段级推断
+- 当前系统层已明确收口为 `storage / transaction / catalog` 共同构成的基础设施层，运行时默认组装已不再直接散落在 `QueryRuntime`
+- 当前日志与锁管理已开始从“具体实现类直连”转向“接口 + 默认实现”结构，单机默认实现仍由 `LogManager`、`LockManager` 提供
+- 当前运行时装配和数据库文件定位也已开始从“本地路径写死”转向“接口 + 本地默认实现”结构
+- 当前 `Catalog` 的默认权限重载路径也已纳入同一套路径解析策略，不再单独硬编码 `default` 库文件位置
+- 当前 `Catalog` 不再自己承担临时磁盘访问与权限重载细节，目录层开始形成更明确的协作者结构
+- 当前 `Catalog` 也不再直接绑定唯一的元数据存取实现，目录元数据边界开始明确
+- 当前 `Catalog` 的用户目录和索引目录也已具备接口边界，目录层协作者结构进一步稳定
+- 当前 `Catalog` 的默认协作者装配也已从构造器内部散落 `new` 收口到显式装配入口
+- 当前目录层已经开始从直接依赖 `BufferPoolManager` 转向依赖 `PageAccess`
+- 当前恢复链路也已开始复用 `PageAccess`，系统层上半部分的页访问边界更一致
+- 当前 `TableHeap` 也已开始复用 `PageAccess`，目录/恢复/表堆三条链路的页访问边界已统一
 
 ## 用户已确定的总体规划
 
@@ -103,19 +127,19 @@
 
 ## 当前主要待办
 
-1. 继续重构数据库内核，优先补更多目录/恢复/存储回归测试，并继续清理测试内容里的历史注释和过时场景
+1. 继续重构数据库内核，优先收紧系统层边界，逐步抽出存储/目录等最小接口，并继续补目录/恢复/存储回归测试
 2. 将现有入口进一步收口到统一 launcher
 3. 开始数据库内核与 Spring Boot 适配层的边界强化
-4. 继续完善 Web API，把 trace 从“阶段推断”推进到“执行链路真实埋点”
+4. 继续完善 Web UI，接入 `/api/query/history` 历史面板，并优化 trace 展示
 5. 继续完善 `app` 层的 controller / service / dto 结构
 6. 再评估是否拆成 `rill-core` / `rill-app` 两个 Maven 模块
 
 ## 最近一次变更
 
-- 建立了 Web API 第一版，并让 `web/` 前端优先调用真实后端接口；当前返回真实 SQL 执行结果、阶段级 trace、历史记录与 trace 查询接口
-- 影响范围：`app.dto`、`app.service.QueryTraceService`、`app.web.QueryController`、`app.config.WebCorsConfig`、`web/` store 与结果展示逻辑
-- 当前结果：后端 `package` 通过，前端 `build` 通过，WebUI 已从纯 mock 页面升级为“真实接口优先、结构化结果返回、mock 回退”的可运行骨架
-- 下一步建议：继续把 trace 事件从“阶段级推断”推进到“执行链路真实埋点”，并开始利用 `/api/query/history` 做前端历史面板
+- 建立了系统层第十一轮收口：`TableHeap / ExecutionSupport` 已切到 `PageAccess`，恢复链路中的缓冲池桥接已去掉
+- 影响范围：执行模块、事务恢复模块、系统层页访问边界
+- 当前结果：后端 `package` 通过，`RecoveryTest / CatalogTest / ExecutionEngineTest / DatabaseManagerTest` 通过，目录/恢复/表堆已开始共享同一套页访问抽象
+- 下一步建议：继续评估哪些执行器仍必须直接依赖 `BufferPoolManager`，逐步把上层只需要页访问能力的部分收敛到 `PageAccess`
 
 ## 当前建议顺序
 
@@ -132,6 +156,7 @@
 - 如果继续保留重复入口，后续文档和运行方式会持续分裂
 - 如果过早引入复杂外部组件，底层重构会被打断
 - 如果不持续更新文档，agent 协作质量会快速下降
+- 当前 `mvnw.cmd` 文件头已被污染，终端验证暂时需要走系统 Maven，后续应单独修复 wrapper
 
 ## 文档更新规则
 

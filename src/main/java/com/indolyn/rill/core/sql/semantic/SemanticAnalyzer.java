@@ -1,6 +1,7 @@
 package com.indolyn.rill.core.sql.semantic;
 
 import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.execution.trace.TraceCollector;
 import com.indolyn.rill.core.exception.SemanticException;
 import com.indolyn.rill.core.sql.ast.AstNode;
 import com.indolyn.rill.core.sql.ast.statement.AlterTableStatementNode;
@@ -61,8 +62,48 @@ public class SemanticAnalyzer {
 
         SemanticRule<AstNode> rule = resolveRule(node);
         if (rule != null) {
+            TraceCollector.record(
+                "semantic",
+                semanticComponentName(node),
+                "src/main/java/com/indolyn/rill/core/sql/semantic/" + semanticComponentName(node) + ".java",
+                "analyze",
+                "校验节点 " + node.getClass().getSimpleName());
             rule.analyze(node, session);
         }
+    }
+
+    private String semanticComponentName(AstNode node) {
+        if (node instanceof CreateTableStatementNode) {
+            return "CreateTableSemanticValidator";
+        }
+        if (node instanceof InsertStatementNode) {
+            return "InsertSemanticValidator";
+        }
+        if (node instanceof SelectStatementNode) {
+            return "SelectSemanticValidator";
+        }
+        if (node instanceof DeleteStatementNode) {
+            return "DeleteSemanticValidator";
+        }
+        if (node instanceof UpdateStatementNode) {
+            return "UpdateSemanticValidator";
+        }
+        if (node instanceof DropTableStatementNode) {
+            return "DropTableSemanticValidator";
+        }
+        if (node instanceof AlterTableStatementNode) {
+            return "AlterTableSemanticValidator";
+        }
+        if (node instanceof ShowTablesStatementNode) {
+            return "ShowTablesSemanticValidator";
+        }
+        if (node instanceof CreateUserStatementNode) {
+            return "CreateUserSemanticValidator";
+        }
+        if (node instanceof GrantStatementNode) {
+            return "GrantSemanticValidator";
+        }
+        return "SemanticAnalyzer";
     }
 
     private void registerSemanticRules() {
@@ -103,4 +144,3 @@ public class SemanticAnalyzer {
         void analyze(T node, Session session);
     }
 }
-

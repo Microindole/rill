@@ -12,10 +12,10 @@ import com.indolyn.rill.core.execution.operator.TupleIterator;
 import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
-import com.indolyn.rill.core.transaction.LockManager;
+import com.indolyn.rill.core.transaction.LockService;
 import com.indolyn.rill.core.transaction.Transaction;
 import com.indolyn.rill.core.transaction.TransactionManager;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -34,9 +34,9 @@ public class QueryProcessor {
     private final Catalog catalog;
     private final ExecutionEngine executionEngine;
     @Getter
-    private final LogManager logManager;
+    private final LogService logManager;
     @Getter
-    private final LockManager lockManager;
+    private final LockService lockManager;
     @Getter
     private final TransactionManager transactionManager;
     @Getter
@@ -228,4 +228,3 @@ public class QueryProcessor {
         return QueryResult.newSelectResult(iterator.getOutputSchema(), tuples);
     }
 }
-

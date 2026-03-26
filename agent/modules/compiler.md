@@ -42,3 +42,4 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 - 对应测试目录已收口到 `src/test/java/com/indolyn/rill/core/sql`，原先按 `ddl / dcl` 打散的 SQL 集成测试已迁入 `core.sql.integration`
 - `PlannerTest`、`SemanticAnalyzerTest` 已改为 JUnit 5，并开始直接约束当前 builder / validator 结构下的关键行为
 - 当前新增语句类型时，优先新增规则注册和专属处理器，而不是继续扩写单一方法
+- 当前 `SemanticAnalyzer` 与 `Planner` 已接入运行时 trace 埋点，会在实际分发时记录命中的 validator / builder 组件

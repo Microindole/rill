@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class LogManager {
+public class LogManager implements LogService {
     private final RandomAccessFile logFile;
     private final AtomicLong nextLSN;
 

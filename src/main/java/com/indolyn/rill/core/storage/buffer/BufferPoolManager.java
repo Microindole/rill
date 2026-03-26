@@ -14,7 +14,7 @@ import lombok.Getter;
 /**
  * 缓存池管理器，负责管理内存中的页缓存。
  */
-public class BufferPoolManager {
+public class BufferPoolManager implements PageAccess {
     private final DiskManager diskManager;
     private final int poolSize;
     @Getter
@@ -44,6 +44,7 @@ public class BufferPoolManager {
         }
     }
 
+    @Override
     public Page getPage(PageId pageId) throws IOException {
         if (pageId == null) {
             throw new IllegalArgumentException("PageId cannot be null.");
@@ -76,6 +77,7 @@ public class BufferPoolManager {
         return newPage;
     }
 
+    @Override
     public void flushPage(PageId pageId) throws IOException {
         Page page = pageTable.get(pageId);
         if (page != null) {
@@ -83,6 +85,7 @@ public class BufferPoolManager {
         }
     }
 
+    @Override
     public Page newPage() throws IOException {
         PageId newPageId = diskManager.allocatePage();
         Page newPage = new Page(newPageId);
@@ -108,6 +111,7 @@ public class BufferPoolManager {
     /**
      * 【已修正】删除一个页。 现在会同时从 pageTable 和 replacer 中移除。
      */
+    @Override
     public boolean deletePage(PageId pageId) throws IOException {
         // 1. 从缓存页表中移除
         pageTable.remove(pageId);
@@ -121,6 +125,7 @@ public class BufferPoolManager {
         return true;
     }
 
+    @Override
     public void flushAllPages() throws IOException {
         for (PageId pageId : pageTable.keySet()) {
             flushPage(pageId);

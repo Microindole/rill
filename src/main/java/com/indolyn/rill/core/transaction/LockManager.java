@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class LockManager {
+public class LockManager implements LockService {
     public enum LockMode {
         SHARED,
         EXCLUSIVE

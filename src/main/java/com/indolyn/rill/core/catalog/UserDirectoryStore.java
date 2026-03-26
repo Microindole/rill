@@ -3,7 +3,7 @@ package com.indolyn.rill.core.catalog;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.model.Tuple;
 import com.indolyn.rill.core.model.Value;
-import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.buffer.PageAccess;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
 
@@ -11,17 +11,18 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-final class UserDirectoryStore {
-    private final BufferPoolManager bufferPoolManager;
+final class UserDirectoryStore implements UserDirectoryAccess {
+    private final PageAccess pageAccess;
     private final PermissionRegistry permissionRegistry;
 
-    UserDirectoryStore(BufferPoolManager bufferPoolManager, PermissionRegistry permissionRegistry) {
-        this.bufferPoolManager = bufferPoolManager;
+    UserDirectoryStore(PageAccess pageAccess, PermissionRegistry permissionRegistry) {
+        this.pageAccess = pageAccess;
         this.permissionRegistry = permissionRegistry;
     }
 
-    void loadUsers(PageId usersTableFirstPageId, Schema usersTableSchema) throws IOException {
-        Page usersPage = bufferPoolManager.getPage(usersTableFirstPageId);
+    @Override
+    public void loadUsers(PageId usersTableFirstPageId, Schema usersTableSchema) throws IOException {
+        Page usersPage = pageAccess.getPage(usersTableFirstPageId);
         List<Tuple> userTuples = usersPage.getAllTuples(usersTableSchema);
         for (Tuple userTuple : userTuples) {
             int userId = (int) userTuple.getValues().get(0).getValue();
@@ -31,15 +32,16 @@ final class UserDirectoryStore {
         }
     }
 
-    void loadPrivileges(
+    @Override
+    public void loadPrivileges(
         PageId usersTableFirstPageId,
         Schema usersTableSchema,
         PageId privilegesTableFirstPageId,
         Schema privilegesTableSchema)
         throws IOException {
-        Page usersPage = bufferPoolManager.getPage(usersTableFirstPageId);
+        Page usersPage = pageAccess.getPage(usersTableFirstPageId);
         List<Tuple> userTuples = usersPage.getAllTuples(usersTableSchema);
-        Page privilegesPage = bufferPoolManager.getPage(privilegesTableFirstPageId);
+        Page privilegesPage = pageAccess.getPage(privilegesTableFirstPageId);
         List<Tuple> privilegeTuples = privilegesPage.getAllTuples(privilegesTableSchema);
 
         for (Tuple privilegeTuple : privilegeTuples) {
@@ -53,10 +55,11 @@ final class UserDirectoryStore {
         }
     }
 
-    void bootstrapDefaultUsers(PageId usersTableFirstPageId, PageId privilegesTableFirstPageId)
+    @Override
+    public void bootstrapDefaultUsers(PageId usersTableFirstPageId, PageId privilegesTableFirstPageId)
         throws IOException {
-        Page usersPage = bufferPoolManager.getPage(usersTableFirstPageId);
-        Page privilegesPage = bufferPoolManager.getPage(privilegesTableFirstPageId);
+        Page usersPage = pageAccess.getPage(usersTableFirstPageId);
+        Page privilegesPage = pageAccess.getPage(privilegesTableFirstPageId);
 
         String rootPasswordHash = permissionRegistry.hashPassword("root_password");
         usersPage.insertTuple(
@@ -69,30 +72,33 @@ final class UserDirectoryStore {
         usersPage.insertTuple(
             new Tuple(Arrays.asList(new Value(1), new Value("testuser"), new Value(testPasswordHash))));
 
-        bufferPoolManager.flushPage(usersTableFirstPageId);
-        bufferPoolManager.flushPage(privilegesTableFirstPageId);
+        pageAccess.flushPage(usersTableFirstPageId);
+        pageAccess.flushPage(privilegesTableFirstPageId);
 
         permissionRegistry.registerUser("root", 0, rootPasswordHash);
         permissionRegistry.registerPrivilege("root", "*", "ALL");
         permissionRegistry.registerUser("testuser", 1, testPasswordHash);
     }
 
-    void createUser(PageId usersTableFirstPageId, String username, String password) throws IOException {
+    @Override
+    public void createUser(PageId usersTableFirstPageId, String username, String password)
+        throws IOException {
         int newUserId = permissionRegistry.nextUserId();
         String passwordHash = permissionRegistry.hashPassword(password);
         Tuple userTuple =
             new Tuple(Arrays.asList(new Value(newUserId), new Value(username), new Value(passwordHash)));
 
-        Page usersPage = bufferPoolManager.getPage(usersTableFirstPageId);
+        Page usersPage = pageAccess.getPage(usersTableFirstPageId);
         if (!usersPage.insertTuple(userTuple)) {
             throw new IOException(
                 "Failed to insert new user into users catalog page. Page might be full.");
         }
-        bufferPoolManager.flushPage(usersTableFirstPageId);
+        pageAccess.flushPage(usersTableFirstPageId);
         permissionRegistry.registerUser(username, newUserId, passwordHash);
     }
 
-    void grantPrivilege(
+    @Override
+    public void grantPrivilege(
         PageId privilegesTableFirstPageId, String username, String tableName, String privilegeType)
         throws IOException {
         Integer userId = permissionRegistry.getUserId(username);
@@ -109,12 +115,12 @@ final class UserDirectoryStore {
                     new Value(tableName),
                     new Value(privilegeType.toUpperCase())));
 
-        Page privilegesPage = bufferPoolManager.getPage(privilegesTableFirstPageId);
+        Page privilegesPage = pageAccess.getPage(privilegesTableFirstPageId);
         if (!privilegesPage.insertTuple(privilegeTuple)) {
             throw new IOException(
                 "Failed to insert new privilege into privileges catalog page. Page might be full.");
         }
-        bufferPoolManager.flushPage(privilegesTableFirstPageId);
+        pageAccess.flushPage(privilegesTableFirstPageId);
         permissionRegistry.registerPrivilege(username, tableName, privilegeType);
     }
 

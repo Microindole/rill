@@ -5,29 +5,29 @@ import com.indolyn.rill.core.execution.operator.TableHeap;
 import com.indolyn.rill.core.execution.predicate.AbstractPredicate;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.sql.ast.ExpressionNode;
-import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
-import com.indolyn.rill.core.transaction.LockManager;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.storage.buffer.PageAccess;
+import com.indolyn.rill.core.transaction.LockService;
+import com.indolyn.rill.core.transaction.log.LogService;
 
 final class ExecutionSupport {
-    private final BufferPoolManager bufferPoolManager;
-    private final LogManager logManager;
-    private final LockManager lockManager;
+    private final PageAccess pageAccess;
+    private final LogService logManager;
+    private final LockService lockManager;
     private final PredicateFactory predicateFactory;
 
     ExecutionSupport(
-        BufferPoolManager bufferPoolManager,
-        LogManager logManager,
-        LockManager lockManager,
+        PageAccess pageAccess,
+        LogService logManager,
+        LockService lockManager,
         PredicateFactory predicateFactory) {
-        this.bufferPoolManager = bufferPoolManager;
+        this.pageAccess = pageAccess;
         this.logManager = logManager;
         this.lockManager = lockManager;
         this.predicateFactory = predicateFactory;
     }
 
     TableHeap createTableHeap(TableInfo tableInfo) {
-        return new TableHeap(bufferPoolManager, tableInfo, logManager, lockManager);
+        return new TableHeap(pageAccess, tableInfo, logManager, lockManager);
     }
 
     AbstractPredicate createPredicate(ExpressionNode predicate, Schema schema) {

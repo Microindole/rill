@@ -70,3 +70,4 @@ Web UI 不是项目介绍页，而是数据库内核的可视化控制台。
 - 当前前端在后端不可用时会回退到 mock trace，便于独立开发
 - 当前前端通过 `VITE_API_BASE_URL` 配置后端地址，已按前后端分离方式联调
 - 当前前端表格区域已经消费后端结构化 `rows / columns`，不再依赖 `rawResult` 文本解析
+- 当前后端 traceSteps 已开始由真实运行时埋点生成，而不是只靠 `QueryTraceService` 做阶段推断

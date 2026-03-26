@@ -6,18 +6,24 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class DatabaseManager {
-
-    private static final String DB_ROOT_DIR = "data";
+    private static final DatabasePathResolver DEFAULT_PATH_RESOLVER =
+        new LocalDatabasePathResolver();
+    private final DatabasePathResolver pathResolver;
 
     public DatabaseManager() {
-        File rootDir = new File(DB_ROOT_DIR);
+        this(DEFAULT_PATH_RESOLVER);
+    }
+
+    public DatabaseManager(DatabasePathResolver pathResolver) {
+        this.pathResolver = pathResolver;
+        File rootDir = new File(pathResolver.resolveDatabaseRootPath());
         if (!rootDir.exists()) {
             rootDir.mkdirs();
         }
     }
 
     public void createDatabase(String dbName) {
-        File dbDir = new File(DB_ROOT_DIR, dbName);
+        File dbDir = new File(pathResolver.resolveDatabaseDirectory(dbName));
         if (dbDir.exists()) {
             throw new RuntimeException("Database '" + dbName + "' already exists.");
         }
@@ -25,7 +31,7 @@ public class DatabaseManager {
     }
 
     public List<String> listDatabases() {
-        File rootDir = new File(DB_ROOT_DIR);
+        File rootDir = new File(pathResolver.resolveDatabaseRootPath());
         File[] directories = rootDir.listFiles(File::isDirectory);
         if (directories == null) {
             return List.of();
@@ -34,11 +40,19 @@ public class DatabaseManager {
     }
 
     public static String getDbFilePath(String dbName) {
-        return DB_ROOT_DIR + File.separator + dbName + File.separator + "rill.data";
+        return DEFAULT_PATH_RESOLVER.resolveDatabaseFilePath(dbName);
+    }
+
+    public String getDatabaseFilePath(String dbName) {
+        return pathResolver.resolveDatabaseFilePath(dbName);
+    }
+
+    public String getLogFilePath(String dbName) {
+        return pathResolver.resolveLogFilePath(dbName);
     }
 
     public void dropDatabase(String dbName) {
-        File dbDir = new File(DB_ROOT_DIR, dbName);
+        File dbDir = new File(pathResolver.resolveDatabaseDirectory(dbName));
         if (!dbDir.exists() || !dbDir.isDirectory()) {
             throw new RuntimeException("Database '" + dbName + "' does not exist.");
         }

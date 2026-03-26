@@ -25,9 +25,9 @@ import com.indolyn.rill.core.sql.planner.plan.query.JoinPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.ProjectPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.SeqScanPlanNode;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
-import com.indolyn.rill.core.transaction.LockManager;
+import com.indolyn.rill.core.transaction.LockService;
 import com.indolyn.rill.core.transaction.Transaction;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 
 import java.io.IOException;
 
@@ -40,8 +40,8 @@ class QueryExecutorBuilder {
 
     private final Catalog catalog;
     private final BufferPoolManager bufferPoolManager;
-    private final LogManager logManager;
-    private final LockManager lockManager;
+    private final LogService logManager;
+    private final LockService lockManager;
     private final ExecutionSupport executionSupport;
     private final ProjectionColumnResolver projectionColumnResolver;
     private final ChildExecutorBuilder childExecutorBuilder;
@@ -49,8 +49,8 @@ class QueryExecutorBuilder {
     QueryExecutorBuilder(
         Catalog catalog,
         BufferPoolManager bufferPoolManager,
-        LogManager logManager,
-        LockManager lockManager,
+        LogService logManager,
+        LockService lockManager,
         ExecutionSupport executionSupport,
         ProjectionColumnResolver projectionColumnResolver,
         ChildExecutorBuilder childExecutorBuilder) {

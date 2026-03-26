@@ -4,39 +4,39 @@ import com.indolyn.rill.core.catalog.Catalog;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.database.DatabaseManager;
 import com.indolyn.rill.core.storage.disk.DiskManager;
-import com.indolyn.rill.core.transaction.LockManager;
+import com.indolyn.rill.core.transaction.LockService;
 import com.indolyn.rill.core.transaction.RecoveryManager;
 import com.indolyn.rill.core.transaction.TransactionManager;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.sql.planner.Planner;
 
 import java.io.IOException;
 
 final class QueryRuntime {
-    private static final int DEFAULT_BUFFER_POOL_SIZE = 100;
-    private static final String DEFAULT_REPLACEMENT_POLICY = "MLFQ";
-
     private final DatabaseManager dbManager;
     private final DiskManager diskManager;
     private final BufferPoolManager bufferPoolManager;
     private final Catalog catalog;
     private final Planner planner;
-    private final LogManager logManager;
-    private final LockManager lockManager;
+    private final LogService logManager;
+    private final LockService lockManager;
     private final TransactionManager transactionManager;
     private final ExecutionEngine executionEngine;
 
     QueryRuntime(String dbName) throws IOException {
-        this.dbManager = new DatabaseManager();
-        this.diskManager = new DiskManager(DatabaseManager.getDbFilePath(dbName));
-        diskManager.open();
-        this.bufferPoolManager =
-            new BufferPoolManager(DEFAULT_BUFFER_POOL_SIZE, diskManager, DEFAULT_REPLACEMENT_POLICY);
-        this.catalog = new Catalog(bufferPoolManager);
+        this(dbName, new DefaultRuntimeInfrastructureFactory());
+    }
+
+    QueryRuntime(String dbName, RuntimeInfrastructureFactory infrastructureFactory) throws IOException {
+        RuntimeInfrastructure infrastructure = infrastructureFactory.create(dbName);
+        this.dbManager = infrastructure.getDatabaseManager();
+        this.diskManager = infrastructure.getDiskManager();
+        this.bufferPoolManager = infrastructure.getBufferPoolManager();
+        this.catalog = infrastructure.getCatalog();
         this.planner = new Planner(catalog);
-        this.logManager = new LogManager(DatabaseManager.getDbFilePath(dbName) + ".log");
-        this.lockManager = new LockManager();
-        this.transactionManager = new TransactionManager(lockManager, logManager);
+        this.logManager = infrastructure.getLogManager();
+        this.lockManager = infrastructure.getLockManager();
+        this.transactionManager = infrastructure.getTransactionManager();
         this.executionEngine =
             new ExecutionEngine(bufferPoolManager, catalog, logManager, lockManager, dbManager);
         runRecovery();
@@ -68,11 +68,11 @@ final class QueryRuntime {
         return planner;
     }
 
-    LogManager getLogManager() {
+    LogService getLogManager() {
         return logManager;
     }
 
-    LockManager getLockManager() {
+    LockService getLockManager() {
         return lockManager;
     }
 

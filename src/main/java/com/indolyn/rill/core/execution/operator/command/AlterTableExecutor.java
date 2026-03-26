@@ -5,7 +5,7 @@ import com.indolyn.rill.core.model.*;
 import com.indolyn.rill.core.sql.planner.plan.command.AlterTablePlanNode;
 import com.indolyn.rill.core.execution.operator.TupleIterator;
 import com.indolyn.rill.core.transaction.Transaction;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
@@ -20,10 +20,10 @@ public class AlterTableExecutor implements TupleIterator {
     private static final Schema RESULT_SCHEMA =
         new Schema(List.of(new Column("message", DataType.VARCHAR)));
     private final Transaction txn;
-    private final LogManager logManager;
+    private final LogService logManager;
 
     public AlterTableExecutor(
-        AlterTablePlanNode plan, Catalog catalog, Transaction txn, LogManager logManager) {
+        AlterTablePlanNode plan, Catalog catalog, Transaction txn, LogService logManager) {
         this.plan = plan;
         this.catalog = catalog;
         this.txn = txn;

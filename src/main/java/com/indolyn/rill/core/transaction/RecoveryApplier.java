@@ -2,14 +2,14 @@ package com.indolyn.rill.core.transaction;
 
 import com.indolyn.rill.core.catalog.Catalog;
 import com.indolyn.rill.core.catalog.TableInfo;
-import com.indolyn.rill.core.model.RID;
 import com.indolyn.rill.core.execution.operator.TableHeap;
+import com.indolyn.rill.core.model.RID;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.model.Tuple;
-import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.buffer.PageAccess;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
@@ -17,18 +17,18 @@ import java.io.IOException;
 import lombok.Getter;
 
 final class RecoveryApplier {
-    private final BufferPoolManager bufferPoolManager;
+    private final PageAccess pageAccess;
     private final Catalog catalog;
-    private final LogManager logManager;
+    private final LogService logManager;
     @Getter
-    private final LockManager lockManager;
+    private final LockService lockManager;
 
     RecoveryApplier(
-        BufferPoolManager bufferPoolManager,
+        PageAccess pageAccess,
         Catalog catalog,
-        LogManager logManager,
-        LockManager lockManager) {
-        this.bufferPoolManager = bufferPoolManager;
+        LogService logManager,
+        LockService lockManager) {
+        this.pageAccess = pageAccess;
         this.catalog = catalog;
         this.logManager = logManager;
         this.lockManager = lockManager;
@@ -52,7 +52,7 @@ final class RecoveryApplier {
         }
 
         Schema schema = tableInfo.getSchema();
-        TableHeap tableHeap = new TableHeap(bufferPoolManager, tableInfo, logManager, lockManager);
+        TableHeap tableHeap = new TableHeap(pageAccess, tableInfo, logManager, lockManager);
 
         switch (log.getLogType()) {
             case INSERT -> applyInsertLog(log, isUndo, transaction, schema, tableHeap);
@@ -100,7 +100,7 @@ final class RecoveryApplier {
         }
 
         PageId pageId = new PageId(log.getRid().pageNum());
-        Page page = bufferPoolManager.getPage(pageId);
+        Page page = pageAccess.getPage(pageId);
         if (log.getRid().slotIndex() >= page.getNumTuples()) {
             tableHeap.insertTuple(tupleToInsert, transaction, false, false);
         }
@@ -136,9 +136,9 @@ final class RecoveryApplier {
         }
 
         PageId pageId = new PageId(log.getRid().pageNum());
-        Page page = bufferPoolManager.getPage(pageId);
+        Page page = pageAccess.getPage(pageId);
         page.markTupleAsDeleted(log.getRid().slotIndex());
-        bufferPoolManager.flushPage(pageId);
+        pageAccess.flushPage(pageId);
 
         if (!containsTuple(tableHeap, transaction, newTuple)) {
             tableHeap.insertTuple(newTuple, transaction, false, false);
@@ -159,9 +159,9 @@ final class RecoveryApplier {
 
     private void restoreDeletedTuple(RID rid) throws IOException {
         PageId pageId = new PageId(rid.pageNum());
-        Page page = bufferPoolManager.getPage(pageId);
+        Page page = pageAccess.getPage(pageId);
         if (page.undoMarkTupleAsDeleted(rid.slotIndex())) {
-            bufferPoolManager.flushPage(pageId);
+            pageAccess.flushPage(pageId);
         }
     }
 

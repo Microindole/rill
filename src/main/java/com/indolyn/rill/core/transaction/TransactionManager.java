@@ -1,17 +1,17 @@
 package com.indolyn.rill.core.transaction;
 
 import com.indolyn.rill.core.storage.page.PageId;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 public class TransactionManager {
-    private final LockManager lockManager;
-    private final LogManager logManager;
+    private final LockService lockManager;
+    private final LogService logManager;
 
-    public TransactionManager(LockManager lockManager, LogManager logManager) {
+    public TransactionManager(LockService lockManager, LogService logManager) {
         this.lockManager = lockManager;
         this.logManager = logManager;
     }

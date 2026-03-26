@@ -5,6 +5,8 @@ import com.indolyn.rill.app.dto.QueryHistoryItemResponse;
 import com.indolyn.rill.app.dto.QueryTraceStepResponse;
 import com.indolyn.rill.core.execution.QueryProcessor;
 import com.indolyn.rill.core.execution.QueryResult;
+import com.indolyn.rill.core.execution.trace.TraceCollector;
+import com.indolyn.rill.core.execution.trace.TraceEvent;
 import com.indolyn.rill.core.model.Tuple;
 import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.sql.ast.StatementNode;
@@ -19,15 +21,6 @@ import com.indolyn.rill.core.sql.planner.plan.command.CreateTablePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.DeletePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.InsertPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.UpdatePlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.AggregatePlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.FilterPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.IndexScanPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.JoinPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.LimitPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.ProjectPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.SeqScanPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.query.SortPlanNode;
-import com.indolyn.rill.core.sql.semantic.SemanticAnalyzer;
 
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -102,54 +95,11 @@ public class QueryTraceService {
                         ? "当前 SQL 解析结果为空。"
                         : "生成 AST 节点 " + ast.getClass().getSimpleName() + "。"));
 
-            if (ast != null) {
-                long semanticStartedAt = System.nanoTime();
-                SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(processor.getCatalog());
-                semanticAnalyzer.analyze(ast, session);
-                traceSteps.add(
-                    step(
-                        "semantic",
-                        "semantic",
-                        "语义检查",
-                        "SemanticAnalyzer",
-                        "completed",
-                        elapsedMs(semanticStartedAt),
-                        "src/main/java/com/indolyn/rill/core/sql/semantic/SemanticAnalyzer.java",
-                        "SemanticAnalyzer",
-                        "analyze",
-                        "完成表、列、类型与权限校验。"));
-
-                long plannerStartedAt = System.nanoTime();
-                plan = new Planner(processor.getCatalog()).createPlan(ast);
-                traceSteps.add(
-                    step(
-                        "planner",
-                        "planner",
-                        "执行计划",
-                        plannerComponent(plan),
-                        "completed",
-                        elapsedMs(plannerStartedAt),
-                        plannerSourceFile(plan),
-                        plannerComponent(plan),
-                        "build/createPlan",
-                        plannerDetail(plan)));
-            }
-
-            long executionStartedAt = System.nanoTime();
+            TraceCollector.start();
             QueryResult queryResult = processor.executeStructured(normalizedSql, session);
+            List<TraceEvent> runtimeEvents = TraceCollector.stop();
             String rawResult = processor.render(queryResult);
-            traceSteps.add(
-                step(
-                    "execution",
-                    "execution",
-                    "执行器构造与执行",
-                    "ExecutionEngine",
-                    queryResult.success() ? "completed" : "failed",
-                    elapsedMs(executionStartedAt),
-                    "src/main/java/com/indolyn/rill/core/execution/ExecutionEngine.java",
-                    "ExecutionEngine",
-                    "execute",
-                    executionDetail(plan)));
+            traceSteps.addAll(toTraceSteps(runtimeEvents));
 
             QueryExecuteResponse response =
                 new QueryExecuteResponse(
@@ -245,131 +195,33 @@ public class QueryTraceService {
         return dbName.trim();
     }
 
-    private String plannerComponent(PlanNode plan) {
-        if (plan == null) {
-            return "Planner";
+    private List<QueryTraceStepResponse> toTraceSteps(List<TraceEvent> runtimeEvents) {
+        List<QueryTraceStepResponse> steps = new ArrayList<>(runtimeEvents.size());
+        for (int index = 0; index < runtimeEvents.size(); index++) {
+            TraceEvent event = runtimeEvents.get(index);
+            steps.add(
+                step(
+                    event.stage() + "-" + index,
+                    event.stage(),
+                    traceTitle(event.stage()),
+                    event.component(),
+                    "completed",
+                    0,
+                    event.sourceFile(),
+                    event.component(),
+                    event.sourceMethod(),
+                    event.detail()));
         }
-        if (plan instanceof CreateTablePlanNode) {
-            return "CreateTablePlanBuilder";
-        }
-        if (plan instanceof CreateIndexPlanNode) {
-            return "CreateIndexPlanBuilder";
-        }
-        if (plan instanceof InsertPlanNode) {
-            return "InsertPlanBuilder";
-        }
-        if (plan instanceof DeletePlanNode) {
-            return "DeletePlanBuilder";
-        }
-        if (plan instanceof UpdatePlanNode) {
-            return "UpdatePlanBuilder";
-        }
-        if (plan instanceof SeqScanPlanNode
-            || plan instanceof FilterPlanNode
-            || plan instanceof ProjectPlanNode
-            || plan instanceof SortPlanNode
-            || plan instanceof LimitPlanNode
-            || plan instanceof JoinPlanNode
-            || plan instanceof AggregatePlanNode
-            || plan instanceof IndexScanPlanNode) {
-            return "SelectPlanBuilder";
-        }
-        return "Planner";
+        return steps;
     }
 
-    private String plannerSourceFile(PlanNode plan) {
-        String builder = plannerComponent(plan);
-        if ("Planner".equals(builder)) {
-            return "src/main/java/com/indolyn/rill/core/sql/planner/Planner.java";
-        }
-        return "src/main/java/com/indolyn/rill/core/sql/planner/" + builder + ".java";
-    }
-
-    private String plannerDetail(PlanNode plan) {
-        if (plan == null) {
-            return "当前 SQL 未生成计划节点。";
-        }
-        return "生成计划根节点 " + plan.getClass().getSimpleName() + "。";
-    }
-
-    private String executionDetail(PlanNode plan) {
-        if (plan == null) {
-            return "执行内建命令或无计划查询。";
-        }
-        LinkedHashSet<String> components = new LinkedHashSet<>();
-        collectExecutionComponents(plan, components);
-        return "执行链路涉及 " + String.join(" -> ", components) + "。";
-    }
-
-    private void collectExecutionComponents(PlanNode plan, LinkedHashSet<String> components) {
-        if (plan == null) {
-            return;
-        }
-        components.add(mapExecutorComponent(plan));
-        if (plan instanceof FilterPlanNode filterPlanNode) {
-            collectExecutionComponents(filterPlanNode.getChild(), components);
-        } else if (plan instanceof ProjectPlanNode projectPlanNode) {
-            collectExecutionComponents(projectPlanNode.getChild(), components);
-        } else if (plan instanceof SortPlanNode sortPlanNode) {
-            collectExecutionComponents(sortPlanNode.getChild(), components);
-        } else if (plan instanceof LimitPlanNode limitPlanNode) {
-            collectExecutionComponents(limitPlanNode.getChild(), components);
-        } else if (plan instanceof AggregatePlanNode aggregatePlanNode) {
-            collectExecutionComponents(aggregatePlanNode.getChild(), components);
-        } else if (plan instanceof DeletePlanNode deletePlanNode) {
-            collectExecutionComponents(deletePlanNode.getChild(), components);
-        } else if (plan instanceof UpdatePlanNode updatePlanNode) {
-            collectExecutionComponents(updatePlanNode.getChild(), components);
-        } else if (plan instanceof JoinPlanNode joinPlanNode) {
-            collectExecutionComponents(joinPlanNode.getLeft(), components);
-            collectExecutionComponents(joinPlanNode.getRight(), components);
-        }
-    }
-
-    private String mapExecutorComponent(PlanNode plan) {
-        if (plan instanceof CreateTablePlanNode) {
-            return "CreateTableExecutor";
-        }
-        if (plan instanceof CreateIndexPlanNode) {
-            return "CreateIndexExecutor";
-        }
-        if (plan instanceof CreateDatabasePlanNode) {
-            return "CreateDatabaseExecutor";
-        }
-        if (plan instanceof InsertPlanNode) {
-            return "InsertExecutor";
-        }
-        if (plan instanceof DeletePlanNode) {
-            return "DeleteExecutor";
-        }
-        if (plan instanceof UpdatePlanNode) {
-            return "UpdateExecutor";
-        }
-        if (plan instanceof SeqScanPlanNode) {
-            return "SeqScanExecutor";
-        }
-        if (plan instanceof FilterPlanNode) {
-            return "FilterExecutor";
-        }
-        if (plan instanceof ProjectPlanNode) {
-            return "ProjectExecutor";
-        }
-        if (plan instanceof SortPlanNode) {
-            return "SortExecutor";
-        }
-        if (plan instanceof LimitPlanNode) {
-            return "LimitExecutor";
-        }
-        if (plan instanceof JoinPlanNode) {
-            return "JoinExecutor";
-        }
-        if (plan instanceof AggregatePlanNode) {
-            return "AggregateExecutor";
-        }
-        if (plan instanceof IndexScanPlanNode) {
-            return "IndexScanExecutor";
-        }
-        return "ExecutionEngine";
+    private String traceTitle(String stage) {
+        return switch (stage) {
+            case "semantic" -> "语义检查";
+            case "planner" -> "执行计划";
+            case "execution" -> "执行器构造与执行";
+            default -> "运行时事件";
+        };
     }
 
     private List<String> toColumns(QueryResult queryResult) {

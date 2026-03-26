@@ -28,3 +28,7 @@
 - 已新增 `RecoveryTest` 回归测试，覆盖“未提交事务刷盘后重启恢复”的主路径
 - 已修复恢复阶段每条日志使用假事务加锁但未释放的问题，redo/undo 不再在同一次恢复中自阻塞
 - 已修复 `UPDATE` 日志撤销不完整的问题，undo 现在会恢复旧槽位并删除更新阶段插入的新 tuple
+- 已新增 `LogService`，事务管理与恢复链路已不再直接要求依赖 `LogManager`
+- 已新增 `LockService`，事务管理与恢复链路已不再直接要求依赖 `LockManager`
+- 已新增 `PageAccess`，恢复链路已开始不再直接要求依赖 `BufferPoolManager`
+- 恢复链路中通过 `TableHeap` 回落到默认缓冲池实现的桥接已移除

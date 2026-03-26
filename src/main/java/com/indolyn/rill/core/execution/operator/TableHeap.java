@@ -4,12 +4,12 @@ import com.indolyn.rill.core.catalog.TableInfo;
 import com.indolyn.rill.core.model.RID;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.model.Tuple;
-import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.buffer.PageAccess;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
-import com.indolyn.rill.core.transaction.LockManager;
+import com.indolyn.rill.core.transaction.LockService;
 import com.indolyn.rill.core.transaction.Transaction;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
@@ -18,13 +18,13 @@ import lombok.Getter;
 
 public class TableHeap implements TupleIterator {
 
-    private final BufferPoolManager bufferPoolManager;
+    private final PageAccess pageAccess;
     private final Schema schema;
     @Getter
     private PageId firstPageId;
-    private final LogManager logManager;
+    private final LogService logManager;
     @Getter
-    private final LockManager lockManager;
+    private final LockService lockManager;
     @Getter
     private final TableInfo tableInfo;
 
@@ -34,11 +34,11 @@ public class TableHeap implements TupleIterator {
     private Transaction iteratorTxn;
 
     public TableHeap(
-        BufferPoolManager bufferPoolManager,
+        PageAccess pageAccess,
         TableInfo tableInfo,
-        LogManager logManager,
-        LockManager lockManager) {
-        this.bufferPoolManager = bufferPoolManager;
+        LogService logManager,
+        LockService lockManager) {
+        this.pageAccess = pageAccess;
         this.tableInfo = tableInfo;
         this.schema = tableInfo.getSchema();
         this.firstPageId = tableInfo.getFirstPageId();
@@ -53,7 +53,7 @@ public class TableHeap implements TupleIterator {
         try {
             if (this.currentPageId != null && this.currentPageId.getPageNum() != -1) {
                 lockManager.lockShared(iteratorTxn, currentPageId);
-                this.currentPage = bufferPoolManager.getPage(this.currentPageId);
+                this.currentPage = pageAccess.getPage(this.currentPageId);
             } else {
                 this.currentPage = null;
             }
@@ -95,7 +95,7 @@ public class TableHeap implements TupleIterator {
                         PageId nextPid = new PageId(nextPageNum);
                         lockManager.lockShared(iteratorTxn, nextPid);
                         currentPageId = nextPid;
-                        currentPage = bufferPoolManager.getPage(currentPageId);
+                        currentPage = pageAccess.getPage(currentPageId);
                         currentSlotIndex = 0;
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
@@ -138,7 +138,7 @@ public class TableHeap implements TupleIterator {
                 txn.setPrevLSN(lsn);
             }
 
-            bufferPoolManager.flushPage(targetPage.getPageId());
+            pageAccess.flushPage(targetPage.getPageId());
             return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -156,7 +156,7 @@ public class TableHeap implements TupleIterator {
             if (acquireLock) {
                 lockManager.lockExclusive(txn, pid);
             }
-            Page page = bufferPoolManager.getPage(pid);
+            Page page = pageAccess.getPage(pid);
             lastPage = page;
             if (page.getFreeSpace() >= requiredSpace) {
                 return page;
@@ -164,7 +164,7 @@ public class TableHeap implements TupleIterator {
             int nextPageNum = page.getNextPageId();
             pid = (nextPageNum != -1) ? new PageId(nextPageNum) : null;
         }
-        Page newPage = bufferPoolManager.newPage();
+        Page newPage = pageAccess.newPage();
         if (newPage == null) return null;
         newPage.init();
         if (acquireLock) {
@@ -172,7 +172,7 @@ public class TableHeap implements TupleIterator {
         }
         if (lastPage != null) {
             lastPage.setNextPageId(newPage.getPageId().getPageNum());
-            bufferPoolManager.flushPage(lastPage.getPageId());
+            pageAccess.flushPage(lastPage.getPageId());
         } else {
             this.firstPageId = newPage.getPageId();
         }
@@ -194,7 +194,7 @@ public class TableHeap implements TupleIterator {
             if (acquireLock) {
                 lockManager.lockExclusive(txn, pageId);
             }
-            Page page = bufferPoolManager.getPage(pageId);
+            Page page = pageAccess.getPage(pageId);
             Tuple oldTuple = page.getTuple(rid.slotIndex(), schema);
             if (oldTuple == null) return false;
 
@@ -213,7 +213,7 @@ public class TableHeap implements TupleIterator {
 
             boolean success = page.deleteTuple(rid.slotIndex());
             if (success) {
-                bufferPoolManager.flushPage(page.getPageId());
+                pageAccess.flushPage(page.getPageId());
             }
             return success;
         } catch (InterruptedException e) {
@@ -239,7 +239,7 @@ public class TableHeap implements TupleIterator {
             if (acquireLock) {
                 lockManager.lockExclusive(txn, pageId);
             }
-            Page page = bufferPoolManager.getPage(pageId);
+            Page page = pageAccess.getPage(pageId);
             Tuple oldTuple = page.getTuple(rid.slotIndex(), schema);
             if (oldTuple == null) {
                 return null;
@@ -263,11 +263,11 @@ public class TableHeap implements TupleIterator {
 
             if (markSuccess) {
                 if (insertTuple(newTuple, txn, false, false)) {
-                    bufferPoolManager.flushPage(page.getPageId());
+                    pageAccess.flushPage(page.getPageId());
                     return newTuple.getRid();
                 } else {
                     page.undoMarkTupleAsDeleted(rid.slotIndex());
-                    bufferPoolManager.flushPage(page.getPageId());
+                    pageAccess.flushPage(page.getPageId());
                     return null;
                 }
             }
@@ -282,7 +282,7 @@ public class TableHeap implements TupleIterator {
         try {
             PageId pageId = new PageId(rid.pageNum());
             lockManager.lockShared(txn, pageId);
-            Page page = bufferPoolManager.getPage(pageId);
+            Page page = pageAccess.getPage(pageId);
             Tuple tuple = page.getTuple(rid.slotIndex(), schema);
             if (tuple != null) {
                 tuple.setRid(rid);

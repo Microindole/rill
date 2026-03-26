@@ -1,9 +1,9 @@
 package com.indolyn.rill.core.transaction;
 
 import com.indolyn.rill.core.catalog.Catalog;
-import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.buffer.PageAccess;
 import com.indolyn.rill.core.storage.page.PageId;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
@@ -13,17 +13,16 @@ import java.util.List;
 import java.util.Map;
 
 public class RecoveryManager {
-    private final LogManager logManager;
+    private final LogService logManager;
     private final RecoveryApplier recoveryApplier;
 
     public RecoveryManager(
-        LogManager logManager,
-        BufferPoolManager bufferPoolManager,
+        LogService logManager,
+        PageAccess pageAccess,
         Catalog catalog,
-        LockManager lockManager) {
+        LockService lockManager) {
         this.logManager = logManager;
-        this.recoveryApplier =
-            new RecoveryApplier(bufferPoolManager, catalog, logManager, lockManager);
+        this.recoveryApplier = new RecoveryApplier(pageAccess, catalog, logManager, lockManager);
     }
 
     public void recover() throws IOException {
@@ -107,17 +106,23 @@ public class RecoveryManager {
     private void applyLog(LogRecord log, boolean isUndo) throws IOException {
         Transaction fakeTxn = new Transaction(log.getTransactionId());
         try {
-            switch (log.getLogType()) {
-                case BEGIN:
-                case COMMIT:
-                case ABORT:
-                case CLR:
-                    return;
-                case CREATE_TABLE, DROP_TABLE, ALTER_TABLE:
-                    recoveryApplier.applyDdlLog(log, isUndo);
-                    return;
-                case INSERT, DELETE, UPDATE:
-                    recoveryApplier.applyDmlLog(log, isUndo, fakeTxn);
+            LogRecord.LogType logType = log.getLogType();
+            if (logType == LogRecord.LogType.BEGIN
+                || logType == LogRecord.LogType.COMMIT
+                || logType == LogRecord.LogType.ABORT
+                || logType == LogRecord.LogType.CLR) {
+                return;
+            }
+            if (logType == LogRecord.LogType.CREATE_TABLE
+                || logType == LogRecord.LogType.DROP_TABLE
+                || logType == LogRecord.LogType.ALTER_TABLE) {
+                recoveryApplier.applyDdlLog(log, isUndo);
+                return;
+            }
+            if (logType == LogRecord.LogType.INSERT
+                || logType == LogRecord.LogType.DELETE
+                || logType == LogRecord.LogType.UPDATE) {
+                recoveryApplier.applyDmlLog(log, isUndo, fakeTxn);
             }
         } finally {
             releaseRecoveryLocks(fakeTxn);

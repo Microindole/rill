@@ -112,6 +112,13 @@ Spring Boot 适配层。
 - `core.sql.ast` 已从 `core.sql.parser.ast` 提升为独立中间层
 - `core` 不再直接依赖 `access` / `tools` / `app`
 - `app` 已建立最小 service / web 骨架，可作为未来 `rill-app` 模块前身
+- 系统层语义已开始明确为 `storage + transaction + catalog`
+- `QueryRuntime` 的默认基础设施初始化已开始收口到专门组装器，而不是继续散落在运行时类中
+- 运行时基础设施已开始抽成 `RuntimeInfrastructureFactory`
+- 数据库文件定位已开始抽成 `DatabasePathResolver`
+- 日志与锁管理已开始抽成 `LogService`、`LockService`
+
+这几项不是为了现在就做分布式，而是为了避免把“本地磁盘 + 本地锁 + 本地日志”写死成唯一运行形态。
 
 ## 第二阶段可能演进
 
@@ -145,3 +152,18 @@ Spring Boot 适配层。
 - 下一步如果拆，优先拆成两个模块：`rill-core` 和 `rill-app`
 
 先把目录、包结构、职责边界拆清楚，才值得继续做物理模块化。
+
+## 系统层演进约束
+
+后续系统层重构要遵守两个约束：
+
+- 先抽最小替换边界，不提前实现分布式版本
+- 默认单机实现必须始终可运行，不能为了抽象把项目做空
+
+当前优先保留替换点的能力包括：
+
+- 运行时基础设施组装
+- 数据库路径/文件定位
+- 日志服务
+- 锁服务
+- 后续的目录存储访问与页访问能力

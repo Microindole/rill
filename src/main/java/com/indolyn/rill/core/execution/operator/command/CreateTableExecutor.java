@@ -10,9 +10,9 @@ import com.indolyn.rill.core.execution.operator.query.SeqScanExecutor;
 import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
 import com.indolyn.rill.core.storage.index.BPlusTree;
 import com.indolyn.rill.core.storage.page.Page;
-import com.indolyn.rill.core.transaction.LockManager;
+import com.indolyn.rill.core.transaction.LockService;
 import com.indolyn.rill.core.transaction.Transaction;
-import com.indolyn.rill.core.transaction.log.LogManager;
+import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
@@ -30,17 +30,17 @@ public class CreateTableExecutor implements TupleIterator {
     private static final Schema RESULT_SCHEMA =
         new Schema(List.of(new Column("message", DataType.VARCHAR)));
     private final Transaction txn;
-    private final LogManager logManager;
+    private final LogService logManager;
     private final BufferPoolManager bufferPoolManager;
-    private final LockManager lockManager;
+    private final LockService lockManager;
 
     public CreateTableExecutor(
         CreateTablePlanNode plan,
         Catalog catalog,
         Transaction txn,
-        LogManager logManager,
+        LogService logManager,
         BufferPoolManager bufferPoolManager,
-        LockManager lockManager) {
+        LockService lockManager) {
         this.plan = plan;
         this.catalog = catalog;
         this.txn = txn;

@@ -5,7 +5,7 @@ import com.indolyn.rill.core.model.DataType;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.model.Tuple;
 import com.indolyn.rill.core.model.Value;
-import com.indolyn.rill.core.storage.buffer.BufferPoolManager;
+import com.indolyn.rill.core.storage.buffer.PageAccess;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
 
@@ -15,16 +15,18 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-final class CatalogMetadataStore {
-    private final BufferPoolManager bufferPoolManager;
+final class CatalogMetadataStore implements CatalogMetadataAccess {
+    private final PageAccess pageAccess;
 
-    CatalogMetadataStore(BufferPoolManager bufferPoolManager) {
-        this.bufferPoolManager = bufferPoolManager;
+    CatalogMetadataStore(PageAccess pageAccess) {
+        this.pageAccess = pageAccess;
     }
 
-    List<Column> readColumnsForTable(int tableId, PageId columnsTableFirstPageId, Schema columnsTableSchema)
+    @Override
+    public List<Column> readColumnsForTable(
+        int tableId, PageId columnsTableFirstPageId, Schema columnsTableSchema)
         throws IOException {
-        Page columnsPage = bufferPoolManager.getPage(columnsTableFirstPageId);
+        Page columnsPage = pageAccess.getPage(columnsTableFirstPageId);
         List<Tuple> columnMetadata = columnsPage.getAllTuples(columnsTableSchema);
         List<Column> columns = new ArrayList<>();
         for (Tuple columnTuple : columnMetadata) {
@@ -37,9 +39,10 @@ final class CatalogMetadataStore {
         return columns;
     }
 
-    void writeSchemaToColumnsTable(PageId columnsTableFirstPageId, int tableId, Schema schema)
+    @Override
+    public void writeSchemaToColumnsTable(PageId columnsTableFirstPageId, int tableId, Schema schema)
         throws IOException {
-        Page columnsPage = bufferPoolManager.getPage(columnsTableFirstPageId);
+        Page columnsPage = pageAccess.getPage(columnsTableFirstPageId);
         int columnIndex = 0;
         for (Column column : schema.getColumns()) {
             columnsPage.insertTuple(
@@ -50,12 +53,14 @@ final class CatalogMetadataStore {
                         new Value(column.getType().toString()),
                         new Value(columnIndex++))));
         }
-        bufferPoolManager.flushPage(columnsTableFirstPageId);
+        pageAccess.flushPage(columnsTableFirstPageId);
     }
 
-    Tuple getTableTuple(String tableName, int tableId, PageId tablesTableFirstPageId, Schema tablesTableSchema)
+    @Override
+    public Tuple getTableTuple(
+        String tableName, int tableId, PageId tablesTableFirstPageId, Schema tablesTableSchema)
         throws IOException {
-        Page page = bufferPoolManager.getPage(tablesTableFirstPageId);
+        Page page = pageAccess.getPage(tablesTableFirstPageId);
         List<Tuple> tuples = page.getAllTuples(tablesTableSchema);
         for (Tuple tuple : tuples) {
             if ((int) tuple.getValues().getFirst().getValue() == tableId) {
@@ -65,15 +70,22 @@ final class CatalogMetadataStore {
         return null;
     }
 
-    void persistTableEntry(PageId tablesTableFirstPageId, int tableId, String tableName, PageId firstPageId, Schema tablesTableSchema)
+    @Override
+    public void persistTableEntry(
+        PageId tablesTableFirstPageId,
+        int tableId,
+        String tableName,
+        PageId firstPageId,
+        Schema tablesTableSchema)
         throws IOException {
-        Page tablesPage = bufferPoolManager.getPage(tablesTableFirstPageId);
+        Page tablesPage = pageAccess.getPage(tablesTableFirstPageId);
         tablesPage.insertTuple(
             new Tuple(Arrays.asList(new Value(tableId), new Value(tableName), new Value(firstPageId.getPageNum()))));
-        bufferPoolManager.flushPage(tablesTableFirstPageId);
+        pageAccess.flushPage(tablesTableFirstPageId);
     }
 
-    void persistNewTable(
+    @Override
+    public void persistNewTable(
         PageId tablesTableFirstPageId,
         PageId columnsTableFirstPageId,
         Schema tablesTableSchema,
@@ -86,9 +98,11 @@ final class CatalogMetadataStore {
         writeSchemaToColumnsTable(columnsTableFirstPageId, tableId, schema);
     }
 
-    void persistAddedColumn(PageId columnsTableFirstPageId, int tableId, int columnIndex, Column newColumn)
+    @Override
+    public void persistAddedColumn(
+        PageId columnsTableFirstPageId, int tableId, int columnIndex, Column newColumn)
         throws IOException {
-        Page columnsPage = bufferPoolManager.getPage(columnsTableFirstPageId);
+        Page columnsPage = pageAccess.getPage(columnsTableFirstPageId);
         Tuple columnMeta =
             new Tuple(
                 Arrays.asList(
@@ -97,11 +111,13 @@ final class CatalogMetadataStore {
                     new Value(newColumn.getType().toString()),
                     new Value(columnIndex)));
         columnsPage.insertTuple(columnMeta);
-        bufferPoolManager.flushPage(columnsTableFirstPageId);
+        pageAccess.flushPage(columnsTableFirstPageId);
     }
 
-    void deleteMatchingTuples(PageId pageId, Schema schema, int columnIndex, Value value) throws IOException {
-        Page page = bufferPoolManager.getPage(pageId);
+    @Override
+    public void deleteMatchingTuples(PageId pageId, Schema schema, int columnIndex, Value value)
+        throws IOException {
+        Page page = pageAccess.getPage(pageId);
         List<Tuple> tuples = page.getAllTuples(schema);
         List<Integer> slotsToDelete = new ArrayList<>();
         for (int i = 0; i < tuples.size(); i++) {
@@ -115,6 +131,6 @@ final class CatalogMetadataStore {
         for (Integer slotIndex : slotsToDelete) {
             page.deleteTuple(slotIndex);
         }
-        bufferPoolManager.flushPage(pageId);
+        pageAccess.flushPage(pageId);
     }
 }
