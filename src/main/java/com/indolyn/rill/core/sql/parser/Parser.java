@@ -12,10 +12,13 @@ import com.indolyn.rill.core.sql.ast.statement.InsertStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.SelectStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.UpdateStatementNode;
 import com.indolyn.rill.core.sql.ast.expression.*;
+import com.indolyn.rill.core.sql.ast.type.TypeReferenceNode;
 import com.indolyn.rill.core.sql.ast.statement.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -25,12 +28,14 @@ public class Parser {
 
     private final List<Token> tokens;
     private int position = 0;
+    private final Map<TokenType, StatementParser> statementParsers = new LinkedHashMap<>();
 
     private static final Set<TokenType> AGGREGATE_FUNCTIONS =
         Set.of(TokenType.COUNT, TokenType.SUM, TokenType.AVG, TokenType.MIN, TokenType.MAX);
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
+        registerStatementParsers();
     }
 
     public StatementNode parse() {
@@ -49,57 +54,74 @@ public class Parser {
     }
 
     private StatementNode parseStatement() {
-        if (check(TokenType.CREATE)) {
-            Token nextToken = tokens.get(position + 1);
-            if (nextToken.type() == TokenType.TABLE) {
-                consume(TokenType.CREATE, "'CREATE' keyword");
-                return parseCreateTableStatement();
-            }
-            if (nextToken.type() == TokenType.DATABASE) {
-                consume(TokenType.CREATE, "'CREATE' keyword");
-                return parseCreateDatabaseStatement();
-            }
-            if (nextToken.type() == TokenType.INDEX) {
-                consume(TokenType.CREATE, "'CREATE' keyword");
-                return parseCreateIndexStatement();
-            }
-            if (nextToken.type() == TokenType.USER) {
-                consume(TokenType.CREATE, "'CREATE' keyword");
-                return parseCreateUserStatement();
-            }
-            throw new ParseException(
-                nextToken, "Expected 'TABLE', 'DATABASE', or 'INDEX' after 'CREATE'");
-        }
-        if (match(TokenType.GRANT)) {
-            return parseGrantStatement();
-        }
-        if (match(TokenType.SHOW)) {
-            return parseShowStatement();
-        }
-        if (match(TokenType.SELECT)) {
-            return parseSelectStatement();
-        }
-        if (match(TokenType.INSERT)) {
-            return parseInsertStatement();
-        }
-        if (match(TokenType.DELETE)) {
-            return parseDeleteStatement();
-        }
-        if (match(TokenType.UPDATE)) {
-            return parseUpdateStatement();
-        }
-        if (match(TokenType.DROP)) {
-            if (peek().type() == TokenType.DATABASE) {
-                return parseDropDatabaseStatement();
-            }
-            return parseDropTableStatement();
-        }
-        if (match(TokenType.USE)) {
-            return parseUseDatabaseStatement();
+        StatementParser statementParser = statementParsers.get(peek().type());
+        if (statementParser != null) {
+            return statementParser.parse();
         }
 
         throw new ParseException(
             peek(), "a valid statement (CREATE, SELECT, INSERT, DELETE, DROP, etc.)");
+    }
+
+    private void registerStatementParsers() {
+        statementParsers.put(TokenType.CREATE, this::parseCreateStatement);
+        statementParsers.put(TokenType.GRANT, () -> {
+            consume(TokenType.GRANT, "'GRANT' keyword");
+            return parseGrantStatement();
+        });
+        statementParsers.put(TokenType.SHOW, () -> {
+            consume(TokenType.SHOW, "'SHOW' keyword");
+            return parseShowStatement();
+        });
+        statementParsers.put(TokenType.SELECT, () -> {
+            consume(TokenType.SELECT, "'SELECT' keyword");
+            return parseSelectStatement();
+        });
+        statementParsers.put(TokenType.INSERT, () -> {
+            consume(TokenType.INSERT, "'INSERT' keyword");
+            return parseInsertStatement();
+        });
+        statementParsers.put(TokenType.DELETE, () -> {
+            consume(TokenType.DELETE, "'DELETE' keyword");
+            return parseDeleteStatement();
+        });
+        statementParsers.put(TokenType.UPDATE, () -> {
+            consume(TokenType.UPDATE, "'UPDATE' keyword");
+            return parseUpdateStatement();
+        });
+        statementParsers.put(TokenType.DROP, () -> {
+            consume(TokenType.DROP, "'DROP' keyword");
+            return parseDropStatement();
+        });
+        statementParsers.put(TokenType.USE, () -> {
+            consume(TokenType.USE, "'USE' keyword");
+            return parseUseDatabaseStatement();
+        });
+    }
+
+    private StatementNode parseCreateStatement() {
+        consume(TokenType.CREATE, "'CREATE' keyword");
+        Token nextToken = peek();
+        if (nextToken.type() == TokenType.TABLE) {
+            return parseCreateTableStatement();
+        }
+        if (nextToken.type() == TokenType.DATABASE) {
+            return parseCreateDatabaseStatement();
+        }
+        if (nextToken.type() == TokenType.INDEX) {
+            return parseCreateIndexStatement();
+        }
+        if (nextToken.type() == TokenType.USER) {
+            return parseCreateUserStatement();
+        }
+        throw new ParseException(nextToken, "Expected 'TABLE', 'DATABASE', 'INDEX', or 'USER' after 'CREATE'");
+    }
+
+    private StatementNode parseDropStatement() {
+        if (peek().type() == TokenType.DATABASE) {
+            return parseDropDatabaseStatement();
+        }
+        return parseDropTableStatement();
     }
 
     private StatementNode parseShowStatement() {
@@ -219,8 +241,7 @@ public class Parser {
             do {
                 ColumnDefinitionNode colDef = parseColumnDefinition();
                 columns.add(colDef);
-                // 检查是否有 PRIMARY KEY 约束
-                if (match(TokenType.PRIMARY) && match(TokenType.KEY)) {
+                if (colDef.primaryKey()) {
                     if (primaryKeyColumn != null) {
                         throw new ParseException(peek(), "Only one primary key is allowed per table.");
                     }
@@ -254,26 +275,89 @@ public class Parser {
     private ColumnDefinitionNode parseColumnDefinition() {
         Token columnNameToken = consume(TokenType.IDENTIFIER, "column name");
         IdentifierNode columnName = new IdentifierNode(columnNameToken.lexeme());
-        Token dataTypeToken = peek();
-        if (dataTypeToken.type() == TokenType.INT
-            || dataTypeToken.type() == TokenType.VARCHAR
-            || dataTypeToken.type() == TokenType.DECIMAL
-            || dataTypeToken.type() == TokenType.DATE
-            || dataTypeToken.type() == TokenType.BOOLEAN
-            || dataTypeToken.type() == TokenType.FLOAT
-            || dataTypeToken.type() == TokenType.DOUBLE
-            || dataTypeToken.type() == TokenType.CHAR
-            || dataTypeToken.type() == TokenType.IDENTIFIER) {
-            advance();
-        } else {
-            throw new ParseException(peek(), "a valid data type (e.g., INT, VARCHAR, DECIMAL, etc.)");
+        TypeReferenceNode dataType = parseTypeReference();
+        boolean nullable = true;
+        LiteralNode defaultValue = null;
+        boolean primaryKey = false;
+
+        while (true) {
+            if (match(TokenType.NOT)) {
+                consume(TokenType.NULL, "'NULL' after 'NOT'");
+                nullable = false;
+                continue;
+            }
+            if (match(TokenType.NULL)) {
+                nullable = true;
+                continue;
+            }
+            if (match(TokenType.DEFAULT)) {
+                defaultValue = parseDefaultLiteral();
+                continue;
+            }
+            if (match(TokenType.PRIMARY)) {
+                consume(TokenType.KEY, "'KEY' after 'PRIMARY'");
+                primaryKey = true;
+                nullable = false;
+                continue;
+            }
+            break;
         }
+
+        return new ColumnDefinitionNode(columnName, dataType, nullable, defaultValue, primaryKey);
+    }
+
+    private LiteralNode parseDefaultLiteral() {
+        if (match(
+            TokenType.INTEGER_CONST,
+            TokenType.DECIMAL_CONST,
+            TokenType.STRING_CONST,
+            TokenType.TRUE,
+            TokenType.FALSE,
+            TokenType.NULL)) {
+            return new LiteralNode(previous());
+        }
+        throw new ParseException(peek(), "a literal value after DEFAULT");
+    }
+
+    private TypeReferenceNode parseTypeReference() {
+        List<String> nameParts = new ArrayList<>();
+        Token current = peek();
+        if (!isTypeNameToken(current.type())) {
+            throw new ParseException(peek(), "a valid PostgreSQL data type name");
+        }
+        nameParts.add(advance().lexeme());
+
+        while (isTypeNameContinuation(peek().type())) {
+            nameParts.add(advance().lexeme());
+        }
+
+        List<Integer> arguments = new ArrayList<>();
         if (match(TokenType.LPAREN)) {
-            consume(TokenType.INTEGER_CONST, "Expected a length for " + dataTypeToken.lexeme() + ".");
-            consume(TokenType.RPAREN, "Expected ')' after " + dataTypeToken.lexeme() + " length.");
+            arguments.add(Integer.parseInt(consume(TokenType.INTEGER_CONST, "type argument").lexeme()));
+            while (match(TokenType.COMMA)) {
+                arguments.add(Integer.parseInt(consume(TokenType.INTEGER_CONST, "type argument").lexeme()));
+            }
+            consume(TokenType.RPAREN, "Expected ')' after type arguments.");
         }
-        IdentifierNode dataType = new IdentifierNode(dataTypeToken.lexeme());
-        return new ColumnDefinitionNode(columnName, dataType);
+        return new TypeReferenceNode(nameParts, arguments);
+    }
+
+    private boolean isTypeNameToken(TokenType tokenType) {
+        return tokenType == TokenType.INT
+            || tokenType == TokenType.VARCHAR
+            || tokenType == TokenType.DECIMAL
+            || tokenType == TokenType.DATE
+            || tokenType == TokenType.BOOLEAN
+            || tokenType == TokenType.FLOAT
+            || tokenType == TokenType.DOUBLE
+            || tokenType == TokenType.CHAR
+            || tokenType == TokenType.IDENTIFIER;
+    }
+
+    private boolean isTypeNameContinuation(TokenType tokenType) {
+        return tokenType == TokenType.IDENTIFIER
+            || tokenType == TokenType.DOUBLE
+            || tokenType == TokenType.CHAR;
     }
 
     private SelectStatementNode parseSelectStatement() {
@@ -542,6 +626,11 @@ public class Parser {
         return peek().type() == type;
     }
 
+    @FunctionalInterface
+    private interface StatementParser {
+        StatementNode parse();
+    }
+
     private Token advance() {
         if (!isAtEnd()) position++;
         return previous();
@@ -559,4 +648,3 @@ public class Parser {
         return tokens.get(position - 1);
     }
 }
-

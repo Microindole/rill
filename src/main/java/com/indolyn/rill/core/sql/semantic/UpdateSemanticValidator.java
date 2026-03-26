@@ -34,7 +34,7 @@ class UpdateSemanticValidator {
             if (!(clause.value() instanceof LiteralNode literal)) {
                 throw new SemanticException("SET clause currently only supports literal values.");
             }
-            validationSupport.validateLiteralAssignment(column.getName(), column.getType(), literal);
+            validationSupport.validateLiteralAssignment(column, literal);
         }
     }
 }

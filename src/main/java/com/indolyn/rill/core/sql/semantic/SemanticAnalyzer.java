@@ -15,6 +15,8 @@ import com.indolyn.rill.core.sql.ast.statement.SelectStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.ShowTablesStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.UpdateStatementNode;
 import com.indolyn.rill.core.session.Session;
+import com.indolyn.rill.core.sql.type.PostgreSqlTypeResolver;
+import com.indolyn.rill.core.sql.type.SqlTypeResolver;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,7 +38,9 @@ public class SemanticAnalyzer {
 
     public SemanticAnalyzer(Catalog catalog) {
         SemanticValidationSupport validationSupport = new SemanticValidationSupport(catalog);
-        DefinitionValidationSupport definitionValidationSupport = new DefinitionValidationSupport();
+        SqlTypeResolver sqlTypeResolver = new PostgreSqlTypeResolver();
+        DefinitionValidationSupport definitionValidationSupport =
+            new DefinitionValidationSupport(sqlTypeResolver);
         this.selectSemanticValidator = new SelectSemanticValidator(catalog);
         this.insertSemanticValidator = new InsertSemanticValidator(validationSupport);
         this.deleteSemanticValidator = new DeleteSemanticValidator(validationSupport);

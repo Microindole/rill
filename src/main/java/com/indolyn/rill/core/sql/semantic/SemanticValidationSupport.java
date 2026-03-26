@@ -13,7 +13,9 @@ import com.indolyn.rill.core.sql.lexer.TokenType;
 import com.indolyn.rill.core.session.Session;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.math.BigDecimal;
 
 class SemanticValidationSupport {
 
@@ -70,7 +72,7 @@ class SemanticValidationSupport {
     DataType getLiteralType(LiteralNode literal) {
         TokenType type = literal.literal().type();
         if (type == TokenType.INTEGER_CONST) {
-            return DataType.INT;
+            return inferIntegerLiteralType(literal.literal().lexeme());
         }
         if (type == TokenType.DECIMAL_CONST) {
             return DataType.DECIMAL;
@@ -115,15 +117,23 @@ class SemanticValidationSupport {
         }
     }
 
-    void validateLiteralAssignment(String columnName, DataType expectedType, LiteralNode literal) {
+    void validateLiteralAssignment(Column column, LiteralNode literal) {
+        String columnName = column.getName();
+        DataType expectedType = column.getType();
         DataType actualType = getLiteralType(literal);
 
         if (isCompatible(expectedType, actualType)) {
+            validateLengthConstraint(column, literal);
+            validateNumericConstraint(column, literal);
             return;
         }
 
         if (expectedType == DataType.DATE && actualType == DataType.VARCHAR) {
             validateDateLiteral(columnName, literal);
+            return;
+        }
+        if (expectedType == DataType.TIMESTAMP && actualType == DataType.VARCHAR) {
+            validateTimestampLiteral(columnName, literal);
             return;
         }
 
@@ -137,19 +147,75 @@ class SemanticValidationSupport {
                 + ".");
     }
 
+    private void validateLengthConstraint(Column column, LiteralNode literal) {
+        if (!column.hasLengthLimit() || literal.literal().type() != TokenType.STRING_CONST) {
+            return;
+        }
+        if (literal.literal().lexeme().length() > column.getLengthLimit()) {
+            throw new SemanticException(
+                "Value for column '"
+                    + column.getName()
+                    + "' exceeds length limit "
+                    + column.getLengthLimit()
+                    + ".");
+        }
+    }
+
+    private void validateNumericConstraint(Column column, LiteralNode literal) {
+        if (!column.hasNumericPrecision()) {
+            return;
+        }
+
+        BigDecimal value = switch (literal.literal().type()) {
+            case INTEGER_CONST, DECIMAL_CONST -> new BigDecimal(literal.literal().lexeme());
+            default -> null;
+        };
+
+        if (value != null && !column.supportsDecimalValue(value)) {
+            throw new SemanticException(
+                "Value for column '"
+                    + column.getName()
+                    + "' exceeds NUMERIC("
+                    + column.getNumericPrecision()
+                    + ", "
+                    + column.getNumericScale()
+                    + ") constraints.");
+        }
+    }
+
     private boolean isCompatible(DataType expectedType, DataType actualType) {
         if (expectedType == actualType) {
+            return true;
+        }
+        if (expectedType == DataType.SMALLINT && actualType == DataType.INT) {
+            return true;
+        }
+        if (expectedType == DataType.INT
+            && (actualType == DataType.SMALLINT || actualType == DataType.INT)) {
+            return true;
+        }
+        if (expectedType == DataType.BIGINT
+            && (actualType == DataType.SMALLINT || actualType == DataType.INT || actualType == DataType.BIGINT)) {
             return true;
         }
         if (expectedType == DataType.DECIMAL && actualType == DataType.INT) {
             return true;
         }
+        if (expectedType == DataType.DECIMAL
+            && (actualType == DataType.SMALLINT || actualType == DataType.BIGINT)) {
+            return true;
+        }
         if (expectedType == DataType.FLOAT
-            && (actualType == DataType.INT || actualType == DataType.DECIMAL)) {
+            && (actualType == DataType.SMALLINT
+                || actualType == DataType.INT
+                || actualType == DataType.BIGINT
+                || actualType == DataType.DECIMAL)) {
             return true;
         }
         if (expectedType == DataType.DOUBLE
-            && (actualType == DataType.INT
+            && (actualType == DataType.SMALLINT
+                || actualType == DataType.INT
+                || actualType == DataType.BIGINT
                 || actualType == DataType.DECIMAL
                 || actualType == DataType.FLOAT)) {
             return true;
@@ -163,6 +229,36 @@ class SemanticValidationSupport {
         } catch (DateTimeParseException e) {
             throw new SemanticException(
                 "Invalid DATE format for column '" + columnName + "'. Expected 'YYYY-MM-DD'.");
+        }
+    }
+
+    private void validateTimestampLiteral(String columnName, LiteralNode literal) {
+        try {
+            LocalDateTime.parse(literal.literal().lexeme().replace(" ", "T"));
+        } catch (DateTimeParseException e) {
+            throw new SemanticException(
+                "Invalid TIMESTAMP format for column '"
+                    + columnName
+                    + "'. Expected 'YYYY-MM-DD HH:MM:SS'.");
+        }
+    }
+
+    private DataType inferIntegerLiteralType(String lexeme) {
+        try {
+            short ignored = Short.parseShort(lexeme);
+            return DataType.SMALLINT;
+        } catch (NumberFormatException ignored) {
+        }
+        try {
+            Integer.parseInt(lexeme);
+            return DataType.INT;
+        } catch (NumberFormatException ignored) {
+        }
+        try {
+            Long.parseLong(lexeme);
+            return DataType.BIGINT;
+        } catch (NumberFormatException e) {
+            throw new SemanticException("Integer literal out of range: " + lexeme);
         }
     }
 }

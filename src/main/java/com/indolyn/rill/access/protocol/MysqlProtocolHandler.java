@@ -1,6 +1,7 @@
 package com.indolyn.rill.access.protocol;
 
 import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.catalog.IndexInfo;
 import com.indolyn.rill.core.exception.ParseException;
 import com.indolyn.rill.core.exception.SemanticException;
 import com.indolyn.rill.core.model.Column;
@@ -24,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
 /**
@@ -819,13 +821,14 @@ public class MysqlProtocolHandler implements Runnable {
         if (tableName != null && catalog != null) {
             Schema schema = catalog.getTableSchema(tableName);
             if (schema != null) {
+                List<IndexInfo> indexes = catalog.getIndexesForTable(tableName);
                 for (Column col : schema.getColumns()) {
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     bos.write(writeLengthEncodedString(col.getName()));
                     bos.write(writeLengthEncodedString(col.getType().toString()));
-                    bos.write(writeLengthEncodedString("YES")); // Nullable
-                    bos.write(writeLengthEncodedString("")); // Default
-                    bos.write(writeLengthEncodedString("")); // Key
+                    bos.write(writeLengthEncodedString(col.isNullable() ? "YES" : "NO"));
+                    writeNullableMetadataValue(bos, defaultMetadataValue(col));
+                    bos.write(writeLengthEncodedString(resolveColumnKey(schema, col, indexes)));
                     bos.write(writeLengthEncodedString("")); // Extra
                     sequenceId = writePacket(out, bos.toByteArray(), sequenceId);
                 }
@@ -887,40 +890,8 @@ public class MysqlProtocolHandler implements Runnable {
             return true;
         }
 
-        // 构建 CREATE TABLE 语句
-        StringBuilder createTableSql = new StringBuilder();
-        createTableSql.append("CREATE TABLE `").append(tableName).append("` (\n");
-
-        List<Column> columns = schema.getColumns();
-        for (int i = 0; i < columns.size(); i++) {
-            Column col = columns.get(i);
-            createTableSql.append("  `").append(col.getName()).append("` ");
-
-            // 映射数据类型到 MySQL 类型
-            switch (col.getType()) {
-                case INT:
-                    createTableSql.append("INT");
-                    break;
-                case DECIMAL:
-                    createTableSql.append("DECIMAL(10,2)");
-                    break;
-                case DATE:
-                    createTableSql.append("DATE");
-                    break;
-                case BOOLEAN:
-                    createTableSql.append("BOOLEAN");
-                    break;
-                case VARCHAR:
-                default:
-                    createTableSql.append("VARCHAR(255)");
-            }
-
-            if (i < columns.size() - 1) {
-                createTableSql.append(",");
-            }
-            createTableSql.append("\n");
-        }
-        createTableSql.append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        String createTableSql =
+            buildShowCreateTableSql(tableName, schema, catalog.getIndexesForTable(tableName));
 
         // 发送结果
         sequenceId = sendResultSetHeader(out, sequenceId, 2);
@@ -931,7 +902,7 @@ public class MysqlProtocolHandler implements Runnable {
         // 发送数据行
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         bos.write(writeLengthEncodedString(tableName));
-        bos.write(writeLengthEncodedString(createTableSql.toString()));
+        bos.write(writeLengthEncodedString(createTableSql));
         sequenceId = writePacket(out, bos.toByteArray(), sequenceId);
 
         sendEofPacket(out, sequenceId);
@@ -972,6 +943,7 @@ public class MysqlProtocolHandler implements Runnable {
             sendErrorPacket(out, sequenceId, 1146, "42S02", "Table '" + tableName + "' doesn't exist");
             return true;
         }
+        List<IndexInfo> indexes = catalog.getIndexesForTable(tableName);
 
         // SHOW FULL COLUMNS 返回更多字段
         sequenceId = sendResultSetHeader(out, sequenceId, 9);
@@ -992,26 +964,20 @@ public class MysqlProtocolHandler implements Runnable {
             bos.write(writeLengthEncodedString(col.getName()));
 
             // 类型
-            String typeStr = switch (col.getType()) {
-                case INT -> "int(11)";
-                case DECIMAL -> "decimal(10,2)";
-                case DATE -> "date";
-                case BOOLEAN -> "tinyint(1)";
-                default -> "varchar(255)";
-            };
+            String typeStr = toProtocolTypeDefinition(col, false);
             bos.write(writeLengthEncodedString(typeStr));
 
             // Collation
             bos.write(writeLengthEncodedString("utf8mb4_general_ci"));
 
             // Null
-            bos.write(writeLengthEncodedString("YES"));
+            bos.write(writeLengthEncodedString(col.isNullable() ? "YES" : "NO"));
 
             // Key
-            bos.write(writeLengthEncodedString(""));
+            bos.write(writeLengthEncodedString(resolveColumnKey(schema, col, indexes)));
 
             // Default
-            bos.write(0xfb); // NULL
+            writeNullableMetadataValue(bos, defaultMetadataValue(col));
 
             // Extra
             bos.write(writeLengthEncodedString(""));
@@ -1041,5 +1007,128 @@ public class MysqlProtocolHandler implements Runnable {
         }
         return null;
     }
-}
 
+    private String toProtocolTypeDefinition(Column column, boolean upperCase) {
+        String declared = column.formatTypeDeclaration();
+        if (declared == null || declared.isBlank()) {
+            return upperCase ? column.getType().name() : column.getType().name().toLowerCase();
+        }
+
+        String normalized = declared.toUpperCase();
+        if ("BOOLEAN".equals(normalized)) {
+            return upperCase ? "BOOLEAN" : "tinyint(1)";
+        }
+        if ("INT".equals(normalized) || "INTEGER".equals(normalized)) {
+            return upperCase ? "INT" : "int(11)";
+        }
+
+        return upperCase ? normalized : normalized.toLowerCase();
+    }
+
+    private String buildShowCreateTableSql(String tableName, Schema schema) {
+        return buildShowCreateTableSql(tableName, schema, List.of());
+    }
+
+    private String buildShowCreateTableSql(String tableName, Schema schema, List<IndexInfo> indexes) {
+        StringBuilder createTableSql = new StringBuilder();
+        createTableSql.append("CREATE TABLE `").append(tableName).append("` (\n");
+
+        List<String> definitions = new ArrayList<>();
+        for (Column col : schema.getColumns()) {
+            definitions.add(buildColumnDefinitionSql(col));
+        }
+
+        String primaryKeyColumnName = resolvePrimaryKeyColumnName(schema, indexes);
+        if (primaryKeyColumnName != null) {
+            definitions.add("  PRIMARY KEY (`" + primaryKeyColumnName + "`)");
+        }
+
+        for (IndexInfo indexInfo : indexes) {
+            if (primaryKeyColumnName != null
+                && indexInfo.getColumnName().equalsIgnoreCase(primaryKeyColumnName)) {
+                continue;
+            }
+            definitions.add(
+                "  KEY `"
+                    + indexInfo.getIndexName()
+                    + "` (`"
+                    + indexInfo.getColumnName()
+                    + "`)");
+        }
+
+        createTableSql.append(String.join(",\n", definitions));
+        createTableSql.append("\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        return createTableSql.toString();
+    }
+
+    private String buildColumnDefinitionSql(Column column) {
+        StringBuilder definition =
+            new StringBuilder("  `")
+                .append(column.getName())
+                .append("` ")
+                .append(toProtocolTypeDefinition(column, true));
+        if (!column.isNullable()) {
+            definition.append(" NOT NULL");
+        }
+        if (column.hasDefaultValue()) {
+            definition.append(" DEFAULT ").append(column.getDefaultValue());
+        }
+        return definition.toString();
+    }
+
+    private String resolvePrimaryKeyColumnName(Schema schema, List<IndexInfo> indexes) {
+        if (schema.getPrimaryKeyColumnName() != null) {
+            return schema.getPrimaryKeyColumnName();
+        }
+        for (Column column : schema.getColumns()) {
+            if (column.isPrimaryKey()) {
+                return column.getName();
+            }
+        }
+        for (IndexInfo indexInfo : indexes) {
+            if (indexInfo.getIndexName().toLowerCase(Locale.ROOT).startsWith("pk_")) {
+                return indexInfo.getColumnName();
+            }
+        }
+        return null;
+    }
+
+    private String resolveColumnKey(Schema schema, Column column, List<IndexInfo> indexes) {
+        if (isPrimaryKeyColumn(schema, column)) {
+            return "PRI";
+        }
+        for (IndexInfo indexInfo : indexes) {
+            if (indexInfo.getColumnName().equalsIgnoreCase(column.getName())) {
+                return "MUL";
+            }
+        }
+        return "";
+    }
+
+    private String defaultMetadataValue(Column column) {
+        if (!column.hasDefaultValue()) {
+            return null;
+        }
+        String defaultValue = column.getDefaultValue();
+        if (defaultValue.length() >= 2
+            && defaultValue.startsWith("'")
+            && defaultValue.endsWith("'")) {
+            return defaultValue.substring(1, defaultValue.length() - 1);
+        }
+        return defaultValue;
+    }
+
+    private void writeNullableMetadataValue(ByteArrayOutputStream bos, String value) throws IOException {
+        if (value == null) {
+            bos.write(0xfb);
+            return;
+        }
+        bos.write(writeLengthEncodedString(value));
+    }
+
+    private boolean isPrimaryKeyColumn(Schema schema, Column column) {
+        return (schema.getPrimaryKeyColumnName() != null
+                && schema.getPrimaryKeyColumnName().equalsIgnoreCase(column.getName()))
+            || column.isPrimaryKey();
+    }
+}

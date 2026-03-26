@@ -27,6 +27,8 @@ import com.indolyn.rill.core.sql.planner.plan.command.ShowColumnsPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowCreateTablePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowDatabasesPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowTablesPlanNode;
+import com.indolyn.rill.core.sql.type.PostgreSqlTypeResolver;
+import com.indolyn.rill.core.sql.type.SqlTypeResolver;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -47,13 +49,14 @@ public class Planner {
     private final GrantPlanBuilder grantPlanBuilder;
 
     public Planner(Catalog catalog) {
+        SqlTypeResolver sqlTypeResolver = new PostgreSqlTypeResolver();
         this.selectPlanBuilder = new SelectPlanBuilder(catalog);
         this.insertPlanBuilder = new InsertPlanBuilder(catalog);
         this.deletePlanBuilder = new DeletePlanBuilder(catalog);
         this.updatePlanBuilder = new UpdatePlanBuilder(catalog);
-        this.createTablePlanBuilder = new CreateTablePlanBuilder();
+        this.createTablePlanBuilder = new CreateTablePlanBuilder(sqlTypeResolver);
         this.createIndexPlanBuilder = new CreateIndexPlanBuilder(catalog);
-        this.alterTablePlanBuilder = new AlterTablePlanBuilder();
+        this.alterTablePlanBuilder = new AlterTablePlanBuilder(sqlTypeResolver);
         this.dropTablePlanBuilder = new DropTablePlanBuilder();
         this.createUserPlanBuilder = new CreateUserPlanBuilder();
         this.grantPlanBuilder = new GrantPlanBuilder();

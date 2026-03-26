@@ -38,7 +38,7 @@ public class ShowColumnsExecutor implements TupleIterator {
             List<Value> values = new ArrayList<>();
             values.add(new Value(column.getName()));
             // 为了与 MySQL 类型更好地兼容，我们返回小写类型名
-            values.add(new Value(column.getType().name().toLowerCase()));
+            values.add(new Value(column.formatTypeDeclaration().toLowerCase()));
             resultTuples.add(new Tuple(values));
         }
         this.resultIterator = resultTuples.iterator();

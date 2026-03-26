@@ -1,9 +1,12 @@
 package com.indolyn.rill.core.execution.operator;
 
 import com.indolyn.rill.core.catalog.TableInfo;
+import com.indolyn.rill.core.model.Column;
+import com.indolyn.rill.core.model.DataType;
 import com.indolyn.rill.core.model.RID;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.model.Tuple;
+import com.indolyn.rill.core.model.Value;
 import com.indolyn.rill.core.storage.buffer.PageAccess;
 import com.indolyn.rill.core.storage.page.Page;
 import com.indolyn.rill.core.storage.page.PageId;
@@ -13,6 +16,7 @@ import com.indolyn.rill.core.transaction.log.LogService;
 import com.indolyn.rill.core.transaction.log.LogRecord;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 import lombok.Getter;
 
@@ -115,6 +119,7 @@ public class TableHeap implements TupleIterator {
     public boolean insertTuple(Tuple tuple, Transaction txn, boolean acquireLock, boolean writeLog)
         throws IOException {
         try {
+            validateTupleAgainstSchema(tuple);
             Page targetPage = findFreePageForInsert(tuple, txn, acquireLock);
             if (targetPage == null) return false;
 
@@ -235,6 +240,7 @@ public class TableHeap implements TupleIterator {
         Tuple newTuple, RID rid, Transaction txn, boolean acquireLock, boolean writeLog)
         throws IOException {
         try {
+            validateTupleAgainstSchema(newTuple);
             PageId pageId = new PageId(rid.pageNum());
             if (acquireLock) {
                 lockManager.lockExclusive(txn, pageId);
@@ -291,6 +297,40 @@ public class TableHeap implements TupleIterator {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Thread interrupted while acquiring lock for getTuple", e);
+        }
+    }
+
+    private void validateTupleAgainstSchema(Tuple tuple) {
+        for (int i = 0; i < schema.getColumns().size(); i++) {
+            Column column = schema.getColumns().get(i);
+            Value value = tuple.getValues().get(i);
+            if (value == null || value.getValue() == null) {
+                continue;
+            }
+            if ((column.getType() == DataType.VARCHAR || column.getType() == DataType.CHAR)
+                && value.getValue() instanceof String stringValue
+                && column.hasLengthLimit()
+                && stringValue.length() > column.getLengthLimit()) {
+                throw new IllegalArgumentException(
+                    "Value for column '"
+                        + column.getName()
+                        + "' exceeds length limit "
+                        + column.getLengthLimit()
+                        + ".");
+            }
+            if (column.getType() == DataType.DECIMAL
+                && column.hasNumericPrecision()
+                && value.getValue() instanceof BigDecimal decimalValue
+                && !column.supportsDecimalValue(decimalValue)) {
+                throw new IllegalArgumentException(
+                    "Value for column '"
+                        + column.getName()
+                        + "' exceeds NUMERIC("
+                        + column.getNumericPrecision()
+                        + ", "
+                        + column.getNumericScale()
+                        + ") constraints.");
+            }
         }
     }
 }

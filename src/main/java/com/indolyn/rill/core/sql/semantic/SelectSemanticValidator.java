@@ -173,7 +173,23 @@ class SelectSemanticValidator {
     private DataType getLiteralType(LiteralNode literal) {
         TokenType type = literal.literal().type();
         if (type == TokenType.INTEGER_CONST) {
-            return DataType.INT;
+            String lexeme = literal.literal().lexeme();
+            try {
+                Short.parseShort(lexeme);
+                return DataType.SMALLINT;
+            } catch (NumberFormatException ignored) {
+            }
+            try {
+                Integer.parseInt(lexeme);
+                return DataType.INT;
+            } catch (NumberFormatException ignored) {
+            }
+            try {
+                Long.parseLong(lexeme);
+                return DataType.BIGINT;
+            } catch (NumberFormatException e) {
+                throw new SemanticException("Integer literal out of range: " + lexeme);
+            }
         }
         if (type == TokenType.DECIMAL_CONST) {
             return DataType.DECIMAL;
@@ -205,7 +221,7 @@ class SelectSemanticValidator {
             Column column = checkColumnExistsInJoinedTables(leftTable, rightTable, colNode);
             DataType expectedType = column.getType();
             DataType actualType = getLiteralType(literalNode);
-            if (expectedType != actualType) {
+            if (!isCompatible(expectedType, actualType)) {
                 throw new SemanticException(
                     "Data type mismatch for column '"
                         + colNode.getFullName()
@@ -226,6 +242,39 @@ class SelectSemanticValidator {
         }
 
         throw new SemanticException("Unsupported expression format in WHERE or ON clause.");
+    }
+
+    private boolean isCompatible(DataType expectedType, DataType actualType) {
+        if (expectedType == actualType) {
+            return true;
+        }
+        if (expectedType == DataType.INT && actualType == DataType.SMALLINT) {
+            return true;
+        }
+        if (expectedType == DataType.BIGINT
+            && (actualType == DataType.SMALLINT || actualType == DataType.INT)) {
+            return true;
+        }
+        if (expectedType == DataType.DECIMAL
+            && (actualType == DataType.SMALLINT || actualType == DataType.INT || actualType == DataType.BIGINT)) {
+            return true;
+        }
+        if (expectedType == DataType.FLOAT
+            && (actualType == DataType.SMALLINT
+                || actualType == DataType.INT
+                || actualType == DataType.BIGINT
+                || actualType == DataType.DECIMAL)) {
+            return true;
+        }
+        if (expectedType == DataType.DOUBLE
+            && (actualType == DataType.SMALLINT
+                || actualType == DataType.INT
+                || actualType == DataType.BIGINT
+                || actualType == DataType.DECIMAL
+                || actualType == DataType.FLOAT)) {
+            return true;
+        }
+        return false;
     }
 
     private void analyzeJoinExpression(
@@ -308,4 +357,3 @@ class SelectSemanticValidator {
                         "Column '" + columnName + "' not found in table '" + tableName + "'."));
     }
 }
-

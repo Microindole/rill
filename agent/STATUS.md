@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-阶段名称：内核第一轮重构已基本完成，当前重心切回系统层边界抽象与工程收口
+阶段名称：内核第一轮重构已基本完成，当前重心转向编译器可扩展性与 PostgreSQL 方言收口
 
 ## 已完成
 
@@ -67,6 +67,16 @@
 - 完成系统层第十轮收口：恢复链路已开始从 `BufferPoolManager` 直接依赖切到 `PageAccess`
 - 完成系统层第十一轮收口：`TableHeap` 与执行支撑层已切到 `PageAccess`，恢复链路中的缓冲池桥接已移除
 - 完成统一构建入口修复：`mvnw.cmd / mvnw` 与 `scripts/build.* / scripts/rill.*` 已统一优先使用 `JAVA21_HOME`
+- 完成编译器第五轮收口：`Lexer` 已引入关键字注册表，`Parser` 已引入注册式语句分发，DDL 类型解析已切到 `TypeReferenceNode + PostgreSqlTypeResolver`
+- 完成类型系统第一轮物理扩展：新增 `SMALLINT / BIGINT / TIMESTAMP` 内部物理类型，并打通值模型、序列化、INSERT/UPDATE 字面量转换与 PostgreSQL 类型解析
+- 完成类型系统第二轮语义收口：补齐 `BOOLEAN / DATE / VARCHAR(n) / CHAR(n)` 回归测试，并为 `VARCHAR / CHAR / NUMERIC` 增加参数合法性校验
+- 完成类型系统第三轮别名边界收口：补齐 `REAL / FLOAT8 / NUMERIC / TEXT` 的别名回归，并修正 `TEXT` 不应接受长度参数的问题
+- 完成字符串长度约束第一轮落地：`Column` 已保留类型声明与参数，`VARCHAR/CHAR` 长度约束已落到 schema、catalog 持久化、语义检查与 `TableHeap` 写入校验
+- 完成协议层类型展示收口：`SHOW CREATE TABLE`、`SHOW FULL COLUMNS` 与协议类型描述已开始复用真实列声明，不再一律退回默认 `VARCHAR(255)`
+- 完成 `NUMERIC(p,s)` 第一轮真实约束落地：精度/小数位限制已下沉到 `Column`、语义检查与 `TableHeap` 写入校验，并补齐重启后回归
+- 完成 `NUMERIC(p,s)` 的 `UPDATE` 重启回归补强，并让协议层 `SHOW CREATE TABLE` 输出独立主键定义，`SHOW FULL COLUMNS` 返回 `PRI/NO`
+- 完成 DDL 列约束元数据第一轮贯通：`NOT NULL / DEFAULT / PRIMARY KEY` 已从 parser/AST 进入 planner、`Column`、catalog 持久化与重启恢复
+- 完成协议层 DDL 展示补齐：`SHOW CREATE TABLE` 已输出 `NOT NULL / DEFAULT / PRIMARY KEY / KEY`，`SHOW FULL COLUMNS` 与 `information_schema.columns` 也开始复用同一份空值、默认值和索引元数据
 
 ## 已确认事实
 
@@ -117,6 +127,16 @@
 - 当前恢复链路也已开始复用 `PageAccess`，系统层上半部分的页访问边界更一致
 - 当前 `TableHeap` 也已开始复用 `PageAccess`，目录/恢复/表堆三条链路的页访问边界已统一
 - 当前 Maven Wrapper 与跨平台脚本已恢复可用，并能在显式提供 `JAVA21_HOME` 时稳定切到 Java 21
+- 当前编译器已开始按 PostgreSQL 方言组织关键字和类型解析，新增类型不再必须继续修改 `DataType.valueOf(...)` 链路
+- 当前 `SMALLINT / BIGINT / TIMESTAMP` 已不只是语法别名，而是具备独立 `DataType` 与 `Value` 序列化支持
+- 当前 `BOOLEAN / DATE / VARCHAR(n) / CHAR(n)` 已有 parser / planner / semantic 回归覆盖，`VARCHAR(0) / CHAR(0) / NUMERIC(4,8)` 会在语义阶段直接拒绝
+- 当前 `REAL / FLOAT8 / NUMERIC / TEXT` 也已有 parser / planner / semantic / integration 回归覆盖，`TEXT(10)` 会被直接拒绝
+- 当前 `VARCHAR(n) / CHAR(n)` 的长度参数已经不会在建表后丢失，数据库重启后仍能继续拦截超长 `INSERT / UPDATE`
+- 当前 MySQL 协议兼容层返回的列类型展示也已开始保留真实长度信息，`SHOW FULL COLUMNS` 与 `SHOW CREATE TABLE` 不再丢失 `VARCHAR(n) / CHAR(n)`
+- 当前 `NUMERIC(p,s)` 也已不只是编译期参数，数据库重启后仍能继续拦截精度超限和小数位超限的 `INSERT`
+- 当前 `NUMERIC(p,s)` 的精度/scale 约束也已覆盖 `UPDATE`，协议层 `SHOW CREATE TABLE` 已能输出 `PRIMARY KEY (...)`，`SHOW FULL COLUMNS` 也会为主键列返回 `PRI`
+- 当前 `NOT NULL / DEFAULT / PRIMARY KEY` 已不再只存在于建表语句文本里，列约束元数据会随 catalog 一起持久化并在数据库重启后恢复
+- 当前 MySQL 协议兼容层的 `SHOW CREATE TABLE / SHOW FULL COLUMNS / information_schema.columns` 已开始复用列约束和索引元数据，而不是只展示类型名
 
 ## 用户已确定的总体规划
 
@@ -129,19 +149,55 @@
 
 ## 当前主要待办
 
-1. 继续重构数据库内核，优先收紧系统层边界，逐步抽出存储/目录等最小接口，并继续补目录/恢复/存储回归测试
-2. 将现有入口进一步收口到统一 launcher
-3. 开始数据库内核与 Spring Boot 适配层的边界强化
-4. 继续完善 Web UI，接入 `/api/query/history` 历史面板，并优化 trace 展示
-5. 继续完善 `app` 层的 controller / service / dto 结构
+1. 继续扩展 PostgreSQL 方言支持，优先补齐剩余数据类型、关键字和 DDL/查询语法兼容
+2. 继续把编译器改造成注册式、可扩展结构，降低新增语句和类型的改动面
+3. 补齐编译链路回归测试，锁住 PostgreSQL 方言收口结果
+4. 将现有入口进一步收口到统一 launcher
+5. 开始数据库内核与 Spring Boot 适配层的边界强化
 6. 再评估是否拆成 `rill-core` / `rill-app` 两个 Maven 模块
+
+## 编译器后续完整清单
+
+### 方言目标
+
+- 以 PostgreSQL 方言为主线
+- 不再继续混入 MySQL 风格语义
+
+### 关键字与词法
+
+- 扩展 PostgreSQL 关键字与保留字
+- 继续下沉词法关键字注册表
+- 统一大小写和标识符处理规则
+
+### 语法结构
+
+- 继续把 `Parser` 拆成注册式语句解析结构
+- 为语句级解析下沉独立 parser / handler
+- 收口 DDL 语法，重点是类型、列定义和 `ALTER TABLE`
+
+### 类型系统
+
+- 优先补 `INTEGER / REAL / DOUBLE PRECISION / NUMERIC / TEXT / BOOLEAN / DATE / VARCHAR(n) / CHAR(n)` 的边界行为，并继续评估更完整的 PostgreSQL 类型能力
+- 区分语法别名与内部物理类型
+- 逐步摆脱 `DataType.valueOf(...)` 式耦合
+
+### 语义与计划
+
+- 继续拆分类型校验、表达式校验、权限校验
+- 收紧类型兼容规则
+- 让计划层只依赖归一化后的类型结果
+
+### 测试
+
+- 为关键字、类型、多单词类型、DDL 和错误分支补回归测试
+- 形成“新增语句/类型必须补哪些测试”的固定模板
 
 ## 最近一次变更
 
-- 完成了工程收尾：`mvnw.cmd / mvnw` 已恢复，`scripts/build.* / scripts/rill.*` 已统一优先使用 `JAVA21_HOME`
-- 影响范围：构建入口、启动脚本、运行模块文档
-- 当前结果：`mvnw.cmd -v` 可在 `JAVA21_HOME` 下显示 Java 21，`scripts/build.cmd` 与 `scripts/rill.cmd help` 已验证通过
-- 下一步建议：继续评估哪些执行器仍必须直接依赖 `BufferPoolManager`，或者转回入口统一与 `app/core` 边界强化
+- 完成了 DDL 列约束与协议展示的一轮补齐：`NOT NULL / DEFAULT / PRIMARY KEY` 已打通 parser、planner、`Column`、catalog 持久化与重启恢复，`SHOW CREATE TABLE` 也开始输出普通索引 `KEY`
+- 影响范围：`core.sql.lexer`、`core.sql.parser`、`core.sql.semantic`、`core.sql.planner`、`core.model`、`core.catalog`、`access.protocol`、`core.sql`/`access.protocol` 测试
+- 当前结果：`ParserTest / PlannerTest / SemanticAnalyzerTest / DataTypeTest / MysqlProtocolHandlerTest` 已通过，协议层 `SHOW CREATE TABLE / SHOW FULL COLUMNS / information_schema.columns` 已能展示 `NOT NULL / DEFAULT / PRIMARY KEY / KEY`
+- 下一步建议：继续补更完整的列约束与 DDL 方言能力，例如多列索引、唯一约束、`TIMESTAMP WITH TIME ZONE`，以及 `ALTER TABLE` 的更完整列约束变体
 
 ## 当前建议顺序
 

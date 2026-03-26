@@ -155,7 +155,7 @@ public class DataReader {
         sb.append("CREATE TABLE ").append(tableInfo.getTableName()).append(" (\n");
         List<String> columnDefs = new ArrayList<>();
         for (Column column : schema.getColumns()) {
-            String colDef = "  " + column.getName() + " " + column.getType().name();
+            String colDef = "  " + column.getName() + " " + column.formatTypeDeclaration();
             if (column.getName().equalsIgnoreCase(schema.getPrimaryKeyColumnName())) {
                 colDef += " PRIMARY KEY";
             }
@@ -184,8 +184,11 @@ public class DataReader {
         switch (value.getType()) {
             case VARCHAR:
             case DATE:
+            case TIMESTAMP:
                 return "'" + value.getValue().toString().replace("'", "''") + "'";
+            case SMALLINT:
             case INT:
+            case BIGINT:
             case DECIMAL:
             case BOOLEAN:
                 return value.getValue().toString();

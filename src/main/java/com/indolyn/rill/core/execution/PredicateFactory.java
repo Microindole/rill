@@ -49,10 +49,21 @@ class PredicateFactory {
     private Value getLiteralValue(LiteralNode literalNode) {
         String lexeme = literalNode.literal().lexeme();
         return switch (literalNode.literal().type()) {
-            case INTEGER_CONST -> new Value(Integer.parseInt(lexeme));
+            case INTEGER_CONST -> parseIntegerLiteral(lexeme);
             case STRING_CONST -> new Value(lexeme);
             default -> throw new IllegalStateException("Unsupported literal type in expression.");
         };
     }
-}
 
+    private Value parseIntegerLiteral(String lexeme) {
+        try {
+            return new Value(Short.parseShort(lexeme));
+        } catch (NumberFormatException ignored) {
+        }
+        try {
+            return new Value(Integer.parseInt(lexeme));
+        } catch (NumberFormatException ignored) {
+        }
+        return new Value(Long.parseLong(lexeme));
+    }
+}

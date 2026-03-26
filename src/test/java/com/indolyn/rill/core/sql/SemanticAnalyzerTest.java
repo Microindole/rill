@@ -29,6 +29,7 @@ class SemanticAnalyzerTest {
     private static final String TEST_DB_FILE = "test_semantic.db";
 
     private DiskManager diskManager;
+    private Catalog catalog;
     private SemanticAnalyzer semanticAnalyzer;
     private Session rootSession;
 
@@ -38,7 +39,7 @@ class SemanticAnalyzerTest {
         diskManager = new DiskManager(TEST_DB_FILE);
         diskManager.open();
         BufferPoolManager bufferPoolManager = new BufferPoolManager(10, diskManager, "LRU");
-        Catalog catalog = new Catalog(bufferPoolManager);
+        catalog = new Catalog(bufferPoolManager);
         semanticAnalyzer = new SemanticAnalyzer(catalog);
         rootSession = Session.createAuthenticatedSession(-1, "root");
 
@@ -66,6 +67,23 @@ class SemanticAnalyzerTest {
                     parseSql("INSERT INTO users (id, name) VALUES (100, 'test');"), rootSession));
         assertDoesNotThrow(
             () -> semanticAnalyzer.analyze(parseSql("DELETE FROM users WHERE name = 'test';"), rootSession));
+        assertDoesNotThrow(
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("CREATE TABLE audit_log (id INTEGER, payload TEXT, amount NUMERIC);"),
+                    rootSession));
+        assertDoesNotThrow(
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql(
+                        "CREATE TABLE event_log (sid SMALLINT, bid BIGINT, created_at TIMESTAMP WITHOUT TIME ZONE);"),
+                    rootSession));
+        assertDoesNotThrow(
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql(
+                        "CREATE TABLE account_state (enabled BOOLEAN, birthday DATE, name VARCHAR(64), code CHAR(8));"),
+                    rootSession));
     }
 
     @Test
@@ -110,6 +128,179 @@ class SemanticAnalyzerTest {
         assertThrows(
             SemanticException.class,
             () -> semanticAnalyzer.analyze(parseSql("SELECT * FROM users WHERE name > 123;"), rootSession));
+    }
+
+    @Test
+    void timestampLiteralShouldPassSemanticAnalysis() throws IOException {
+        catalog.createTable("events", new Schema(List.of(new Column("created_at", DataType.TIMESTAMP))));
+        assertDoesNotThrow(
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql(
+                        "INSERT INTO events (created_at) VALUES ('2026-03-26 10:11:12');"),
+                    rootSession));
+    }
+
+    @Test
+    void invalidTimestampLiteralShouldFail() throws IOException {
+        catalog.createTable("events", new Schema(List.of(new Column("created_at", DataType.TIMESTAMP))));
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("INSERT INTO events (created_at) VALUES ('not-a-timestamp');"),
+                    rootSession));
+    }
+
+    @Test
+    void invalidVarcharArgumentShouldFail() {
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("CREATE TABLE invalid_name (name VARCHAR(0));"), rootSession));
+    }
+
+    @Test
+    void invalidCharArgumentShouldFail() {
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("CREATE TABLE invalid_code (code CHAR(0));"), rootSession));
+    }
+
+    @Test
+    void invalidNumericPrecisionScaleShouldFail() {
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("CREATE TABLE invalid_amount (amount NUMERIC(4, 8));"), rootSession));
+    }
+
+    @Test
+    void textShouldRejectLengthArgument() {
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("CREATE TABLE invalid_payload (payload TEXT(10));"), rootSession));
+    }
+
+    @Test
+    void booleanShouldRejectLengthArgument() {
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("CREATE TABLE invalid_flag (flag BOOLEAN(1));"), rootSession));
+    }
+
+    @Test
+    void numericAndFloatingAliasesShouldPassSemanticAnalysis() {
+        assertDoesNotThrow(
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql(
+                        "CREATE TABLE metrics (ratio REAL, score FLOAT8, amount NUMERIC(12, 4), payload TEXT);"),
+                    rootSession));
+    }
+
+    @Test
+    void createTableWithCompatibleDefaultsShouldPassSemanticAnalysis() {
+        assertDoesNotThrow(
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql(
+                        "CREATE TABLE user_defaults (id INT PRIMARY KEY, name VARCHAR(5) NOT NULL DEFAULT 'guest', enabled BOOLEAN DEFAULT TRUE, amount NUMERIC(5, 2) DEFAULT 12.34);"),
+                    rootSession));
+    }
+
+    @Test
+    void createTableWithInvalidDefaultShouldFail() {
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql(
+                        "CREATE TABLE invalid_defaults (name VARCHAR(3) DEFAULT 'toolong');"),
+                    rootSession));
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql(
+                        "CREATE TABLE invalid_null_default (name VARCHAR(3) NOT NULL DEFAULT NULL);"),
+                    rootSession));
+    }
+
+    @Test
+    void numericLiteralExceedingPrecisionOrScaleShouldFail() throws IOException {
+        catalog.createTable(
+            "prices",
+            new Schema(List.of(new Column("amount", DataType.DECIMAL, "DECIMAL", List.of(5, 2)))));
+
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("INSERT INTO prices (amount) VALUES (1234.56);"),
+                    rootSession));
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("INSERT INTO prices (amount) VALUES (12.345);"),
+                    rootSession));
+        assertDoesNotThrow(
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("INSERT INTO prices (amount) VALUES (123.45);"),
+                    rootSession));
+    }
+
+    @Test
+    void numericUpdateExceedingPrecisionOrScaleShouldFail() throws IOException {
+        catalog.createTable(
+            "prices",
+            new Schema(List.of(new Column("amount", DataType.DECIMAL, "DECIMAL", List.of(5, 2)))));
+
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("UPDATE prices SET amount = 12.345;"),
+                    rootSession));
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("UPDATE prices SET amount = 1234.56;"),
+                    rootSession));
+    }
+
+    @Test
+    void stringLiteralExceedingDeclaredLengthShouldFail() throws IOException {
+        catalog.createTable(
+            "limited_users",
+            new Schema(
+                List.of(
+                    new Column("name", DataType.VARCHAR, "VARCHAR", List.of(5)),
+                    new Column("code", DataType.CHAR, "CHAR", List.of(3)))));
+
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("INSERT INTO limited_users (name) VALUES ('toolong');"),
+                    rootSession));
+        assertThrows(
+            SemanticException.class,
+            () ->
+                semanticAnalyzer.analyze(
+                    parseSql("UPDATE limited_users SET code = 'abcd';"),
+                    rootSession));
     }
 
     private StatementNode parseSql(String sql) {

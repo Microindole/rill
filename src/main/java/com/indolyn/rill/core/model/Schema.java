@@ -18,12 +18,42 @@ public class Schema {
     private String primaryKeyColumnName;
 
     public Schema(List<Column> columns) {
-        this.columns = columns;
+        this.columns = List.copyOf(columns);
+        this.primaryKeyColumnName =
+            this.columns.stream()
+                .filter(Column::isPrimaryKey)
+                .map(Column::getName)
+                .findFirst()
+                .orElse(null);
     }
 
     public Schema(List<Column> columns, String primaryKeyColumnName) {
-        this(columns);
-        this.primaryKeyColumnName = primaryKeyColumnName;
+        this(normalizePrimaryKeyColumns(columns, primaryKeyColumnName));
+    }
+
+    private static List<Column> normalizePrimaryKeyColumns(
+        List<Column> columns, String primaryKeyColumnName) {
+        if (primaryKeyColumnName == null || primaryKeyColumnName.isBlank()) {
+            return List.copyOf(columns);
+        }
+
+        List<Column> normalized = new ArrayList<>(columns.size());
+        for (Column column : columns) {
+            if (column.getName().equalsIgnoreCase(primaryKeyColumnName) && !column.isPrimaryKey()) {
+                normalized.add(
+                    new Column(
+                        column.getName(),
+                        column.getType(),
+                        column.getDeclaredTypeName(),
+                        column.getTypeArguments(),
+                        false,
+                        column.getDefaultValue(),
+                        true));
+            } else {
+                normalized.add(column);
+            }
+        }
+        return normalized;
     }
 
     public int getTupleLength() {

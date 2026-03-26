@@ -32,8 +32,8 @@ final class CatalogMetadataStore implements CatalogMetadataAccess {
         for (Tuple columnTuple : columnMetadata) {
             if ((int) columnTuple.getValues().get(0).getValue() == tableId) {
                 String columnName = (String) columnTuple.getValues().get(1).getValue();
-                DataType columnType = DataType.valueOf((String) columnTuple.getValues().get(2).getValue());
-                columns.add(new Column(columnName, columnType));
+                String columnTypeDefinition = (String) columnTuple.getValues().get(2).getValue();
+                columns.add(Column.fromCatalogDefinition(columnName, columnTypeDefinition));
             }
         }
         return columns;
@@ -50,7 +50,7 @@ final class CatalogMetadataStore implements CatalogMetadataAccess {
                     Arrays.asList(
                         new Value(tableId),
                         new Value(column.getName()),
-                        new Value(column.getType().toString()),
+                        new Value(column.formatCatalogDefinition()),
                         new Value(columnIndex++))));
         }
         pageAccess.flushPage(columnsTableFirstPageId);
@@ -108,7 +108,7 @@ final class CatalogMetadataStore implements CatalogMetadataAccess {
                 Arrays.asList(
                     new Value(tableId),
                     new Value(newColumn.getName()),
-                    new Value(newColumn.getType().toString()),
+                    new Value(newColumn.formatCatalogDefinition()),
                     new Value(columnIndex)));
         columnsPage.insertTuple(columnMeta);
         pageAccess.flushPage(columnsTableFirstPageId);

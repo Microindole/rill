@@ -16,6 +16,7 @@ import com.indolyn.rill.core.sql.planner.plan.command.InsertPlanNode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,10 +52,13 @@ class InsertPlanBuilder {
         TokenType tokenType = literal.literal().type();
 
         return switch (expectedType) {
+            case SMALLINT -> new Value(Short.parseShort(lexeme));
             case INT -> new Value(Integer.parseInt(lexeme));
+            case BIGINT -> new Value(Long.parseLong(lexeme));
             case VARCHAR -> new Value(lexeme);
             case DECIMAL -> new Value(new BigDecimal(lexeme));
             case DATE -> new Value(LocalDate.parse(lexeme));
+            case TIMESTAMP -> new Value(LocalDateTime.parse(lexeme.replace(" ", "T")));
             case BOOLEAN -> new Value(tokenType == TokenType.TRUE);
             case FLOAT -> new Value(Float.parseFloat(lexeme));
             case DOUBLE -> new Value(Double.parseDouble(lexeme));

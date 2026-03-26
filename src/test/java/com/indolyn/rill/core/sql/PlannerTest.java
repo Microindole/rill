@@ -72,6 +72,111 @@ class PlannerTest {
     }
 
     @Test
+    void createTableShouldAcceptPostgreSqlTypeAliases() {
+        CreateTablePlanNode plan =
+            assertInstanceOf(
+                CreateTablePlanNode.class,
+                createPlanForSql(
+                    "CREATE TABLE metrics (id INTEGER, note TEXT, amount NUMERIC, ratio DOUBLE PRECISION);"));
+
+        assertEquals(DataType.INT, plan.getOutputSchema().getColumns().get(0).getType());
+        assertEquals(DataType.VARCHAR, plan.getOutputSchema().getColumns().get(1).getType());
+        assertEquals(DataType.DECIMAL, plan.getOutputSchema().getColumns().get(2).getType());
+        assertEquals(DataType.DOUBLE, plan.getOutputSchema().getColumns().get(3).getType());
+    }
+
+    @Test
+    void createTableShouldMapPostgreSqlPhysicalTypes() {
+        CreateTablePlanNode plan =
+            assertInstanceOf(
+                CreateTablePlanNode.class,
+                createPlanForSql(
+                    "CREATE TABLE events (sid SMALLINT, bid BIGINT, created_at TIMESTAMP, recorded_at TIMESTAMP WITHOUT TIME ZONE);"));
+
+        assertEquals(DataType.SMALLINT, plan.getOutputSchema().getColumns().get(0).getType());
+        assertEquals(DataType.BIGINT, plan.getOutputSchema().getColumns().get(1).getType());
+        assertEquals(DataType.TIMESTAMP, plan.getOutputSchema().getColumns().get(2).getType());
+        assertEquals(DataType.TIMESTAMP, plan.getOutputSchema().getColumns().get(3).getType());
+    }
+
+    @Test
+    void createTableShouldMapBooleanDateAndLengthTypes() {
+        CreateTablePlanNode plan =
+            assertInstanceOf(
+                CreateTablePlanNode.class,
+                createPlanForSql(
+                    "CREATE TABLE account_state (enabled BOOLEAN, birthday DATE, name VARCHAR(64), code CHAR(8));"));
+
+        assertEquals(DataType.BOOLEAN, plan.getOutputSchema().getColumns().get(0).getType());
+        assertEquals(DataType.DATE, plan.getOutputSchema().getColumns().get(1).getType());
+        assertEquals(DataType.VARCHAR, plan.getOutputSchema().getColumns().get(2).getType());
+        assertEquals(DataType.CHAR, plan.getOutputSchema().getColumns().get(3).getType());
+        assertEquals("VARCHAR", plan.getOutputSchema().getColumns().get(2).getDeclaredTypeName());
+        assertEquals(List.of(64), plan.getOutputSchema().getColumns().get(2).getTypeArguments());
+        assertEquals("CHAR", plan.getOutputSchema().getColumns().get(3).getDeclaredTypeName());
+        assertEquals(List.of(8), plan.getOutputSchema().getColumns().get(3).getTypeArguments());
+    }
+
+    @Test
+    void createTableShouldMapNumericAndFloatingAliases() {
+        CreateTablePlanNode plan =
+            assertInstanceOf(
+                CreateTablePlanNode.class,
+                createPlanForSql(
+                    "CREATE TABLE metrics (ratio REAL, score FLOAT8, amount NUMERIC(12, 4), payload TEXT);"));
+
+        assertEquals(DataType.FLOAT, plan.getOutputSchema().getColumns().get(0).getType());
+        assertEquals(DataType.DOUBLE, plan.getOutputSchema().getColumns().get(1).getType());
+        assertEquals(DataType.DECIMAL, plan.getOutputSchema().getColumns().get(2).getType());
+        assertEquals(DataType.VARCHAR, plan.getOutputSchema().getColumns().get(3).getType());
+        assertEquals("DECIMAL", plan.getOutputSchema().getColumns().get(2).getDeclaredTypeName());
+        assertEquals(List.of(12, 4), plan.getOutputSchema().getColumns().get(2).getTypeArguments());
+    }
+
+    @Test
+    void createTableShouldPreserveNullabilityDefaultsAndPrimaryKeyMetadata() {
+        CreateTablePlanNode plan =
+            assertInstanceOf(
+                CreateTablePlanNode.class,
+                createPlanForSql(
+                    "CREATE TABLE users_meta (id INT PRIMARY KEY, name VARCHAR(32) NOT NULL DEFAULT 'guest', enabled BOOLEAN DEFAULT TRUE);"));
+
+        Column id = plan.getOutputSchema().getColumns().get(0);
+        Column name = plan.getOutputSchema().getColumns().get(1);
+        Column enabled = plan.getOutputSchema().getColumns().get(2);
+
+        assertEquals("id", plan.getOutputSchema().getPrimaryKeyColumnName());
+        assertEquals(false, id.isNullable());
+        assertEquals(true, id.isPrimaryKey());
+        assertEquals(false, name.isNullable());
+        assertEquals("'guest'", name.getDefaultValue());
+        assertEquals("TRUE", enabled.getDefaultValue());
+    }
+
+    @Test
+    void insertShouldBuildTupleForSmallIntBigIntAndTimestamp() throws IOException {
+        catalog.createTable(
+            "events",
+            new Schema(
+                List.of(
+                    new Column("sid", DataType.SMALLINT),
+                    new Column("bid", DataType.BIGINT),
+                    new Column("created_at", DataType.TIMESTAMP))));
+
+        InsertPlanNode plan =
+            assertInstanceOf(
+                InsertPlanNode.class,
+                createPlanForSql(
+                    "INSERT INTO events (sid, bid, created_at) VALUES (12, 922337203685477580, '2026-03-26 10:11:12');"));
+
+        assertEquals((short) 12, plan.getRawTuples().get(0).getValues().get(0).getValue());
+        assertEquals(922337203685477580L, plan.getRawTuples().get(0).getValues().get(1).getValue());
+        assertEquals(
+            "2026-03-26T10:11:12",
+            plan.getRawTuples().get(0).getValues().get(2).getValue().toString());
+    }
+
+    @Test
     void insertShouldBuildInsertPlanWithTuple() {
         InsertPlanNode plan =
             assertInstanceOf(

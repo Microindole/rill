@@ -48,8 +48,7 @@ class InsertSemanticValidator {
                 throw new SemanticException("INSERT statements currently only support literal values.");
             }
 
-            validationSupport.validateLiteralAssignment(
-                columnName, schemaColumn.getType(), literal);
+            validationSupport.validateLiteralAssignment(schemaColumn, literal);
         }
     }
 }

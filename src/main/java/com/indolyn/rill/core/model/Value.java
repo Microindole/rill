@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -17,6 +18,16 @@ public class Value {
 
     public Value(Integer value) {
         this.type = DataType.INT;
+        this.value = value;
+    }
+
+    public Value(Short value) {
+        this.type = DataType.SMALLINT;
+        this.value = value;
+    }
+
+    public Value(Long value) {
+        this.type = DataType.BIGINT;
         this.value = value;
     }
 
@@ -32,6 +43,11 @@ public class Value {
 
     public Value(LocalDate value) {
         this.type = DataType.DATE;
+        this.value = value;
+    }
+
+    public Value(LocalDateTime value) {
+        this.type = DataType.TIMESTAMP;
         this.value = value;
     }
 
@@ -71,8 +87,14 @@ public class Value {
      */
     public void serialize(DataOutputStream out) throws IOException {
         switch (type) {
+            case SMALLINT:
+                out.writeShort((Short) value);
+                break;
             case INT:
                 out.writeInt((Integer) value);
+                break;
+            case BIGINT:
+                out.writeLong((Long) value);
                 break;
             case VARCHAR:
             case CHAR: // CHAR和VARCHAR使用相同的序列化方式
@@ -93,6 +115,12 @@ public class Value {
                 byte[] dateBytes = dateStr.getBytes(StandardCharsets.UTF_8);
                 out.writeInt(dateBytes.length);
                 out.write(dateBytes);
+                break;
+            case TIMESTAMP:
+                String timestampStr = ((LocalDateTime) value).toString();
+                byte[] timestampBytes = timestampStr.getBytes(StandardCharsets.UTF_8);
+                out.writeInt(timestampBytes.length);
+                out.write(timestampBytes);
                 break;
             case BOOLEAN:
                 out.writeBoolean((Boolean) value);
@@ -117,8 +145,12 @@ public class Value {
      */
     public static Value deserialize(ByteBuffer buffer, DataType type) {
         switch (type) {
+            case SMALLINT:
+                return new Value(buffer.getShort());
             case INT:
                 return new Value(buffer.getInt());
+            case BIGINT:
+                return new Value(buffer.getLong());
             case VARCHAR:
             case CHAR:
                 int length = buffer.getInt();
@@ -135,6 +167,12 @@ public class Value {
                 byte[] dateBytes = new byte[dateLen];
                 buffer.get(dateBytes);
                 return new Value(LocalDate.parse(new String(dateBytes, StandardCharsets.UTF_8)));
+            case TIMESTAMP:
+                int timestampLen = buffer.getInt();
+                byte[] timestampBytes = new byte[timestampLen];
+                buffer.get(timestampBytes);
+                return new Value(
+                    LocalDateTime.parse(new String(timestampBytes, StandardCharsets.UTF_8)));
             case BOOLEAN:
                 return new Value(buffer.get() == 1);
             case FLOAT: //

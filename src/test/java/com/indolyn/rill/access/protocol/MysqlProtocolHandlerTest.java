@@ -5,11 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.indolyn.rill.core.catalog.Catalog;
+import com.indolyn.rill.core.catalog.IndexInfo;
 import com.indolyn.rill.core.execution.QueryProcessor;
+import com.indolyn.rill.core.model.Column;
+import com.indolyn.rill.core.model.DataType;
+import com.indolyn.rill.core.model.Schema;
 
 import java.io.*;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -122,6 +128,57 @@ public class MysqlProtocolHandlerTest {
             "Server should send more than just the handshake (i.e., an OK packet).");
         assertEquals(0x00, serverResponseBytes[handshakePacketLength + 4], "Server should send an OK packet (starts with 0x00) after successful authentication.");
         System.out.println("[SUCCESS] Handshake and authentication flow verified.");
+    }
+
+    @Test
+    void testProtocolTypeDefinitionUsesDeclaredLength() throws Exception {
+        Catalog mockCatalog = Mockito.mock(Catalog.class);
+        MysqlProtocolHandler handler =
+            new MysqlProtocolHandler(mockSocket, mockQueryProcessor, mockCatalog, 12345);
+
+        Method method =
+            MysqlProtocolHandler.class.getDeclaredMethod(
+                "toProtocolTypeDefinition", Column.class, boolean.class);
+        method.setAccessible(true);
+
+        Column varcharColumn = new Column("name", DataType.VARCHAR, "VARCHAR", List.of(5));
+        Column charColumn = new Column("code", DataType.CHAR, "CHAR", List.of(3));
+        Column textColumn = new Column("payload", DataType.VARCHAR, "TEXT", List.of());
+        Column numericColumn = new Column("amount", DataType.DECIMAL, "DECIMAL", List.of(12, 4));
+
+        assertEquals("VARCHAR(5)", method.invoke(handler, varcharColumn, true));
+        assertEquals("char(3)", method.invoke(handler, charColumn, false));
+        assertEquals("TEXT", method.invoke(handler, textColumn, true));
+        assertEquals("DECIMAL(12, 4)", method.invoke(handler, numericColumn, true));
+    }
+
+    @Test
+    void testShowCreateTableSqlIncludesPrimaryKeyAndDeclaredConstraints() throws Exception {
+        Catalog mockCatalog = Mockito.mock(Catalog.class);
+        MysqlProtocolHandler handler =
+            new MysqlProtocolHandler(mockSocket, mockQueryProcessor, mockCatalog, 12345);
+
+        Method method =
+            MysqlProtocolHandler.class.getDeclaredMethod(
+                "buildShowCreateTableSql", String.class, Schema.class, List.class);
+        method.setAccessible(true);
+
+        Schema schema =
+            new Schema(
+                List.of(
+                    new Column("id", DataType.INT, "INT", List.of(), false, null, true),
+                    new Column("name", DataType.VARCHAR, "VARCHAR", List.of(5), false, "'guest'", false),
+                    new Column("amount", DataType.DECIMAL, "DECIMAL", List.of(5, 2), true, "12.34", false)),
+                "id");
+        List<IndexInfo> indexes = List.of(new IndexInfo("idx_users_amount", "users", "amount", 7));
+
+        String ddl = (String) method.invoke(handler, "users", schema, indexes);
+
+        assertTrue(ddl.contains("`id` INT NOT NULL"));
+        assertTrue(ddl.contains("`name` VARCHAR(5) NOT NULL DEFAULT 'guest'"));
+        assertTrue(ddl.contains("`amount` DECIMAL(5, 2) DEFAULT 12.34"));
+        assertTrue(ddl.contains("PRIMARY KEY (`id`)"));
+        assertTrue(ddl.contains("KEY `idx_users_amount` (`amount`)"));
     }
 
     private byte[] createPacket(byte[] payload, int sequenceId) {

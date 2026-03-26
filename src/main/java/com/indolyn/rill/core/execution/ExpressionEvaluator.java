@@ -108,11 +108,23 @@ public class ExpressionEvaluator {
     private static Value getLiteralValue(LiteralNode literalNode) {
         String lexeme = literalNode.literal().lexeme();
         return switch (literalNode.literal().type()) {
-            case INTEGER_CONST -> new Value(Integer.parseInt(lexeme));
+            case INTEGER_CONST -> parseIntegerLiteral(lexeme);
             case STRING_CONST -> new Value(lexeme);
-            case DECIMAL_CONST -> new Value(Double.parseDouble(lexeme));
+            case DECIMAL_CONST -> new Value(new java.math.BigDecimal(lexeme));
             default -> throw new IllegalStateException("Unsupported literal type in expression.");
         };
+    }
+
+    private static Value parseIntegerLiteral(String lexeme) {
+        try {
+            return new Value(Short.parseShort(lexeme));
+        } catch (NumberFormatException ignored) {
+        }
+        try {
+            return new Value(Integer.parseInt(lexeme));
+        } catch (NumberFormatException ignored) {
+        }
+        return new Value(Long.parseLong(lexeme));
     }
 
     private static boolean compareValues(Value val1, Value val2, String operator) {
@@ -151,4 +163,3 @@ public class ExpressionEvaluator {
         };
     }
 }
-

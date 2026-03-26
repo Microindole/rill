@@ -47,10 +47,81 @@ public class ParserTest {
         assertEquals("users", createTableNode.tableName().getName());
         assertEquals(2, createTableNode.columns().size());
         assertEquals("id", createTableNode.columns().get(0).columnName().getName());
-        assertEquals("INT", createTableNode.columns().get(0).dataType().getName());
+        assertEquals("INT", createTableNode.columns().get(0).dataType().displayName());
         assertEquals("name", createTableNode.columns().get(1).columnName().getName());
-        assertEquals("VARCHAR", createTableNode.columns().get(1).dataType().getName());
+        assertEquals("VARCHAR", createTableNode.columns().get(1).dataType().displayName());
         System.out.println("Result: Test PASSED.\n");
+    }
+
+    @Test
+    public void testParsePostgreSqlTypeAliases() {
+        String sql = "CREATE TABLE metrics (id INTEGER, payload TEXT, amount DOUBLE PRECISION, code CHARACTER VARYING(32));";
+        StatementNode node = parseSql(sql);
+        CreateTableStatementNode createTableNode = (CreateTableStatementNode) node;
+
+        assertEquals("INTEGER", createTableNode.columns().get(0).dataType().displayName());
+        assertEquals("TEXT", createTableNode.columns().get(1).dataType().displayName());
+        assertEquals("DOUBLE PRECISION", createTableNode.columns().get(2).dataType().displayName());
+        assertEquals("CHARACTER VARYING", createTableNode.columns().get(3).dataType().displayName());
+        assertEquals(Integer.valueOf(32), createTableNode.columns().get(3).dataType().arguments().get(0));
+    }
+
+    @Test
+    public void testParsePostgreSqlPhysicalTypes() {
+        String sql =
+            "CREATE TABLE event_log (sid SMALLINT, bid BIGINT, created_at TIMESTAMP, ts TIMESTAMP WITHOUT TIME ZONE);";
+        StatementNode node = parseSql(sql);
+        CreateTableStatementNode createTableNode = (CreateTableStatementNode) node;
+
+        assertEquals("SMALLINT", createTableNode.columns().get(0).dataType().displayName());
+        assertEquals("BIGINT", createTableNode.columns().get(1).dataType().displayName());
+        assertEquals("TIMESTAMP", createTableNode.columns().get(2).dataType().displayName());
+        assertEquals("TIMESTAMP WITHOUT TIME ZONE", createTableNode.columns().get(3).dataType().displayName());
+    }
+
+    @Test
+    public void testParseBooleanDateAndLengthTypes() {
+        String sql =
+            "CREATE TABLE account_state (enabled BOOLEAN, birthday DATE, name VARCHAR(64), code CHAR(8));";
+        StatementNode node = parseSql(sql);
+        CreateTableStatementNode createTableNode = (CreateTableStatementNode) node;
+
+        assertEquals("BOOLEAN", createTableNode.columns().get(0).dataType().displayName());
+        assertEquals("DATE", createTableNode.columns().get(1).dataType().displayName());
+        assertEquals(Integer.valueOf(64), createTableNode.columns().get(2).dataType().arguments().get(0));
+        assertEquals(Integer.valueOf(8), createTableNode.columns().get(3).dataType().arguments().get(0));
+    }
+
+    @Test
+    public void testParseColumnConstraintsAndDefaults() {
+        String sql =
+            "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(32) NOT NULL DEFAULT 'guest', enabled BOOLEAN DEFAULT TRUE, note TEXT NULL DEFAULT NULL);";
+        StatementNode node = parseSql(sql);
+        CreateTableStatementNode createTableNode = (CreateTableStatementNode) node;
+
+        assertEquals("id", createTableNode.primaryKeyColumn().getName());
+        assertTrue(createTableNode.columns().get(0).primaryKey());
+        assertFalse(createTableNode.columns().get(0).nullable());
+        assertFalse(createTableNode.columns().get(1).nullable());
+        assertEquals("guest", createTableNode.columns().get(1).defaultValue().literal().lexeme());
+        assertEquals("TRUE", createTableNode.columns().get(2).defaultValue().literal().lexeme().toUpperCase());
+        assertTrue(createTableNode.columns().get(3).nullable());
+        assertEquals("NULL", createTableNode.columns().get(3).defaultValue().literal().lexeme().toUpperCase());
+    }
+
+    @Test
+    public void testParseNumericAndFloatingAliases() {
+        String sql =
+            "CREATE TABLE metrics (ratio REAL, score FLOAT8, amount NUMERIC(12, 4), payload TEXT);";
+        StatementNode node = parseSql(sql);
+        CreateTableStatementNode createTableNode = (CreateTableStatementNode) node;
+
+        assertEquals("REAL", createTableNode.columns().get(0).dataType().displayName());
+        assertEquals("FLOAT8", createTableNode.columns().get(1).dataType().displayName());
+        assertEquals("NUMERIC", createTableNode.columns().get(2).dataType().displayName());
+        assertEquals(Integer.valueOf(12), createTableNode.columns().get(2).dataType().arguments().get(0));
+        assertEquals(Integer.valueOf(4), createTableNode.columns().get(2).dataType().arguments().get(1));
+        assertEquals("TEXT", createTableNode.columns().get(3).dataType().displayName());
     }
 
     @Test
@@ -216,4 +287,3 @@ public class ParserTest {
         }
     }
 }
-

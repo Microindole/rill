@@ -1,9 +1,7 @@
 package com.indolyn.rill.core.sql.lexer;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Lexer {
 
@@ -12,70 +10,15 @@ public class Lexer {
     private int line = 1; // 当前行号
     private int column = 1; // 当前列号
 
-    // 关键字映射表
-    private static final Map<String, TokenType> keywords;
-
-    static {
-        keywords = new HashMap<>();
-        keywords.put("select", TokenType.SELECT);
-        keywords.put("from", TokenType.FROM);
-        keywords.put("where", TokenType.WHERE);
-        keywords.put("create", TokenType.CREATE);
-        keywords.put("table", TokenType.TABLE);
-        keywords.put("primary", TokenType.PRIMARY);
-        keywords.put("key", TokenType.KEY);
-        keywords.put("database", TokenType.DATABASE);
-        keywords.put("databases", TokenType.DATABASES);
-        keywords.put("index", TokenType.INDEX);
-        keywords.put("insert", TokenType.INSERT);
-        keywords.put("into", TokenType.INTO);
-        keywords.put("values", TokenType.VALUES);
-        keywords.put("use", TokenType.USE);
-        keywords.put("delete", TokenType.DELETE);
-        keywords.put("update", TokenType.UPDATE);
-        keywords.put("set", TokenType.SET);
-        keywords.put("int", TokenType.INT);
-        keywords.put("varchar", TokenType.VARCHAR);
-        keywords.put("decimal", TokenType.DECIMAL);
-        keywords.put("date", TokenType.DATE);
-        keywords.put("boolean", TokenType.BOOLEAN);
-        keywords.put("float", TokenType.FLOAT);
-        keywords.put("double", TokenType.DOUBLE);
-        keywords.put("char", TokenType.CHAR);
-        keywords.put("true", TokenType.TRUE);
-        keywords.put("false", TokenType.FALSE);
-        keywords.put("order", TokenType.ORDER);
-        keywords.put("by", TokenType.BY);
-        keywords.put("asc", TokenType.ASC);
-        keywords.put("desc", TokenType.DESC);
-        keywords.put("limit", TokenType.LIMIT);
-        keywords.put("and", TokenType.AND);
-        keywords.put("or", TokenType.OR);
-        keywords.put("join", TokenType.JOIN);
-        keywords.put("on", TokenType.ON);
-        keywords.put("drop", TokenType.DROP);
-        keywords.put("alter", TokenType.ALTER);
-        keywords.put("add", TokenType.ADD);
-        keywords.put("column", TokenType.COLUMN);
-        keywords.put("columns", TokenType.COLUMNS);
-        keywords.put("group", TokenType.GROUP);
-        keywords.put("count", TokenType.COUNT);
-        keywords.put("sum", TokenType.SUM);
-        keywords.put("avg", TokenType.AVG);
-        keywords.put("min", TokenType.MIN);
-        keywords.put("max", TokenType.MAX);
-        keywords.put("show", TokenType.SHOW);
-        keywords.put("tables", TokenType.TABLES);
-        keywords.put("full", TokenType.FULL);
-        keywords.put("user", TokenType.USER);
-        keywords.put("identified", TokenType.IDENTIFIED);
-        keywords.put("grant", TokenType.GRANT);
-        keywords.put("to", TokenType.TO);
-        keywords.put("having", TokenType.HAVING);
-    }
+    private final KeywordRegistry keywordRegistry;
 
     public Lexer(String input) {
+        this(input, new PostgreSqlKeywordRegistry());
+    }
+
+    public Lexer(String input, KeywordRegistry keywordRegistry) {
         this.input = input;
+        this.keywordRegistry = keywordRegistry;
     }
 
     /**
@@ -195,7 +138,7 @@ public class Lexer {
         }
         String text = input.substring(startPos, position);
         // 检查是否是关键字，忽略大小写
-        TokenType type = keywords.getOrDefault(text.toLowerCase(), TokenType.IDENTIFIER);
+        TokenType type = keywordRegistry.resolve(text);
         return new Token(type, text, line, startCol);
     }
 
