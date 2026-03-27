@@ -137,6 +137,12 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 - 当前 `ColumnDefinitionNode` 已开始承载 `NOT NULL / DEFAULT / PRIMARY KEY` 这类列级约束，DDL 语法不再只保留类型名
 - 当前 `Column` 已开始持有空值性、默认值和主键标记，这些元数据会穿过 planner、catalog 持久化和重启恢复
 - 当前协议层 `SHOW CREATE TABLE` 已能输出 `NOT NULL / DEFAULT / PRIMARY KEY / KEY`，`SHOW FULL COLUMNS` 与 `information_schema.columns` 也开始复用同一份列约束与索引元数据
+- 当前 `Parser` 的语句入口注册已经下沉到 `ParserStatementRegistry`，`CREATE / SHOW / DROP / USE / GRANT` 解析也已下沉到 `DefinitionStatementParsers`
+- 这意味着新增 DDL / SHOW 级别语句时，已经不需要继续把入口分支和具体解析细节都堆回 `Parser` 一个类里
+- 当前 `SELECT / INSERT / UPDATE / DELETE` 解析也已下沉到 `QueryStatementParsers`
+- 当前表达式、聚合函数、`ORDER BY / LIMIT` 与基础主表达式解析已下沉到 `ExpressionParsers`
+- 当前列定义和类型引用解析已下沉到 `TypeDefinitionParsers`
+- 现在 `Parser` 已经更接近一个薄的编排层，而不是继续承担所有 SQL 语法细节
 - 当前新增语句类型时，优先新增规则注册和专属处理器，而不是继续扩写单一方法
 - 当前 `SemanticAnalyzer` 与 `Planner` 已接入运行时 trace 埋点，会在实际分发时记录命中的 validator / builder 组件
 
