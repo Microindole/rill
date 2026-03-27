@@ -58,7 +58,7 @@ jobs:
             "packaging\windows\rill-installer.iss"
 
       - name: Upload Windows release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-windows-installer
           path: release-dist/output/*.exe
