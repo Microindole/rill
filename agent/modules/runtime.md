@@ -80,14 +80,14 @@
 
 当前对应：
 
-- 当前尚未正式建立
-- 后续由 Spring Boot 承载
+- `rill-app-web`
+- `web/`
 
 规划方向：
 
 - Spring Boot 主要转向承载 Web UI 与服务化运行
-- 现有 `RillApplication` 需要去掉演示副作用后再纳入正式体系
-- Web UI 与后端接口的边界要清晰设计
+- 现有 `RillApplication` 已去掉演示副作用，并已纳入正式体系
+- Web UI 与后端接口边界已建立，继续补强发布与部署形式
 
 ### 4. Navicat 兼容入口
 
@@ -186,8 +186,20 @@ export JAVA21_HOME=/path/to/jdk-21
 
 ### Spring Boot 能力
 
-- `RillApplication`：保留，当前已去除自动 demo 污染，后续继续向 Web UI / 服务化承载入口演进
+- `RillApplication`：保留，当前已去除自动 demo 污染，并已成为 `rill-app-web` 的正式入口
 - `ShellRunner`：保留为手工演示工具，不再参与 Spring Boot 自动启动
+
+## 当前发布与安装约定
+
+- 数据库主体发布物不包含 Spring Boot / Web UI
+- `rill-app-web` 独立发布为 Web 控制台
+- tag 发布时当前会生成：
+  - Windows 安装包
+  - Linux 归档包
+  - macOS 归档包
+  - 纯 `rill-app-web` jar
+  - 带 UI 的 `rill-app-web` jar
+- `packaging/windows|linux|macos/bin` 是平台专用启动脚本资产，不应忽略
 
 ## 当前废弃方向
 
@@ -203,7 +215,7 @@ export JAVA21_HOME=/path/to/jdk-21
 1. 定义 launcher 的稳定子命令体系
 2. 明确哪些旧入口只保留兼容壳
 3. 将工具能力逐步迁移到统一入口
-4. 为 Web UI 和 Navicat 兼容入口预留清晰位置
+4. 继续把运行模式与安装/发布模型对齐
 
 ## 文档同步规则
 

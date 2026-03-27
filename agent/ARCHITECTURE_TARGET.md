@@ -5,30 +5,39 @@
 当前阶段采用以下策略：
 
 - 单仓库保留
-- 先拆代码目录和职责边界
-- 暂时不引入多个 Maven 模块
-- 等边界稳定后，再评估是否拆成多模块
+- 已完成代码目录和职责边界拆分
+- 已切到父 `pom` 聚合的多模块结构
+- 继续在同一仓库内收口模块职责与发布边界
+- 为后续分布式层和可选安装组件预留位置
 
-这意味着当前重点是“逻辑分层”，不是“构建系统复杂化”。
+这意味着当前重点已经从“是否拆模块”转向“如何让模块边界、发布边界和后续分布式边界稳定”。
 
-## 为什么现在不立刻拆多个 Maven
+## 当前多模块结构
 
-原因如下：
+当前模块为：
 
-- 目前项目仍处于重构早期，边界还在变化
-- 先拆多模块会放大依赖管理和测试组织复杂度
-- 如果在职责未稳定时先拆模块，容易把混乱状态固化到多个模块中
+- `rill-core`
+- `rill-server`
+- `rill-client`
+- `rill-app-web`
+- `rill-launcher`
 
-因此，当前合理策略是：
+当前产品边界为：
 
-1. 先明确职责边界
-2. 先迁移包结构
-3. 先稳定启动模型
-4. 再决定是否做 Maven 多模块
+- 数据库主体：`rill-core + rill-server`
+- 本地客户端：`rill-client`
+- Web 控制台：`rill-app-web`
+- 开发统一入口：`rill-launcher`
+
+当前发布边界为：
+
+- Windows：安装包，固定交付 `core + cli`，可选 `gui + mysqlcompat`
+- Linux/macOS：带内置 runtime 的归档包
+- Web：纯 Spring Boot jar 与内嵌前端静态资源的单文件 jar
 
 ## 第一阶段目标目录
 
-当前推荐演进方向如下：
+当前代码包结构仍然保留以下职责分层：
 
 ```text
 src/main/java/com/indolyn/rill/
@@ -55,9 +64,9 @@ src/main/java/com/indolyn/rill/
 
 ## 各层职责
 
-### app
+### rill-app-web / app
 
-Spring Boot 适配层。
+Spring Boot 适配层与 Web 控制台服务壳。
 
 职责：
 
@@ -65,8 +74,10 @@ Spring Boot 适配层。
 - Web UI 承载
 - 后端服务层
 - 后续 controller / service / config 等应用层能力
+- 可单独形成纯后端 jar
+- 也可通过 `with-ui` profile 形成内嵌 `web/dist` 的单文件部署 jar
 
-### access
+### rill-client / access
 
 外部访问层。
 
@@ -74,20 +85,24 @@ Spring Boot 适配层。
 
 - CLI 终端入口
 - GUI 桌面入口
-- 协议兼容入口
+- CLI 与 GUI 本地入口
+- 本地工具入口
 
-### tools
+### rill-server / access.protocol
 
-辅助工具层。
+服务端与协议兼容入口。
 
 职责：
 
-- 数据导出
-- 日志查看
-- 手工演示工具
-- 调试工具
+- 原生 rill 服务端
+- MySQL/Navicat 兼容服务端
+- 后续服务端部署与协议扩展
 
-### core
+### tools
+
+辅助工具能力，当前主要并入 `rill-client` 范围内理解，不再作为独立产品发布线。
+
+### rill-core / core
 
 数据库内核主包。
 
@@ -111,7 +126,7 @@ Spring Boot 适配层。
 - `core.engine` 与 `core.executor` 已合并为 `core.execution`
 - `core.sql.ast` 已从 `core.sql.parser.ast` 提升为独立中间层
 - `core` 不再直接依赖 `access` / `tools` / `app`
-- `app` 已建立最小 service / web 骨架，可作为未来 `rill-app` 模块前身
+- `rill-app-web` 已成为正式 Web 壳模块，而不是未来前身
 - 系统层语义已开始明确为 `storage + transaction + catalog`
 - `QueryRuntime` 的默认基础设施初始化已开始收口到专门组装器，而不是继续散落在运行时类中
 - 运行时基础设施已开始抽成 `RuntimeInfrastructureFactory`
@@ -122,36 +137,30 @@ Spring Boot 适配层。
 
 ## 第二阶段可能演进
 
-当以下条件满足后，再考虑多 Maven 模块：
+当前多模块已经完成，后续演进重点改为：
 
-- Spring Boot 层不再污染数据库内核
-- access 和 tools 对内核依赖路径稳定
-- 启动方式已经统一
-- 测试和构建边界已经清晰
-- app 层已经形成比较稳定的 service / web 适配层
+- 继续压实 `rill-core / rill-server / rill-client / rill-app-web` 的边界
+- 为数据库主体安装包和可选组件形成更稳定的产品结构
+- 为未来 `cluster/gateway/coordinator` 级别模块预留空间
+- 继续避免让 Spring Boot 或客户端入口反向污染内核
 
-届时可考虑：
+后续可能新增的模块方向包括：
 
-- `rill-core`
-- `rill-app`
-- `rill-access`
-- `rill-tools`
-
-或者更保守地先拆成：
-
-- `rill-core`
-- `rill-app`
+- `rill-cluster-api`
+- `rill-cluster-node`
+- `rill-cluster-coordinator`
+- `rill-sql-gateway`
 
 ## 当前结论
 
 当前结论非常明确：
 
-- 代码目录现在应该拆
-- 顶层目录应优先表达稳定职责，而不是 SQL 教材里的 `dcl / ddl / dml` 分类
-- 现在已经开始接近可拆模块状态，但仍建议先继续稳定 `app` 适配层
-- 下一步如果拆，优先拆成两个模块：`rill-core` 和 `rill-app`
+- 多模块已经拆完
+- 当前重点不再是“要不要拆模块”，而是“如何让模块与产品边界长期稳定”
+- 顶层目录和发布产物都应优先表达稳定职责，而不是回退到单体全家桶
+- `rill-app-web` 保持独立发布，不进入数据库主体安装包
 
-先把目录、包结构、职责边界拆清楚，才值得继续做物理模块化。
+当前已经进入“模块结构 + 发布结构 + 后续分布式预留”并行收口阶段。
 
 ## 系统层演进约束
 

@@ -88,6 +88,9 @@
 - 完成 GitHub 发布流水线第一轮落地：新增 tag 驱动的 release workflow，可分别产出 Windows 安装包、纯 `rill-app-web` jar，以及带前端静态资源的 `rill-app-web` jar
 - 完成 Windows 安装包第一轮分层：安装器内固定包含数据库内核服务端与 CLI，可选包含 GUI 和 MySQL/Navicat 兼容服务端，并随包携带精简 Java runtime
 - 完成 Web 发布物第一轮分层：`rill-app-web` 新增 `with-ui` profile，能够在保留纯后端 jar 的同时，单独生成内嵌 `web/dist` 的一体化部署 jar
+- 完成平台安装脚本目录第一轮补齐：`packaging/windows|linux|macos/bin` 现在都具备独立 launcher 脚本，平台专用发布资产边界已明确
+- 完成 GitHub 发布流水线第二轮补齐：tag 发布已新增 Linux / macOS 平台归档包，不再只有 Windows 安装包和 Web jar
+- 完成 agent 文档体系第一轮同步修正：`ENTRY / ARCHITECTURE / ARCHITECTURE_TARGET / WORKFLOW / runtime / app / clients_and_tools / ROADMAP` 已与当前多模块、发布边界和 Web 打包形态对齐
 
 ## 已确认事实
 
@@ -159,6 +162,9 @@
 - 当前 GitHub Release 已开始按“数据库主体安装包”和“Web 控制台 jar”分开产物，而不是重新退回单体全家桶发布
 - 当前 Windows 安装包已经具备组件化边界：`core + cli` 固定安装，`gui + mysqlcompat` 可选安装
 - 当前 `rill-app-web` 已能同时产出纯后端 jar 和带前端静态资源的单文件 jar
+- 当前 `packaging/windows|linux|macos/bin` 已作为发布资产纳入版本控制，而不是构建临时文件
+- 当前 tag 发布已覆盖 Windows 安装包、Linux 归档包、macOS 归档包，以及纯 Web jar / 带 UI Web jar
+- 当前 `agent/` 主文档已不再停留在“暂不拆多模块”阶段，文档与仓库当前结构基本一致
 - 当前 `Parser` 已从“单类集中负责语句注册 + DDL 解析 + DML 解析 + 表达式解析”进一步收口到“核心 token 游标 + DML/表达式解析 + 独立语句协作者”
 - 当前 `Parser` 已进一步收口为“token 游标 + 通用 match/consume + 协作者入口”，语句解析、表达式解析、DDL 类型/列定义解析都已不再集中堆在一个类里
 
@@ -250,6 +256,14 @@
 - 影响范围：`.github/workflows/*.yml`、`packaging/windows/**`、`rill-app-web/pom.xml`、`README.md`、`agent/STATUS.md`
 - 当前结果：发布流已经按产品边界拆开；Windows 安装包固定交付数据库主体与 CLI，可选交付 GUI / MySQL 协议兼容服务，Web 控制台继续保持独立 jar 形态
 - 下一步建议：继续补 GitHub Release 产物校验、Linux/macOS 安装包和版本号注入策略，避免长期只停在 Windows 安装器一条线
+- 完成了 GitHub 自动化基础设施第九轮补齐：新增 `release-desktop-linux.yml`、`release-desktop-macos.yml`，tag 发布时会同时构建 Linux x64 与 macOS ARM64 的桌面/本地归档包
+- 影响范围：`.github/workflows/*.yml`、`README.md`、`agent/STATUS.md`
+- 当前结果：tag 发布产物已经具备平台对应版本；Windows 走安装器，Linux/macOS 走内置 runtime 的归档包，Web 继续保持 jar 分发
+- 下一步建议：继续评估是否把 Linux 归档进一步升级为 `deb/rpm`，以及把 macOS 归档升级为 `.app/.dmg`
+- 完成了 agent 文档体系第一轮补齐：统一修正 `agent/` 下关于多模块、Web UI、发布流水线和安装边界的滞后表述
+- 影响范围：`agent/ENTRY.md`、`agent/ARCHITECTURE*.md`、`agent/WORKFLOW.md`、`agent/modules/*.md`、`agent/foundation/ROADMAP.md`、`agent/STATUS.md`
+- 当前结果：`agent` 文档已与当前仓库事实基本对齐，不再残留“尚未拆多模块”或“Web UI 尚未正式建立”这类过期结论
+- 下一步建议：后续凡是改动发布结构、安装模型或模块边界，必须同步扫描 `agent` 主文档和相关模块文档，避免再次出现系统性滞后
 
 ## 当前建议顺序
 

@@ -33,6 +33,9 @@
 - `web/` 已起出第一版 Vue 前端骨架，当前已由 `app` 提供真实查询、trace、历史记录接口
 - 当前后端跨域来源已收口为配置项 `app.web.cors.allowed-origins`
 - 当前 `app` 已通过 `QueryProcessor.executeStructured(...)` 消费内核结构化结果，不再解析文本表格生成前端返回数据
+- 当前 `rill-app-web` 已支持两种发布形态：
+  - 纯 Spring Boot jar
+  - 通过 `with-ui` profile 内嵌 `web/dist` 的单文件 jar
 
 ## 后续重点
 
@@ -41,6 +44,7 @@
 - 建立统一的应用层错误处理与响应模型
 - 为 Web UI 提供 `query / trace / history / health` 等正式接口
 - 后续逐步把当前“阶段级 trace 推断”升级为执行链路真实埋点
-- 保持前后端分离部署，不在 `app` 中耦合前端静态资源或写死前端地址
+- 保持前后端分离部署能力，不写死前端地址
+- 同时允许以可选 profile 的方式把前端静态资源打入 jar，作为单文件部署形态
 
 

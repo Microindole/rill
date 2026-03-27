@@ -30,6 +30,7 @@
 满足以下条件时必须更新：
 
 - 改了运行方式或入口：更新 `agent/ARCHITECTURE.md` 和 `agent/modules/runtime.md`
+- 改了模块边界、发布方式或安装包结构：更新 `agent/ARCHITECTURE.md`、`agent/ARCHITECTURE_TARGET.md`、`agent/modules/runtime.md`
 - 改了编译链路：更新 `agent/modules/compiler.md`
 - 改了执行链路：更新 `agent/modules/engine.md`
 - 改了存储或索引：更新 `agent/modules/storage.md`

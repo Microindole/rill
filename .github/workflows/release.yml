@@ -16,6 +16,12 @@ jobs:
   desktop-windows:
     uses: ./.github/workflows/release-desktop-windows.yml
 
+  desktop-linux:
+    uses: ./.github/workflows/release-desktop-linux.yml
+
+  desktop-macos:
+    uses: ./.github/workflows/release-desktop-macos.yml
+
   web-jars:
     uses: ./.github/workflows/release-web-jars.yml
 
@@ -24,6 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - desktop-windows
+      - desktop-linux
+      - desktop-macos
       - web-jars
 
     steps:

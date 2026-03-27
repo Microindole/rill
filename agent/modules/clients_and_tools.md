@@ -15,7 +15,11 @@
 
 ## 当前判断
 
-这些组件能体现项目可操作性，但目前入口仍偏分散。
+这些组件能体现项目可操作性，当前已经开始按模块和产品边界收口：
+
+- `rill-server` 负责原生服务端与 MySQL/Navicat 兼容服务端
+- `rill-client` 负责 CLI、GUI 与本地工具入口
+- 平台专用安装脚本位于 `packaging/windows|linux|macos/bin`
 
 ## 后续重点
 
