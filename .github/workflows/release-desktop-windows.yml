@@ -1,0 +1,65 @@
+name: Release Desktop Windows
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop-windows:
+    name: Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Package desktop and server modules
+        run: .\mvnw.cmd -B -DskipTests package
+
+      - name: Create bundled runtime image
+        shell: pwsh
+        run: >
+          jlink
+          --add-modules java.base,java.desktop,java.logging,java.management,java.naming,java.net.http,java.prefs,java.rmi,java.scripting,java.security.jgss,java.sql,java.xml,jdk.crypto.ec,jdk.unsupported
+          --strip-debug
+          --no-header-files
+          --no-man-pages
+          --output release-dist\runtime
+
+      - name: Stage installer files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-dist\server,release-dist\client,release-dist\bin | Out-Null
+          Copy-Item rill-server\target\rill-server-*-server.jar release-dist\server\rill-server.jar
+          Copy-Item rill-server\target\rill-server-*-mysql-server.jar release-dist\server\rill-mysql-server.jar
+          Copy-Item rill-client\target\rill-client-*-cli.jar release-dist\client\rill-cli.jar
+          Copy-Item rill-client\target\rill-client-*-gui.jar release-dist\client\rill-gui.jar
+          Copy-Item packaging\windows\bin\*.cmd release-dist\bin\
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=$version" `
+            "/DSourceDir=$pwd\release-dist" `
+            "packaging\windows\rill-installer.iss"
+
+      - name: Upload Windows release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-installer
+          path: release-dist/output/*.exe
+          if-no-files-found: error

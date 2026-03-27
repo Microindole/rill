@@ -46,9 +46,11 @@ jobs:
               - "pom.xml"
               - "mvnw"
               - ".mvn/**"
-              - "src/main/**"
-              - "src/test/**"
+              - "rill-*/pom.xml"
+              - "rill-*/src/**"
+              - "packaging/**"
               - "scripts/build.*"
+              - "scripts/rill.*"
             frontend:
               - "web/**"
             workflow:

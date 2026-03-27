@@ -1,0 +1,61 @@
+name: Release Web Jars
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  web-jars:
+    name: Web Jars
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Package pure Spring Boot jar
+        run: ./mvnw -B -pl rill-app-web -am -DskipTests clean package
+
+      - name: Stage pure Spring Boot jar
+        run: |
+          mkdir -p release-dist
+          cp rill-app-web/target/rill-app-web-0.0.1-SNAPSHOT.jar release-dist/rill-app-web-${GITHUB_REF_NAME}.jar
+
+      - name: Build frontend static assets
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package Spring Boot jar with embedded Web UI
+        run: ./mvnw -B -pl rill-app-web -am -Pwith-ui -DskipTests clean package
+
+      - name: Stage Spring Boot jar with embedded Web UI
+        run: |
+          cp rill-app-web/target/rill-app-web-0.0.1-SNAPSHOT.jar release-dist/rill-app-web-${GITHUB_REF_NAME}-with-ui.jar
+
+      - name: Upload web release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-web-jars
+          path: release-dist/*.jar
+          if-no-files-found: error

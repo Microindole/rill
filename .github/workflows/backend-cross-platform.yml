@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   backend-cross-platform:
-    name: Backend / ${{ matrix.label }} / Java 21
+    name: Backend Package / ${{ matrix.label }} / Java 21
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -40,10 +40,24 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x mvnw
 
-      - name: Compile backend on Windows
+      - name: Package backend on Windows
         if: runner.os == 'Windows'
-        run: .\mvnw.cmd -B -DskipTests compile
+        run: .\mvnw.cmd -B -DskipTests package
 
-      - name: Compile backend on Unix
+      - name: Package backend on Unix
         if: runner.os != 'Windows'
-        run: ./mvnw -B -DskipTests compile
+        run: ./mvnw -B -DskipTests package
+
+      - name: Upload packaged backend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist-${{ matrix.label }}
+          path: |
+            rill-server/target/rill-server-*-server.jar
+            rill-server/target/rill-server-*-mysql-server.jar
+            rill-client/target/rill-client-*-cli.jar
+            rill-client/target/rill-client-*-gui.jar
+            rill-app-web/target/rill-app-web-*.jar
+            !rill-app-web/target/*.jar.original
+            rill-launcher/target/rill-launcher-*.jar
+          if-no-files-found: error
