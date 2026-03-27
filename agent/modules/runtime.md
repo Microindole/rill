@@ -134,21 +134,18 @@
 
 ## 当前结构决策
 
-- 现在先拆代码目录和包结构
-- 现在不立刻上多个 Maven 模块
-- 当前仍保持单仓库、单 Maven 模块
-- 等职责边界稳定后，再评估多模块拆分
-
-补充说明：
-
-- `core` 现在已经独立成主内核包
-- 运行模块后续重点不再是“是否拆出 core”，而是“如何让 launcher、app、access 更干净地调用 core”
+- 当前已切到父 `pom` 聚合的多模块结构
+- `rill-core` 负责数据库内核
+- `rill-server` 负责原生服务端与 MySQL/Navicat 兼容服务端
+- `rill-client` 负责 CLI、GUI 与本地工具入口
+- `rill-app-web` 负责 Spring Boot Web 壳
+- `rill-launcher` 只保留 IDE / 本地开发期统一入口
 
 ## 当前构建与启动约定
 
 - `mvnw.cmd`、`mvnw` 已恢复为可用的统一构建入口
 - `scripts/build.cmd`、`scripts/build.sh` 统一负责打包
-- `scripts/rill.cmd`、`scripts/rill.sh` 统一负责运行 fat jar
+- `scripts/rill.cmd`、`scripts/rill.sh` 统一负责按模式选择对应模块产物运行
 - 如果定义了 `JAVA21_HOME`，wrapper 与脚本都会优先使用该 JDK
 - 如果没有定义 `JAVA21_HOME`，则回退到当前 `JAVA_HOME / PATH`
 
@@ -170,7 +167,7 @@ export JAVA21_HOME=/path/to/jdk-21
 
 ### 统一入口
 
-- `RillLauncher` 作为统一入口长期保留
+- `RillLauncher` 作为本地开发期统一入口保留；正式分发以模块化产物为准
 
 ### 服务端能力
 
@@ -215,3 +212,4 @@ export JAVA21_HOME=/path/to/jdk-21
 - `agent/STATUS.md`
 - `agent/ARCHITECTURE.md`
 - `agent/modules/runtime.md`
+

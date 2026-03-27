@@ -18,7 +18,7 @@
 - 修正了 `.gitignore` 中对 Maven Wrapper 的错误忽略规则
 - 清理了 Spring Boot 启动副作用，保留了 Spring Boot 但移除了自动 demo 执行
 - 完成了第一阶段目录迁移：入口层、Spring Boot 层、工具层开始按职责拆包
-- 明确当前策略为“先拆目录，不立刻加多个 Maven 模块”
+- 明确过渡策略为“先拆目录，再收口到多模块构建”
 - 完成了 `core` 第一阶段迁移：数据库内核主包收敛到 `com.indolyn.rill.core.*`
 - 清理了 `core` 对 `access` 的直接反向依赖，会话抽象已下沉到 `core.session`
 - 建立了 `app` 最小骨架：service registry、query service、health controller
@@ -80,6 +80,9 @@
 - 完成 GitHub 自动化基础设施第一轮落地：新增后端 Maven + 前端 Vite 的 CI workflow，并补齐 Dependabot 对 GitHub Actions / Maven / npm 的更新策略
 - 完成 GitHub 自动化基础设施第二轮收口：CI 已加入路径变更检测、最小只读权限和前端构建产物上传，README 也已补齐 CI / Dependabot 说明
 - 完成 GitHub 自动化基础设施第三轮补强：PR 现在会额外执行 dependency review，依赖更新不再只靠构建是否通过来兜底
+- 完成 GitHub 自动化基础设施第四轮补强：CI 已扩为 Win/Linux/macOS 跨平台矩阵，并拆成跨平台构建层 + Linux 核心回归层
+- 完成 GitHub 自动化基础设施第五轮收口：CI 已按主编排 / 后端矩阵 / 后端回归 / 前端矩阵拆分成多个 workflow 文件，避免单文件继续膨胀
+- 完成 GitHub 自动化基础设施第六轮补强：跨平台矩阵已加入 GitHub-hosted ARM64 runner，覆盖 Linux ARM64 / Windows ARM64 / macOS ARM64
 - 完成编译器第六轮收口：`Parser` 的语句注册与 DDL/SHOW 解析已下沉到独立协作者，新增语句入口不再继续堆回单个解析类
 - 完成编译器第七轮收口：`SELECT / INSERT / UPDATE / DELETE` 与表达式、列定义/类型引用解析也已继续拆出协作者，`Parser` 已基本退化为 token 驱动外壳
 
@@ -146,6 +149,9 @@
 - 当前 Dependabot 已不再是空配置，已覆盖 GitHub Actions、根目录 Maven 依赖和 `web/` 下的 npm 依赖
 - 当前 CI 已能按变更路径跳过不相关 job，减少仅改文档或单侧代码时的无效构建
 - 当前 PR 也已开始执行依赖变更审查，Dependabot 和人工依赖升级都能得到一层额外风险检查
+- 当前 GitHub CI 已覆盖 `ubuntu-latest / windows-latest / macos-latest / ubuntu-24.04-arm / windows-11-arm`，能够更早发现脚本路径、wrapper、换行和平台兼容问题
+- 当前 GitHub CI 结构也已从“单个大 workflow”收口为“主入口 + 可复用子 workflow”，后续继续扩 job 时不会继续挤在一个文件里
+- 当前 ARM64 覆盖使用的是 GitHub public 仓库可直接使用的标准 GitHub-hosted runner，不依赖 self-hosted 机器
 - 当前 `Parser` 已从“单类集中负责语句注册 + DDL 解析 + DML 解析 + 表达式解析”进一步收口到“核心 token 游标 + DML/表达式解析 + 独立语句协作者”
 - 当前 `Parser` 已进一步收口为“token 游标 + 通用 match/consume + 协作者入口”，语句解析、表达式解析、DDL 类型/列定义解析都已不再集中堆在一个类里
 
@@ -165,7 +171,7 @@
 3. 补齐编译链路回归测试，锁住 PostgreSQL 方言收口结果
 4. 将现有入口进一步收口到统一 launcher
 5. 开始数据库内核与 Spring Boot 适配层的边界强化
-6. 再评估是否拆成 `rill-core` / `rill-app` 两个 Maven 模块
+6. 继续收口新的多模块边界，并为后续分布式层预留扩展位置
 
 ## 编译器后续完整清单
 
@@ -217,6 +223,18 @@
 - 影响范围：`core.sql.parser`、`core.sql` 测试、`agent/STATUS.md`、`agent/modules/compiler.md`
 - 当前结果：`./mvnw.cmd -q -DskipTests compile` 与 `ParserTest / PlannerTest / SemanticAnalyzerTest / DataTypeTest / MysqlProtocolHandlerTest` 已通过，编译器“新增关键字/语句时集中改一个巨类”的问题已继续明显缓解
 - 下一步建议：编译器入口层这条线已经接近可接受形态，后续更值得继续做的是历史失败测试收口、更多 PostgreSQL 语法支持，以及更细粒度的 parser 子句单测
+- 完成了 GitHub 自动化基础设施第四轮补齐：CI 新增 Win/Linux/macOS 矩阵后端构建、Win/Linux/macOS 矩阵前端构建，并保留 Linux 单平台核心回归套件
+- 影响范围：`.github/workflows/ci.yml`、`README.md`、`agent/STATUS.md`
+- 当前结果：仓库已经具备真正的多平台 CI，而不是只在 Linux 上做单平台验证
+- 下一步建议：继续评估是否增加 ARM64 / self-hosted runner、发布产物打包、测试结果汇总和分支保护规则
+- 完成了 GitHub 自动化基础设施第五轮补齐：新增 `backend-cross-platform.yml`、`backend-regression.yml`、`frontend-cross-platform.yml`，主 `ci.yml` 只保留触发、变更检测、依赖审查和 workflow 编排
+- 影响范围：`.github/workflows/*.yml`、`README.md`、`agent/STATUS.md`
+- 当前结果：CI 文件结构已经更易维护，后续扩矩阵、加发布、加安全检查时不会继续把一个文件撑大
+- 下一步建议：继续评估发布 workflow、nightly workflow 和更细粒度的测试报告汇总
+- 完成了 GitHub 自动化基础设施第六轮补齐：`backend-cross-platform.yml` 与 `frontend-cross-platform.yml` 已补入 `ubuntu-24.04-arm / windows-11-arm`，形成 x64 + ARM64 的 GitHub-hosted 公共仓库矩阵
+- 影响范围：`.github/workflows/*.yml`、`README.md`、`agent/STATUS.md`
+- 当前结果：CI 现在不只覆盖三大桌面平台，也开始显式覆盖 ARM64 兼容性；`macos-latest` 继续承担 macOS ARM64 线
+- 下一步建议：继续评估是否需要增加 Intel macOS 对照、nightly 全量测试和发布产物打包
 
 ## 当前建议顺序
 
@@ -242,3 +260,8 @@
 - 影响了哪些模块
 - 当前结果
 - 下一步建议
+
+- 完成运行与构建结构第六轮收口：仓库已切到父 `pom` 聚合的多模块结构，形成 `rill-core / rill-server / rill-client / rill-app-web / rill-launcher`
+- 影响范围：根 `pom.xml`、各子模块 `pom.xml`、源码与测试目录、`scripts/rill.*`、README 与运行/架构文档
+- 当前结果：`./mvnw.cmd -q -DskipTests compile`、`./mvnw.cmd -q -pl rill-core,rill-server -am -Dsurefire.failIfNoSpecifiedTests=false "-Dtest=ParserTest,PlannerTest,SemanticAnalyzerTest,DataTypeTest,MysqlProtocolHandlerTest" test`、`./mvnw.cmd -q -DskipTests package` 已通过；服务端、客户端、Spring Boot Web 壳已开始分别产出模块化工件
+- 下一步建议：继续把 CI、发布流程和后续分布式预留层也显式按模块组织，避免重新退回单体打包思路

@@ -2,12 +2,11 @@
 
 ## 关注范围
 
-本模块记录 Spring Boot 适配层，也就是未来后端服务壳、Web UI 服务端、管理接口层。
+本模块记录 Spring Boot 适配层，也就是 `rill-app-web` 模块承载的后端服务壳、Web UI 服务端与管理接口层。
 
 ## 当前组件
 
 - `app.boot.RillApplication`
-- `app.boot.RillLauncher`
 - `app.service.QueryProcessorRegistry`
 - `app.service.RillQueryService`
 - `app.service.QueryTraceService`
@@ -43,3 +42,5 @@
 - 为 Web UI 提供 `query / trace / history / health` 等正式接口
 - 后续逐步把当前“阶段级 trace 推断”升级为执行链路真实埋点
 - 保持前后端分离部署，不在 `app` 中耦合前端静态资源或写死前端地址
+
+

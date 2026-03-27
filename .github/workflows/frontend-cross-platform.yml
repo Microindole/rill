@@ -1,0 +1,54 @@
+name: Frontend Cross Platform
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-cross-platform:
+    name: Frontend / ${{ matrix.label }} / Node 22
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-x64
+          - os: windows-latest
+            label: windows-x64
+          - os: macos-latest
+            label: macos-arm64
+          - os: ubuntu-24.04-arm
+            label: linux-arm64
+          - os: windows-11-arm
+            label: windows-arm64
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-${{ matrix.label }}
+          path: web/dist
+          if-no-files-found: error

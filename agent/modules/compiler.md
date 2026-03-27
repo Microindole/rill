@@ -123,7 +123,7 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 - DDL 列类型已不再直接依赖 `DataType.valueOf(...)`，新增了 `TypeReferenceNode + SqlTypeResolver + PostgreSqlTypeResolver`
 - 当前 PostgreSQL 风格类型别名已开始支持 `INTEGER / TEXT / NUMERIC / DOUBLE PRECISION / CHARACTER VARYING`
 - `ShowTables` 已并入统一 validator 注册体系，`Planner` 与 `SemanticAnalyzer` 中大部分桥接方法已被移除
-- 对应测试目录已收口到 `src/test/java/com/indolyn/rill/core/sql`，原先按 `ddl / dcl` 打散的 SQL 集成测试已迁入 `core.sql.integration`
+- 对应测试目录已随多模块收口到 `rill-core/src/test/java/com/indolyn/rill/core/sql`，原先按 `ddl / dcl` 打散的 SQL 集成测试已迁入 `core.sql.integration`
 - `PlannerTest`、`SemanticAnalyzerTest` 已改为 JUnit 5，并开始直接约束当前 builder / validator 结构下的关键行为
 - `ParserTest`、`PlannerTest`、`SemanticAnalyzerTest` 已补上 PostgreSQL 类型别名回归测试
 - 当前 `SMALLINT / BIGINT / TIMESTAMP` 已从语法名打通到独立物理类型，`TIMESTAMP WITHOUT TIME ZONE` 已归一化到同一内部类型
@@ -151,3 +151,6 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 - 编译模块相关回归现在已纳入 GitHub CI 的后端 Maven 校验链路，当前先使用维护中的核心回归套件，避免 parser / semantic / planner 的改动只在本地通过
 - 前端 `web/` 已有独立构建步骤，因此涉及编译链路可视化或 Web UI 适配的改动也会受到 CI 中 `npm run build` 的约束
 - 与编译模块联动的依赖升级 PR 现在也会经过 dependency review，降低编译链路在依赖变更时无感退化的风险
+- 与编译模块联动的脚本和构建链路现在也会经过 x64 + ARM64 的 GitHub-hosted CI 验证，能更早发现 parser/compiler 相关改动在不同平台和架构上的路径与构建问题
+- CI workflow 也已拆为多个文件，后续如果需要给编译模块单独增加 nightly/parser-only 回归，不必继续修改一个超大 CI 文件
+
