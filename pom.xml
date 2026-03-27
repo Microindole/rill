@@ -28,8 +28,8 @@
 
     <properties>
         <java.version>21</java.version>
-        <lombok.version>1.18.38</lombok.version>
-        <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
+        <lombok.version>1.18.44</lombok.version>
+        <maven.shade.plugin.version>3.6.2</maven.shade.plugin.version>
     </properties>
 
     <build>
