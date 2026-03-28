@@ -35,10 +35,11 @@ build/
 .vscode/
 .runlogs/
 
-
 ### project ###
 /data/
 **/data/
+!web/src/data/
+!web/src/data/*.ts
 exports/
 *.db
 *.data

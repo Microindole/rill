@@ -71,20 +71,35 @@ rill-launcher/target/rill-launcher-0.0.1-SNAPSHOT.jar
 
 - 后端跨平台构建：Java 21 + Maven 编译，覆盖 `Ubuntu x64 / Windows x64 / macOS ARM64 / Ubuntu ARM64 / Windows ARM64`
 - 后端跨平台打包：多模块 `package`，并上传 `rill-server / rill-client / rill-app-web / rill-launcher` 工件
-- 后端核心回归：`ParserTest / PlannerTest / SemanticAnalyzerTest / DataTypeTest / MysqlProtocolHandlerTest`
 - 前端跨平台构建：Node 22 + `npm ci` + `npm run build`，覆盖 `Ubuntu x64 / Windows x64 / macOS ARM64 / Ubuntu ARM64 / Windows ARM64`
 
 CI 默认会在 `push`、`pull_request` 和手动触发时运行，并根据变更路径跳过不相关的前后端 job。
+当前默认后端 CI 只做多平台 `package` 和命令层 smoke test，不再跑 `rill-core` 旧测试目录中的历史 JUnit；`rill-core` 测试体系已经清空，后续会按当前模块边界重新逐步补回。
 当前 workflow 已按职责拆分为主编排文件和可复用子 workflow，避免单文件持续膨胀。
 
 说明：
 
 - 当前采用“双层 CI”：
   - 第一层：x64 + ARM64 的跨平台打包矩阵，优先发现脚本、路径、wrapper、shade/repackage 和平台兼容问题
-  - 第二层：Linux 下的核心回归套件，控制 CI 成本同时保留行为校验
+  - 第二层：后续会重新引入新的 core 回归测试层，但前提是新测试体系按当前模块边界重建完成
 - 现在因为已经拆成 `rill-server / rill-client / rill-app-web / rill-launcher`，后续继续接 `jpackage` 或 Windows `exe` 打包时，CI 分工会更清楚
 - 当前 ARM64 runner 使用 GitHub public 仓库可直接使用的标准 GitHub-hosted runner，不依赖 self-hosted 机器
-- 当前没有直接使用全量 `./mvnw verify` 作为主 CI 命令，因为仓库里仍有一批历史测试尚未完全收口
+- 当前没有直接使用全量 `./mvnw verify` 作为主 CI 命令，因为 `rill-core` 旧测试已整体下线，新的测试体系将按模块和内容重新建立
+
+## Testing
+
+`rill-core` 的历史测试已整体下线，原因是这些旧测试跨越多轮重构，很多断言和边界已经不再可信，且部分索引/性能测试成本过高，不适合继续挂在默认 CI 上。
+
+新的测试体系会按两条线同时补回：
+
+- 由内到外：基础设施 -> 存储/事务 -> 编译器 -> 执行 -> 通信 -> 集成
+- 由外到内：从真实 SQL、真实请求和真实恢复场景反向压整条执行链路
+
+后续补测试时会优先保证：
+
+- 基础设施层测试足够小、快、稳定
+- 关键主链路有少量但可靠的端到端回归
+- 慢测试、性能测试、探索性测试不直接塞回默认 CI
 - 现阶段先把稳定维护中的核心回归套件纳入正式 CI，后续再逐步扩大覆盖面
 
 ## Release

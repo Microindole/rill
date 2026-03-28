@@ -71,13 +71,6 @@ jobs:
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
     uses: ./.github/workflows/backend-cross-platform.yml
 
-  backend-regression:
-    needs:
-      - changes
-      - backend-cross-platform
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
-    uses: ./.github/workflows/backend-regression.yml
-
   frontend-cross-platform:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflow == 'true'

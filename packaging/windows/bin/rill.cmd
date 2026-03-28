@@ -26,20 +26,20 @@ echo Unsupported mode: %MODE%
 goto usage_error
 
 :server
-"%APP_HOME%\bin\rill-server.cmd" %*
-goto end
+call "%APP_HOME%\bin\rill-server.cmd" %*
+exit /b %ERRORLEVEL%
 
 :mysql
-"%APP_HOME%\bin\rill-mysql.cmd" %*
-goto end
+call "%APP_HOME%\bin\rill-mysql.cmd" %*
+exit /b %ERRORLEVEL%
 
 :sql
-"%APP_HOME%\bin\rill-cli.cmd" %*
-goto end
+call "%APP_HOME%\bin\rill-cli.cmd" %*
+exit /b %ERRORLEVEL%
 
 :gui
-"%APP_HOME%\bin\rill-gui.cmd" %*
-goto end
+call "%APP_HOME%\bin\rill-gui.cmd" %*
+exit /b %ERRORLEVEL%
 
 :log
 if not exist "%JAVA_EXE%" (
@@ -51,7 +51,7 @@ if not exist "%LAUNCHER_JAR%" (
   exit /b 2
 )
 "%JAVA_EXE%" -jar "%LAUNCHER_JAR%" log %*
-goto end
+exit /b %ERRORLEVEL%
 
 :data
 if not exist "%JAVA_EXE%" (
@@ -63,7 +63,7 @@ if not exist "%LAUNCHER_JAR%" (
   exit /b 2
 )
 "%JAVA_EXE%" -jar "%LAUNCHER_JAR%" data %*
-goto end
+exit /b %ERRORLEVEL%
 
 :usage
 echo Usage:
@@ -81,9 +81,7 @@ echo Compatibility aliases:
 echo   client        Alias for sql
 echo   log-reader    Alias for log
 echo   data-reader   Alias for data
-goto end
+exit /b 0
 
 :usage_error
 exit /b 1
-
-:end

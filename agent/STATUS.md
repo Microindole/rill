@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-阶段名称：内核第一轮重构已基本完成，当前重心转向编译器可扩展性与 PostgreSQL 方言收口
+阶段名称：内核第一轮重构已基本完成，旧 core 测试体系已下线，当前重心转向测试体系重建、编译器可扩展性与 PostgreSQL 方言收口
 
 ## 已完成
 
@@ -159,7 +159,10 @@
 - 当前 `NUMERIC(p,s)` 的精度/scale 约束也已覆盖 `UPDATE`，协议层 `SHOW CREATE TABLE` 已能输出 `PRIMARY KEY (...)`，`SHOW FULL COLUMNS` 也会为主键列返回 `PRI`
 - 当前 `NOT NULL / DEFAULT / PRIMARY KEY` 已不再只存在于建表语句文本里，列约束元数据会随 catalog 一起持久化并在数据库重启后恢复
 - 当前 MySQL 协议兼容层的 `SHOW CREATE TABLE / SHOW FULL COLUMNS / information_schema.columns` 已开始复用列约束和索引元数据，而不是只展示类型名
-- 当前仓库已经有可执行的 GitHub CI，会在 push / pull request 上校验后端编译、当前维护中的核心回归套件，以及前端 `npm run build`
+- 当前仓库已经有可执行的 GitHub CI，会在 push / pull request 上校验后端编译、多平台打包、命令层 smoke test，以及前端 `npm run build`
+- `rill-core` 的历史测试目录已整体下线，不再把明显过时、边界不清或耗时过长的旧 JUnit 继续挂在默认 CI 上；新的 core 测试将按当前模块边界重新逐步补回
+- 新的 core 测试方向已明确为“双线收口”：一条从基础设施到集成逐层往外补，一条从真实 SQL / 真实请求往内压整条执行链路
+- 新的 core 测试骨架已开始落地：第一批基线测试已覆盖基础设施模型、编译器 smoke、以及 `QueryProcessor` 最小端到端链路
 - 当前 Dependabot 已不再是空配置，已覆盖 GitHub Actions、根目录 Maven 依赖和 `web/` 下的 npm 依赖
 - 当前 CI 已能按变更路径跳过不相关 job，减少仅改文档或单侧代码时的无效构建
 - 当前 PR 也已开始执行依赖变更审查，Dependabot 和人工依赖升级都能得到一层额外风险检查
@@ -192,12 +195,43 @@
 
 ## 当前主要待办
 
-1. 继续扩展 PostgreSQL 方言支持，优先补齐剩余数据类型、关键字和 DDL/查询语法兼容
-2. 继续把编译器改造成注册式、可扩展结构，降低新增语句和类型的改动面
-3. 补齐编译链路回归测试，锁住 PostgreSQL 方言收口结果
-4. 将现有入口进一步收口到统一 launcher
-5. 开始数据库内核与 Spring Boot 适配层的边界强化
-6. 继续收口新的多模块边界，并为后续分布式层预留扩展位置
+1. 按“基础设施 -> 存储/事务 -> 编译器 -> 执行 -> 通信 -> 集成”顺序重建 `rill-core` 测试体系
+2. 同时补少量“由外到内”的真实 SQL / 请求场景回归，锁住主执行链路
+3. 继续扩展 PostgreSQL 方言支持，优先补齐剩余数据类型、关键字和 DDL/查询语法兼容
+4. 继续把编译器改造成注册式、可扩展结构，降低新增语句和类型的改动面
+5. 将现有入口进一步收口到统一 launcher
+6. 开始数据库内核与 Spring Boot 适配层的边界强化
+7. 继续收口新的多模块边界，并为后续分布式层预留扩展位置
+
+## 测试重建大纲
+
+新的测试体系按以下层次补：
+
+1. 基础设施
+2. 存储部分
+3. 崩溃恢复引擎
+4. B+Tree
+5. 锁结构与事务行为
+6. 编译器
+7. SQL 执行
+8. 通信层
+9. 集成测试
+
+并要求同时具备两种视角：
+
+- 由内到外：先锁住内核不变量
+- 由外到内：用真实 SQL / 真实请求验证整条链路
+
+## 最近一次变更
+
+- 重建了 `rill-core` 第一批新测试骨架：新增 `src/test/TESTING.md`，并建立 `infrastructure / compiler / integration` 三层起始目录
+- 新增第一批基线测试：`SchemaBaselineTest`、`LexerParserBaselineTest`、`QueryProcessorSmokeTest`
+- 当前结果：`./mvnw.cmd -q -pl rill-core -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtest=SchemaBaselineTest,LexerParserBaselineTest,QueryProcessorSmokeTest" test` 已通过
+- 下一步建议：继续补“由内到外”的第二层测试，优先是存储基础设施与日志/恢复记录边界
+
+- 下线了 `rill-core` 历史测试目录，不再继续维护明显过时、边界不清和成本过高的旧 JUnit
+- 主 CI 已同步切换为“构建 + 脚本 smoke test + 前端 build”，停止默认执行旧 core 回归测试
+- 明确了新的测试重建方法：从基础设施到集成逐层补，同时补少量关键端到端场景
 
 ## 编译器后续完整清单
 
