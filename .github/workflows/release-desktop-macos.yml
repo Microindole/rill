@@ -40,8 +40,8 @@ jobs:
       - name: Stage macOS archive files
         run: |
           mkdir -p release-dist/bin release-dist/server release-dist/client release-assets
-          cp rill-server/target/rill-server-*-server.jar release-dist/server/rill-server.jar
-          cp rill-server/target/rill-server-*-mysql-server.jar release-dist/server/rill-mysql-server.jar
+          cp "$(find rill-server/target -maxdepth 1 -type f -name 'rill-server-*-server.jar' ! -name '*-mysql-server.jar' | head -n 1)" release-dist/server/rill-server.jar
+          cp "$(find rill-server/target -maxdepth 1 -type f -name 'rill-server-*-mysql-server.jar' | head -n 1)" release-dist/server/rill-mysql-server.jar
           cp rill-client/target/rill-client-*-cli.jar release-dist/client/rill-cli.jar
           cp rill-client/target/rill-client-*-gui.jar release-dist/client/rill-gui.jar
           cp packaging/macos/bin/*.sh release-dist/bin/

@@ -39,8 +39,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release-dist\server,release-dist\client,release-dist\bin | Out-Null
-          Copy-Item rill-server\target\rill-server-*-server.jar release-dist\server\rill-server.jar
-          Copy-Item rill-server\target\rill-server-*-mysql-server.jar release-dist\server\rill-mysql-server.jar
+          Copy-Item (Get-ChildItem rill-server\target\rill-server-*-server.jar | Where-Object { $_.Name -notlike '*-mysql-server.jar' } | Select-Object -First 1) release-dist\server\rill-server.jar
+          Copy-Item (Get-ChildItem rill-server\target\rill-server-*-mysql-server.jar | Select-Object -First 1) release-dist\server\rill-mysql-server.jar
           Copy-Item rill-client\target\rill-client-*-cli.jar release-dist\client\rill-cli.jar
           Copy-Item rill-client\target\rill-client-*-gui.jar release-dist\client\rill-gui.jar
           Copy-Item packaging\windows\bin\*.cmd release-dist\bin\
