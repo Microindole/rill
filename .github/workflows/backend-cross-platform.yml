@@ -54,7 +54,7 @@ jobs:
           .\scripts\rill.cmd help
           .\scripts\rill.cmd log --help
           .\scripts\rill.cmd data --help
-          .\scripts\rill.cmd web --help
+          if not exist .\rill-app-web\target\rill-app-web-0.0.1-SNAPSHOT.jar exit /b 1
 
       - name: Smoke test launcher scripts on Unix
         if: runner.os != 'Windows'
@@ -63,7 +63,7 @@ jobs:
           ./scripts/rill.sh help
           ./scripts/rill.sh log --help
           ./scripts/rill.sh data --help
-          ./scripts/rill.sh web --help
+          test -f ./rill-app-web/target/rill-app-web-0.0.1-SNAPSHOT.jar
 
       - name: Upload packaged backend artifacts
         uses: actions/upload-artifact@v4

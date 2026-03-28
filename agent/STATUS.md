@@ -162,7 +162,7 @@
 - 当前仓库已经有可执行的 GitHub CI，会在 push / pull request 上校验后端编译、多平台打包、命令层 smoke test，以及前端 `npm run build`
 - `rill-core` 的历史测试目录已整体下线，不再把明显过时、边界不清或耗时过长的旧 JUnit 继续挂在默认 CI 上；新的 core 测试将按当前模块边界重新逐步补回
 - 新的 core 测试方向已明确为“双线收口”：一条从基础设施到集成逐层往外补，一条从真实 SQL / 真实请求往内压整条执行链路
-- 新的 core 测试骨架已开始落地：第一批基线测试已覆盖基础设施模型、编译器 smoke、以及 `QueryProcessor` 最小端到端链路
+- 新的 core 测试骨架已开始落地：第一批基线测试已覆盖基础设施模型、数据库目录、日志/锁/事务边界、编译器 smoke、`QueryCompiler` smoke，以及 `QueryProcessor` 的最小端到端链路
 - 当前 Dependabot 已不再是空配置，已覆盖 GitHub Actions、根目录 Maven 依赖和 `web/` 下的 npm 依赖
 - 当前 CI 已能按变更路径跳过不相关 job，减少仅改文档或单侧代码时的无效构建
 - 当前 PR 也已开始执行依赖变更审查，Dependabot 和人工依赖升级都能得到一层额外风险检查
@@ -225,9 +225,9 @@
 ## 最近一次变更
 
 - 重建了 `rill-core` 第一批新测试骨架：新增 `src/test/TESTING.md`，并建立 `infrastructure / compiler / integration` 三层起始目录
-- 新增第一批基线测试：`SchemaBaselineTest`、`LexerParserBaselineTest`、`QueryProcessorSmokeTest`
-- 当前结果：`./mvnw.cmd -q -pl rill-core -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtest=SchemaBaselineTest,LexerParserBaselineTest,QueryProcessorSmokeTest" test` 已通过
-- 下一步建议：继续补“由内到外”的第二层测试，优先是存储基础设施与日志/恢复记录边界
+- 新增第一批基线测试：`SchemaBaselineTest`、`DatabaseManagerBaselineTest`、`LogRecordBaselineTest`、`LogManagerBaselineTest`、`LockManagerBaselineTest`、`TransactionManagerBaselineTest`、`LexerParserBaselineTest`、`QueryCompilerBaselineTest`、`QueryProcessorSmokeTest`、`DmlMutationSmokeTest`、`RecoverySmokeTest`
+- 当前结果：`./mvnw.cmd -q -pl rill-core -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtest=SchemaBaselineTest,DatabaseManagerBaselineTest,LogRecordBaselineTest,LogManagerBaselineTest,LockManagerBaselineTest,TransactionManagerBaselineTest,LexerParserBaselineTest,QueryCompilerBaselineTest,QueryProcessorSmokeTest,DmlMutationSmokeTest,RecoverySmokeTest" test` 已通过
+- 下一步建议：继续补“由内到外”的下一层测试，优先是磁盘页/缓冲池、恢复明细场景，以及更明确的 SQL 执行行为测试
 
 - 下线了 `rill-core` 历史测试目录，不再继续维护明显过时、边界不清和成本过高的旧 JUnit
 - 主 CI 已同步切换为“构建 + 脚本 smoke test + 前端 build”，停止默认执行旧 core 回归测试
