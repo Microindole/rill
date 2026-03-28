@@ -15,6 +15,13 @@
 - `com.indolyn.rill.access.cli.InteractiveShell`
 - `com.indolyn.rill.access.gui.AdvancedShell`
 
+## 当前快照
+
+- 正式开发期统一入口已经稳定为 `scripts/rill.cmd` / `scripts/rill.sh`
+- 正式子命令为 `server / mysql-server / sql / gui / web / data / log`
+- `client / spring / data-reader / log-reader` 只保留兼容别名
+- 发布包里的统一 `rill` 命令已经改为能力检测式 launcher，不再假设所有 edition 都包含所有组件
+
 说明：
 
 - `DataReader / LogReader / ShellRunner` 已收口为可复用工具组件，不再自带独立 `main`

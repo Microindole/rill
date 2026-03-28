@@ -15,6 +15,12 @@
 
 AST -> PlanNode -> Executor Tree -> Tuple/Result
 
+## 当前快照
+
+- 执行层不再只有 `QueryProcessor` 集成 smoke，内部辅助类和命令执行器也已开始有独立测试
+- `SHOW CREATE TABLE` 已在 `rill-core` 真正返回 DDL，而不是空结果
+- `ShowTablesExecutor` 已修复不可变列表导致的执行期异常
+
 ## 当前问题
 
 - 执行层和其他层仍有部分耦合

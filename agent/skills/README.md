@@ -13,3 +13,9 @@
 - `startup_cleanup.md`
 - `doc_maintenance.md`
 - `interview_refactor.md`
+
+这些 skill 当前都默认建立在以下事实之上：
+
+- 仓库已经是多模块结构
+- `rill` 已有统一命令入口与 edition 化发布
+- `rill-core` 新测试体系已经开始重建，文档维护时要同步关注测试与覆盖率现状

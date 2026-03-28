@@ -43,6 +43,7 @@
   - 纯 Spring Boot jar
   - 通过 `with-ui` profile 内嵌 `web/dist` 的单文件 jar
 - 当前 `rill-app-web` 已开始补应用层单测，先锁住 `DatabaseService` 边界与 `RillQueryService` 的委托关系
+- 当前 `QueryTraceService`、`QueryController`、`OverviewController` 也已经有测试，Web 后端不再只靠手工联调
 
 ## 后续重点
 

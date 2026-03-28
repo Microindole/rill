@@ -37,6 +37,11 @@
 - 页面替换策略测试已迁入 `src/test/java/com/indolyn/rill/core/storage/buffer/replacement`
 - `CatalogTest` 已迁入 `src/test/java/com/indolyn/rill/core/catalog`，开始直接覆盖目录元数据、用户与权限持久化重载行为
 
+## 当前快照
+
+- 存储层已经不再只有历史测试残留，新测试已重新覆盖 `Page / DiskManager / BufferPoolManager / ClockReplacer / BPlusTree / TableHeap`
+- 当前存储层测试重点是锁住行为正确性，不把慢测试和性能测试混进默认基线
+
 ## 当前重构进展
 
 - 已新增 `DatabasePathResolver` 与 `LocalDatabasePathResolver`

@@ -32,3 +32,9 @@
 - 已新增 `LockService`，事务管理与恢复链路已不再直接要求依赖 `LockManager`
 - 已新增 `PageAccess`，恢复链路已开始不再直接要求依赖 `BufferPoolManager`
 - 恢复链路中通过 `TableHeap` 回落到默认缓冲池实现的桥接已移除
+
+## 当前测试状态
+
+- 事务层新测试已重新覆盖 `LogRecord / LogManager / LockManager / TransactionManager`
+- 恢复链路已有新的 `RecoverySmokeTest`
+- 事务与恢复行为现在已经重新进入 `rill-core verify` 主基线

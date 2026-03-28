@@ -181,6 +181,50 @@ public class MysqlProtocolHandlerTest {
         assertTrue(ddl.contains("KEY `idx_users_amount` (`amount`)"));
     }
 
+    @Test
+    void testProtocolMetadataHelpersResolveKeysDefaultsAndTableNames() throws Exception {
+        Catalog mockCatalog = Mockito.mock(Catalog.class);
+        MysqlProtocolHandler handler =
+            new MysqlProtocolHandler(mockSocket, mockQueryProcessor, mockCatalog, 12345);
+
+        Method extractShowCreate =
+            MysqlProtocolHandler.class.getDeclaredMethod(
+                "extractTableNameFromShowCreateTable", String.class);
+        extractShowCreate.setAccessible(true);
+
+        Method extractShowColumns =
+            MysqlProtocolHandler.class.getDeclaredMethod(
+                "extractTableNameFromShowColumns", String.class);
+        extractShowColumns.setAccessible(true);
+
+        Method resolveColumnKey =
+            MysqlProtocolHandler.class.getDeclaredMethod(
+                "resolveColumnKey", Schema.class, Column.class, List.class);
+        resolveColumnKey.setAccessible(true);
+
+        Method defaultMetadataValue =
+            MysqlProtocolHandler.class.getDeclaredMethod("defaultMetadataValue", Column.class);
+        defaultMetadataValue.setAccessible(true);
+
+        Schema schema =
+            new Schema(
+                List.of(
+                    new Column("id", DataType.INT, "INT", List.of(), false, null, true),
+                    new Column("name", DataType.VARCHAR, "VARCHAR", List.of(5), true, "'guest'", false),
+                    new Column("amount", DataType.DECIMAL, "DECIMAL", List.of(5, 2), true, "12.34", false)),
+                "id");
+        List<IndexInfo> indexes = List.of(new IndexInfo("idx_users_amount", "users", "amount", 7));
+
+        assertEquals("users", extractShowCreate.invoke(handler, "SHOW CREATE TABLE `users`"));
+        assertEquals("users", extractShowCreate.invoke(handler, "show create table analytics.users"));
+        assertEquals("users", extractShowColumns.invoke(handler, "SHOW FULL COLUMNS FROM users"));
+        assertEquals("PRI", resolveColumnKey.invoke(handler, schema, schema.getColumn("id"), indexes));
+        assertEquals("MUL", resolveColumnKey.invoke(handler, schema, schema.getColumn("amount"), indexes));
+        assertEquals("", resolveColumnKey.invoke(handler, schema, schema.getColumn("name"), indexes));
+        assertEquals("guest", defaultMetadataValue.invoke(handler, schema.getColumn("name")));
+        assertEquals("12.34", defaultMetadataValue.invoke(handler, schema.getColumn("amount")));
+    }
+
     private byte[] createPacket(byte[] payload, int sequenceId) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         int len = payload.length;

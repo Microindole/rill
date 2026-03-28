@@ -1,8 +1,16 @@
 # 当前状态
 
+## 当前快照（2026-03-28）
+
+- 多模块结构、统一启动入口、edition 化发布和 `rill-app-web` 双形态 jar 已基本稳定
+- `rill-core` 旧测试已不再维护，但新的测试体系已经重新覆盖基础设施、存储、编译器、执行层和一批真实集成场景
+- 当前 `mvnw.cmd -q -pl rill-core -am verify` 已通过，`rill-core` 已重新成为可持续扩展的测试基线
+- Codecov 已接通，当前只展示 `rill-core` 覆盖率，不设置失败门槛
+- 当前还明确未完全接通的能力之一是 `ALTER TABLE` parser 主链支持；该现状已经有测试显式锁住
+
 ## 当前阶段
 
-阶段名称：内核第一轮重构已基本完成，旧 core 测试体系已下线，当前重心转向测试体系重建、编译器可扩展性与 PostgreSQL 方言收口
+阶段名称：内核第一轮重构已基本完成，新 core 测试体系已建立第一轮主骨架，当前重心转向继续补齐测试覆盖、编译器可扩展性与 PostgreSQL 方言收口
 
 ## 已完成
 
@@ -203,6 +211,14 @@
 6. 开始数据库内核与 Spring Boot 适配层的边界强化
 7. 继续收口新的多模块边界，并为后续分布式层预留扩展位置
 
+## 最新测试补强摘要
+
+- 执行层已新增 `BuiltInCommandHandler / StatementTableNameResolver / QueryResultRenderer / ProjectionColumnResolver / PredicateFactory / ExpressionEvaluator / ExecutionSupport / command executors` 回归
+- 编译器已新增 `PostgreSqlTypeResolver`、系统命令规划回归
+- 集成链路已新增数据库命令、元数据命令、查询特性、权限命令和 schema mutation 回归
+- `SHOW CREATE TABLE` 已在 `rill-core` 真正打通，不再只是协议层单独展示
+- `ShowTablesExecutor` 已修复对不可变列表做原地修改的问题
+
 ## 测试重建大纲
 
 新的测试体系按以下层次补：
@@ -237,6 +253,22 @@
 - 影响范围：`rill-app-web/src/test/java/com/indolyn/rill/app/web/**`
 - 当前结果：`./mvnw.cmd -q -pl rill-app-web -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtest=EmbeddedDatabaseServiceTest,RillQueryServiceTest,OverviewControllerTest,QueryControllerTest" test` 已通过；本地全模块 `clean verify` 未通过的原因是 `rill-app-web/target/*.jar` 被外部进程占用，不是 controller 用例失败
 - 下一步建议：继续补 `QueryTraceService` 和协议/网络层的测试，把“通信层”从 Web API 扩到真正的服务端访问边界
+- 补了 `QueryTraceService` 的成功/失败行为测试，开始锁住 Web 演示台最核心的 lexer/parser/runtime trace 拼装逻辑
+- 影响范围：`rill-app-web/src/test/java/com/indolyn/rill/app/service/QueryTraceServiceTest.java`
+- 当前结果：`QueryTraceService` 现在对成功查询的 trace 组装、失败查询的 history/错误返回都有回归保护
+- 下一步建议：继续把“通信层”扩到 `rill-server` 的更多协议细节和服务端访问边界，而不只是 Web 层 DTO 适配
+- 扩了 `rill-server` 协议层回归：`MysqlProtocolHandlerTest` 继续覆盖元数据 helper，新增 `ServerEntryPointTest` 锁住 `server/mysql-server` 的端口解析规则
+- 影响范围：`rill-server/src/test/java/com/indolyn/rill/access/protocol/**`
+- 当前结果：服务端测试不再只覆盖一次握手和部分 DDL 展示，入口参数解析也开始受保护
+- 下一步建议：继续补协议层 `SHOW/metadata` 的结果集行为，以及更接近真实连接命令流的 smoke
+- 补了 `rill-launcher` 第一批测试：新增 `RillLauncherTest`，锁住统一入口的 `help` 和未知模式行为
+- 影响范围：`rill-launcher/pom.xml`、`rill-launcher/src/test/java/com/indolyn/rill/app/boot/RillLauncherTest.java`
+- 当前结果：launcher 不再完全裸奔，至少命令入口帮助和错误提示已有回归保护
+- 下一步建议：后续如果要继续增强 launcher 测试，可以把 `sql/log/data` 的 `--help` 行为继续做成更明确的单元回归
+- 补了系统命令 smoke：新增 `DatabaseCommandSmokeTest` 与 `MetadataCommandSmokeTest`，并修复 `SHOW CREATE TABLE` 在 `rill-core` 中返回空结果的问题
+- 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/integration/**`、`rill-core/src/main/java/com/indolyn/rill/core/execution/operator/command/ShowCreateTableExecutor.java`、`rill-core/src/main/java/com/indolyn/rill/core/execution/ExecutionEngine.java`
+- 当前结果：`CREATE/SHOW/USE/DROP DATABASE` 与 `SHOW COLUMNS / SHOW CREATE TABLE` 现在都已有真实集成回归，核心执行链和协议层展示不再分裂
+- 下一步建议：继续补协议层更接近真实命令流的 smoke，以及 `SHOW` 类系统语句在不同入口上的一致性验证
 
 - 接入了 `rill-core` 覆盖率采集：新增 `JaCoCo` Maven 配置与 `core-coverage.yml`，CI 现在会在 Linux 上生成 `jacoco.xml` 并上传到 Codecov
 - 影响范围：`pom.xml`、`rill-core/pom.xml`、`.github/workflows/ci.yml`、`.github/workflows/core-coverage.yml`、`README.md`、`rill-core/src/test/TESTING.md`

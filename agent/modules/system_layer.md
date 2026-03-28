@@ -82,6 +82,12 @@
 - 当前 `PageAccess` 已覆盖目录层、恢复链路和 `TableHeap`，页访问边界开始在系统层上半部分统一
 - 系统层还没有完全模块化，但已经开始具备“接口 + 默认单机实现”的基本骨架
 
+## 当前测试状态
+
+- 系统层的新测试已经重新覆盖 schema、database manager、log record、log manager、lock manager、transaction manager
+- 存储侧已经重新覆盖 page、disk、buffer pool、replacement、B+Tree 和 table heap
+- 恢复主链路也已有新的 smoke 测试
+
 ## 下一步建议
 
 - 继续抽存储路径定位与数据库文件装配边界

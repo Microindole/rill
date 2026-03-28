@@ -14,3 +14,4 @@
 - 优先保留统一入口
 - 避免新增新的孤立入口
 - 任何运行方式变化都必须更新 `STATUS.md`、`ARCHITECTURE.md`、`modules/runtime.md`
+- 发布包里的包装命令要兼容 edition 差异，不能假设所有组件都存在

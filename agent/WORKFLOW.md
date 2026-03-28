@@ -33,10 +33,16 @@
 - 改了模块边界、发布方式或安装包结构：更新 `agent/ARCHITECTURE.md`、`agent/ARCHITECTURE_TARGET.md`、`agent/modules/runtime.md`
 - 改了编译链路：更新 `agent/modules/compiler.md`
 - 改了执行链路：更新 `agent/modules/engine.md`
+- 改了测试结构、覆盖率、CI 测试选择或测试基线：更新 `agent/STATUS.md`，并同步相关模块文档与 `agent/ARCHITECTURE*.md`
 - 改了存储或索引：更新 `agent/modules/storage.md`
 - 改了事务或恢复：更新 `agent/modules/transaction.md`
 - 改了客户端、协议或工具：更新 `agent/modules/clients_and_tools.md`
 - 形成新的固定工作套路：更新 `agent/skills/*.md`
+
+## 文档维护补充规则
+
+- 当用户明确要求“扫描/更新 agent 目录下所有文档”时，不能只改 `STATUS.md`，至少要同步检查主文档、相关模块文档、foundation 文档和 skills 文档是否存在过期表述
+- 当项目状态进入新阶段时，应优先在各文档顶部增加“当前快照”或“当前阶段”说明，避免关键现状埋在历史记录后面
 
 ## 文档更新最小模板
 

@@ -221,7 +221,7 @@ public class ExecutionEngine {
         registerExecutorFactory(
             ShowColumnsPlanNode.class, (plan, txn) -> new ShowColumnsExecutor(plan, catalog));
         registerExecutorFactory(
-            ShowCreateTablePlanNode.class, (plan, txn) -> new ShowCreateTableExecutor(plan));
+            ShowCreateTablePlanNode.class, (plan, txn) -> new ShowCreateTableExecutor(plan, catalog));
         registerExecutorFactory(
             DropDatabasePlanNode.class, (plan, txn) -> new DropDatabaseExecutor(plan, dbManager));
         registerExecutorFactory(

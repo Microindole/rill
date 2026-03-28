@@ -35,7 +35,7 @@ public class ShowTablesExecutor implements TupleIterator {
 
     private void generateTableList() {
         // 从 Catalog 获取所有表名
-        List<String> tableNames = catalog.getAllTableNames();
+        List<String> tableNames = new ArrayList<>(catalog.getAllTableNames());
 
         // 过滤掉内部系统表 (以 "_" 开头)
         tableNames.removeIf(name -> name.startsWith("_"));
