@@ -75,6 +75,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
     uses: ./.github/workflows/core-coverage.yml
+    secrets: inherit
 
   frontend-cross-platform:
     needs: changes

@@ -2,6 +2,9 @@ name: Core Coverage
 
 on:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 permissions:
   contents: read
@@ -38,6 +41,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: rill-core/target/site/jacoco/jacoco.xml
           flags: rill-core
           name: rill-core
