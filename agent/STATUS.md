@@ -224,6 +224,11 @@
 
 ## 最近一次变更
 
+- 新增 `codecov.yml`，把 `Codecov` 从默认展示切到显式配置：仅展示 `rill-core` 覆盖率、关闭 project/patch 门槛、忽略非核心模块与构建产物
+- 影响范围：`codecov.yml`、`README.md`
+- 当前结果：Codecov 页面会更明确地围绕 `rill-core` 展示，不再把前端、Spring Boot 壳、打包产物混进主覆盖率视图
+- 下一步建议：继续补 `rill-core` 测试层次，让 `Flags / Files / Commits` 页面逐步具备更真实的参考意义
+
 - 把新的 `rill-core` 测试体系继续推进到了存储层：新增 `Page / DiskManager / BufferPoolManager / BPlusTree / TableHeap` 基线测试
 - 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/storage/**`、`rill-core/src/test/java/com/indolyn/rill/core/execution/TableHeapBaselineTest.java`、`rill-core/src/test/TESTING.md`
 - 当前结果：`./mvnw.cmd -q -pl rill-core -am verify` 已通过，存储层第一批不变量开始有正式回归保护

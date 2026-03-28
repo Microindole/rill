@@ -1,0 +1,32 @@
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+coverage:
+  status:
+    project: off
+    patch: off
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+flags:
+  rill-core:
+    paths:
+      - rill-core/src/main/java
+    carryforward: false
+
+ignore:
+  - "web/**"
+  - "rill-app-web/**"
+  - "rill-client/**"
+  - "rill-server/**"
+  - "rill-launcher/**"
+  - "**/target/**"
+  - "**/data/**"
+  - "**/*.md"
