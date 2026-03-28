@@ -27,6 +27,7 @@ import com.indolyn.rill.core.sql.planner.plan.command.ShowColumnsPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowCreateTablePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowDatabasesPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowTablesPlanNode;
+import com.indolyn.rill.core.sql.planner.plan.command.UseDatabasePlanNode;
 import com.indolyn.rill.core.sql.type.PostgreSqlTypeResolver;
 import com.indolyn.rill.core.sql.type.SqlTypeResolver;
 
@@ -142,7 +143,9 @@ public class Planner {
         registerPlanner(CreateIndexStatementNode.class, createIndexPlanBuilder::build);
         registerPlanner(CreateUserStatementNode.class, createUserPlanBuilder::build);
         registerPlanner(GrantStatementNode.class, grantPlanBuilder::build);
-        registerPlanner(UseDatabaseStatementNode.class, stmt -> null);
+        registerPlanner(
+            UseDatabaseStatementNode.class,
+            stmt -> new UseDatabasePlanNode(stmt.databaseName().getName()));
     }
 
     private <T extends StatementNode> void registerPlanner(

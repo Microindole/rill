@@ -1,41 +1,25 @@
 package com.indolyn.rill.app.service;
 
-import com.indolyn.rill.core.execution.QueryProcessor;
-import com.indolyn.rill.core.session.Session;
-
 import java.util.List;
-
 import org.springframework.stereotype.Service;
 
 /**
- * Minimal application service layer that adapts Spring-facing use cases to the core engine.
+ * Spring-facing query use cases built on top of the application database boundary.
  */
 @Service
 public class RillQueryService {
 
-    private final QueryProcessorRegistry registry;
+    private final DatabaseService databaseService;
 
-    public RillQueryService(QueryProcessorRegistry registry) {
-        this.registry = registry;
+    public RillQueryService(DatabaseService databaseService) {
+        this.databaseService = databaseService;
     }
 
-    public String execute(String dbName, String sql, Session session) {
-        QueryProcessor processor = registry.getOrCreate(normalizeDbName(dbName));
-        return processor.executeAndGetResult(sql, session);
+    public DatabaseExecution execute(String dbName, String sql) {
+        return databaseService.execute(dbName, sql);
     }
 
     public List<String> getLoadedDatabases() {
-        return registry.getLoadedDatabases();
-    }
-
-    public Session createRootSession() {
-        return Session.createAuthenticatedSession(-1, "root");
-    }
-
-    private String normalizeDbName(String dbName) {
-        if (dbName == null || dbName.isBlank()) {
-            return "default";
-        }
-        return dbName.trim();
+        return databaseService.getLoadedDatabases();
     }
 }

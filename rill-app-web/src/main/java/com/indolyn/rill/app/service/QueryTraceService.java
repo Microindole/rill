@@ -3,30 +3,19 @@ package com.indolyn.rill.app.service;
 import com.indolyn.rill.app.dto.QueryExecuteResponse;
 import com.indolyn.rill.app.dto.QueryHistoryItemResponse;
 import com.indolyn.rill.app.dto.QueryTraceStepResponse;
-import com.indolyn.rill.core.execution.QueryProcessor;
 import com.indolyn.rill.core.execution.QueryResult;
 import com.indolyn.rill.core.execution.trace.TraceCollector;
 import com.indolyn.rill.core.execution.trace.TraceEvent;
 import com.indolyn.rill.core.model.Tuple;
-import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.sql.ast.StatementNode;
 import com.indolyn.rill.core.sql.lexer.Lexer;
 import com.indolyn.rill.core.sql.lexer.Token;
 import com.indolyn.rill.core.sql.parser.Parser;
-import com.indolyn.rill.core.sql.planner.Planner;
-import com.indolyn.rill.core.sql.planner.plan.PlanNode;
-import com.indolyn.rill.core.sql.planner.plan.command.CreateDatabasePlanNode;
-import com.indolyn.rill.core.sql.planner.plan.command.CreateIndexPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.command.CreateTablePlanNode;
-import com.indolyn.rill.core.sql.planner.plan.command.DeletePlanNode;
-import com.indolyn.rill.core.sql.planner.plan.command.InsertPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.command.UpdatePlanNode;
 
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,28 +28,22 @@ public class QueryTraceService {
 
     private static final int MAX_HISTORY_SIZE = 50;
 
-    private final QueryProcessorRegistry registry;
+    private final RillQueryService rillQueryService;
     private final Map<String, QueryExecuteResponse> traces = new ConcurrentHashMap<>();
     private final Deque<QueryHistoryItemResponse> history = new ArrayDeque<>();
 
-    public QueryTraceService(QueryProcessorRegistry registry) {
-        this.registry = registry;
+    public QueryTraceService(RillQueryService rillQueryService) {
+        this.rillQueryService = rillQueryService;
     }
 
     public QueryExecuteResponse execute(String dbName, String sql) {
-        String normalizedDbName = normalizeDbName(dbName);
-        String normalizedSql = sql == null ? "" : sql.trim();
         String traceId = UUID.randomUUID().toString();
         Instant executedAt = Instant.now();
         long startedAt = System.nanoTime();
         List<QueryTraceStepResponse> traceSteps = new ArrayList<>();
-        Session session = Session.createAuthenticatedSession(-1, "root");
-        session.setCurrentDatabase(normalizedDbName);
-
-        QueryProcessor processor = registry.getOrCreate(normalizedDbName);
+        String normalizedSql = sql == null ? "" : sql.trim();
         List<Token> tokens = List.of();
         StatementNode ast = null;
-        PlanNode plan = null;
 
         try {
             long lexerStartedAt = System.nanoTime();
@@ -96,20 +79,20 @@ public class QueryTraceService {
                         : "生成 AST 节点 " + ast.getClass().getSimpleName() + "。"));
 
             TraceCollector.start();
-            QueryResult queryResult = processor.executeStructured(normalizedSql, session);
+            DatabaseExecution execution = rillQueryService.execute(dbName, normalizedSql);
             List<TraceEvent> runtimeEvents = TraceCollector.stop();
-            String rawResult = processor.render(queryResult);
+            QueryResult queryResult = execution.queryResult();
             traceSteps.addAll(toTraceSteps(runtimeEvents));
 
             QueryExecuteResponse response =
                 new QueryExecuteResponse(
                     traceId,
-                    normalizedDbName,
-                    normalizedSql,
+                    execution.dbName(),
+                    execution.sql(),
                     queryResult.success(),
                     elapsedMs(startedAt),
                     executedAt,
-                    rawResult,
+                    execution.rawResult(),
                     toColumns(queryResult),
                     toRows(queryResult),
                     traceSteps);
@@ -132,7 +115,7 @@ public class QueryTraceService {
             QueryExecuteResponse response =
                 new QueryExecuteResponse(
                     traceId,
-                    normalizedDbName,
+                    normalizeDbName(dbName),
                     normalizedSql,
                     false,
                     elapsedMs(startedAt),

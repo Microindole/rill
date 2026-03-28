@@ -94,10 +94,19 @@ public class QueryProcessor {
                 return QueryResult.newSuccessResult("Empty statement.");
             }
 
+            if (ast instanceof UseDatabaseStatementNode useDatabaseStatementNode) {
+                String targetDbName = useDatabaseStatementNode.databaseName().getName();
+                if (!dbManager.listDatabases().contains(targetDbName)) {
+                    return QueryResult.newErrorResult("ERROR: Database '" + targetDbName + "' does not exist.");
+                }
+                session.setCurrentDatabase(targetDbName);
+                queryCompiler.compileSystemStatement(ast);
+                return QueryResult.newSuccessResult("Database changed to '" + targetDbName + "'.");
+            }
+
             if (ast instanceof CreateDatabaseStatementNode
                 || ast instanceof ShowDatabasesStatementNode
-                || ast instanceof DropDatabaseStatementNode
-                || ast instanceof UseDatabaseStatementNode) {
+                || ast instanceof DropDatabaseStatementNode) {
                 PlanNode plan = queryCompiler.compileSystemStatement(ast);
                 TupleIterator executor = executionEngine.execute(plan, null);
                 return collectQueryResult(executor);

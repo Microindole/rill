@@ -126,6 +126,7 @@ SQL -> Token -> AST -> 语义检查 -> 物理计划
 - 对应测试目录已随多模块收口到 `rill-core/src/test/java/com/indolyn/rill/core/sql`，原先按 `ddl / dcl` 打散的 SQL 集成测试已迁入 `core.sql.integration`
 - `PlannerTest`、`SemanticAnalyzerTest` 已改为 JUnit 5，并开始直接约束当前 builder / validator 结构下的关键行为
 - `ParserTest`、`PlannerTest`、`SemanticAnalyzerTest` 已补上 PostgreSQL 类型别名回归测试
+- `ParserTest`、`PlannerTest`、`SemanticAnalyzerTest`、`QueryProcessorTest` 已开始补系统语句回归，覆盖 `CREATE / SHOW / USE / DROP DATABASE` 这类最容易在重构后出现“能解析、不能执行”空洞覆盖的路径
 - 当前 `SMALLINT / BIGINT / TIMESTAMP` 已从语法名打通到独立物理类型，`TIMESTAMP WITHOUT TIME ZONE` 已归一化到同一内部类型
 - `DataTypeTest` 已补上真实建表、插入、回读的集成回归，覆盖 `SMALLINT / BIGINT / TIMESTAMP`
 - 当前 `BOOLEAN / DATE / VARCHAR(n) / CHAR(n)` 也已补上 parser / planner / semantic 回归，`VARCHAR(0) / CHAR(0) / NUMERIC(4,8)` 会在类型解析阶段被拒绝

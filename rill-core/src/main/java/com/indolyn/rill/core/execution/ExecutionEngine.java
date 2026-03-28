@@ -13,6 +13,7 @@ import com.indolyn.rill.core.execution.operator.command.ShowColumnsExecutor;
 import com.indolyn.rill.core.execution.operator.command.ShowCreateTableExecutor;
 import com.indolyn.rill.core.execution.operator.command.ShowDatabasesExecutor;
 import com.indolyn.rill.core.execution.operator.command.ShowTablesExecutor;
+import com.indolyn.rill.core.execution.operator.command.UseDatabaseExecutor;
 import com.indolyn.rill.core.execution.operator.query.AggregateExecutor;
 import com.indolyn.rill.core.execution.operator.query.LimitExecutor;
 import com.indolyn.rill.core.execution.operator.query.SortExecutor;
@@ -31,6 +32,7 @@ import com.indolyn.rill.core.sql.planner.plan.command.ShowColumnsPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowCreateTablePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowDatabasesPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowTablesPlanNode;
+import com.indolyn.rill.core.sql.planner.plan.command.UseDatabasePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.UpdatePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.AggregatePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.FilterPlanNode;
@@ -111,6 +113,9 @@ public class ExecutionEngine {
         }
         if (plan instanceof ShowDatabasesPlanNode) {
             return "ShowDatabasesExecutor";
+        }
+        if (plan instanceof UseDatabasePlanNode) {
+            return "UseDatabaseExecutor";
         }
         if (plan instanceof ShowColumnsPlanNode) {
             return "ShowColumnsExecutor";
@@ -211,6 +216,8 @@ public class ExecutionEngine {
             CreateDatabasePlanNode.class, (plan, txn) -> new CreateDatabaseExecutor(plan, dbManager));
         registerExecutorFactory(
             ShowDatabasesPlanNode.class, (plan, txn) -> new ShowDatabasesExecutor(plan, dbManager));
+        registerExecutorFactory(
+            UseDatabasePlanNode.class, (plan, txn) -> new UseDatabaseExecutor(plan));
         registerExecutorFactory(
             ShowColumnsPlanNode.class, (plan, txn) -> new ShowColumnsExecutor(plan, catalog));
         registerExecutorFactory(

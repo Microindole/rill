@@ -15,7 +15,11 @@ import com.indolyn.rill.core.sql.parser.Parser;
 import com.indolyn.rill.core.sql.planner.Planner;
 import com.indolyn.rill.core.sql.planner.plan.PlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.CreateTablePlanNode;
+import com.indolyn.rill.core.sql.planner.plan.command.CreateDatabasePlanNode;
+import com.indolyn.rill.core.sql.planner.plan.command.DropDatabasePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.InsertPlanNode;
+import com.indolyn.rill.core.sql.planner.plan.command.ShowDatabasesPlanNode;
+import com.indolyn.rill.core.sql.planner.plan.command.UseDatabasePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.ProjectPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.SeqScanPlanNode;
 import com.indolyn.rill.core.sql.semantic.SemanticAnalyzer;
@@ -69,6 +73,25 @@ class PlannerTest {
 
         assertEquals("products", plan.getTableName());
         assertEquals(2, plan.getOutputSchema().getColumns().size());
+    }
+
+    @Test
+    void systemStatementsShouldBuildDedicatedPlans() {
+        CreateDatabasePlanNode createPlan =
+            assertInstanceOf(
+                CreateDatabasePlanNode.class, createPlanForSql("CREATE DATABASE analytics;"));
+        ShowDatabasesPlanNode showPlan =
+            assertInstanceOf(ShowDatabasesPlanNode.class, createPlanForSql("SHOW DATABASES;"));
+        UseDatabasePlanNode usePlan =
+            assertInstanceOf(UseDatabasePlanNode.class, createPlanForSql("USE analytics;"));
+        DropDatabasePlanNode dropPlan =
+            assertInstanceOf(
+                DropDatabasePlanNode.class, createPlanForSql("DROP DATABASE analytics;"));
+
+        assertEquals("analytics", createPlan.getDbName());
+        assertNotNull(showPlan);
+        assertEquals("analytics", usePlan.getDbName());
+        assertEquals("analytics", dropPlan.getDbName());
     }
 
     @Test

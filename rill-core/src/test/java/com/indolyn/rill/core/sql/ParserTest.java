@@ -8,9 +8,13 @@ import com.indolyn.rill.core.sql.lexer.Token;
 import com.indolyn.rill.core.sql.parser.Parser;
 import com.indolyn.rill.core.sql.ast.*;
 import com.indolyn.rill.core.sql.ast.statement.CreateTableStatementNode;
+import com.indolyn.rill.core.sql.ast.statement.CreateDatabaseStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.DeleteStatementNode;
+import com.indolyn.rill.core.sql.ast.statement.DropDatabaseStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.InsertStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.SelectStatementNode;
+import com.indolyn.rill.core.sql.ast.statement.ShowDatabasesStatementNode;
+import com.indolyn.rill.core.sql.ast.statement.UseDatabaseStatementNode;
 import com.indolyn.rill.core.sql.ast.expression.BinaryExpressionNode;
 import com.indolyn.rill.core.sql.ast.expression.IdentifierNode;
 import com.indolyn.rill.core.sql.ast.expression.LiteralNode;
@@ -138,6 +142,30 @@ public class ParserTest {
         assertEquals("id", ((IdentifierNode) selectNode.selectList().get(0)).getName());
         assertEquals("name", ((IdentifierNode) selectNode.selectList().get(1)).getName());
         System.out.println("Result: Test PASSED.\n");
+    }
+
+    @Test
+    public void testParseUseDatabase() {
+        StatementNode node = parseSql("USE demo;");
+        assertTrue(node instanceof UseDatabaseStatementNode);
+        assertEquals("demo", ((UseDatabaseStatementNode) node).databaseName().getName());
+    }
+
+    @Test
+    public void testParseShowDatabases() {
+        StatementNode node = parseSql("SHOW DATABASES;");
+        assertTrue(node instanceof ShowDatabasesStatementNode);
+    }
+
+    @Test
+    public void testParseCreateAndDropDatabase() {
+        StatementNode createNode = parseSql("CREATE DATABASE analytics;");
+        assertTrue(createNode instanceof CreateDatabaseStatementNode);
+        assertEquals("analytics", ((CreateDatabaseStatementNode) createNode).databaseName().getName());
+
+        StatementNode dropNode = parseSql("DROP DATABASE analytics;");
+        assertTrue(dropNode instanceof DropDatabaseStatementNode);
+        assertEquals("analytics", ((DropDatabaseStatementNode) dropNode).databaseName().getName());
     }
 
     // ====== 新增：INSERT 语句测试 ======

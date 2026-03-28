@@ -1,4 +1,5 @@
 import { apiBaseUrl } from "@/config/env";
+import type { SystemOverview } from "@/types/overview";
 import type { QueryExecutionResult } from "@/types/trace";
 
 export interface QueryHistoryItem {
@@ -41,4 +42,9 @@ export async function getQueryHistory(): Promise<QueryHistoryItem[]> {
 export async function getQueryTrace(traceId: string): Promise<QueryExecutionResult> {
     const response = await fetch(`${apiBaseUrl}/api/query/trace/${traceId}`);
     return parseJsonResponse<QueryExecutionResult>(response);
+}
+
+export async function getSystemOverview(): Promise<SystemOverview> {
+    const response = await fetch(`${apiBaseUrl}/api/overview`);
+    return parseJsonResponse<SystemOverview>(response);
 }

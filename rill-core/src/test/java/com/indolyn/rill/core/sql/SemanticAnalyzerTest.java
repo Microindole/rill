@@ -10,6 +10,7 @@ import com.indolyn.rill.core.model.DataType;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.sql.ast.StatementNode;
+import com.indolyn.rill.core.sql.ast.statement.UseDatabaseStatementNode;
 import com.indolyn.rill.core.sql.lexer.Lexer;
 import com.indolyn.rill.core.sql.parser.Parser;
 import com.indolyn.rill.core.sql.semantic.SemanticAnalyzer;
@@ -84,6 +85,14 @@ class SemanticAnalyzerTest {
                     parseSql(
                         "CREATE TABLE account_state (enabled BOOLEAN, birthday DATE, name VARCHAR(64), code CHAR(8));"),
                     rootSession));
+        assertDoesNotThrow(() -> semanticAnalyzer.analyze(parseSql("USE demo;"), rootSession));
+    }
+
+    @Test
+    void useDatabaseAstShouldStillBeAcceptedWhenNoDedicatedSemanticRuleExists() {
+        StatementNode node = parseSql("USE demo;");
+
+        assertDoesNotThrow(() -> semanticAnalyzer.analyze(node, rootSession));
     }
 
     @Test

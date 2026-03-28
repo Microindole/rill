@@ -91,6 +91,10 @@
 - 完成平台安装脚本目录第一轮补齐：`packaging/windows|linux|macos/bin` 现在都具备独立 launcher 脚本，平台专用发布资产边界已明确
 - 完成 GitHub 发布流水线第二轮补齐：tag 发布已新增 Linux / macOS 平台归档包，不再只有 Windows 安装包和 Web jar
 - 完成 agent 文档体系第一轮同步修正：`ENTRY / ARCHITECTURE / ARCHITECTURE_TARGET / WORKFLOW / runtime / app / clients_and_tools / ROADMAP` 已与当前多模块、发布边界和 Web 打包形态对齐
+- 完成 Spring Boot 后端调用边界第一轮收口：`rill-app-web` 已新增 `DatabaseService / EmbeddedDatabaseService / DatabaseExecution`，Web 层开始通过正式应用层边界调用 `rill-core`
+- 完成 Spring Boot 模块测试清理第一轮收口：新增应用层 service 单测，并把模块内测试生成的 `data/` 目录纳入忽略，避免局部测试污染工作区
+- 完成 Web UI 演示台第一轮升级：前端已从单页 SQL 控制台扩展为 SQL、模块结构、能力摘要、扩展路线并列展示，后端新增 `overview` 接口提供摘要数据
+- 完成数据库内核系统语句测试补齐第一轮：`Parser / Planner / Semantic / QueryProcessor` 已补上 `CREATE / SHOW / USE / DROP DATABASE` 回归，开始收口重构后最容易漏测的系统语句路径
 
 ## 已确认事实
 
@@ -165,6 +169,10 @@
 - 当前 `packaging/windows|linux|macos/bin` 已作为发布资产纳入版本控制，而不是构建临时文件
 - 当前 tag 发布已覆盖 Windows 安装包、Linux 归档包、macOS 归档包，以及纯 Web jar / 带 UI Web jar
 - 当前 `agent/` 主文档已不再停留在“暂不拆多模块”阶段，文档与仓库当前结构基本一致
+- 当前 `rill-app-web` 已不再需要让 Web 层直接贴着 `QueryProcessor` 组织调用，数据库访问边界已开始稳定为 `DatabaseService`
+- 当前局部测试不再把 `rill-core/data/` 这类运行期副产物持续留在工作区
+- 当前 Web UI 已不再只是“在浏览器里执行 SQL”，而是开始承担项目演示台职责
+- 当前数据库内核对系统语句的覆盖已不再只停留在零散集成测试，核心单测链路也开始补齐
 - 当前 `Parser` 已从“单类集中负责语句注册 + DDL 解析 + DML 解析 + 表达式解析”进一步收口到“核心 token 游标 + DML/表达式解析 + 独立语句协作者”
 - 当前 `Parser` 已进一步收口为“token 游标 + 通用 match/consume + 协作者入口”，语句解析、表达式解析、DDL 类型/列定义解析都已不再集中堆在一个类里
 
@@ -264,6 +272,22 @@
 - 影响范围：`agent/ENTRY.md`、`agent/ARCHITECTURE*.md`、`agent/WORKFLOW.md`、`agent/modules/*.md`、`agent/foundation/ROADMAP.md`、`agent/STATUS.md`
 - 当前结果：`agent` 文档已与当前仓库事实基本对齐，不再残留“尚未拆多模块”或“Web UI 尚未正式建立”这类过期结论
 - 下一步建议：后续凡是改动发布结构、安装模型或模块边界，必须同步扫描 `agent` 主文档和相关模块文档，避免再次出现系统性滞后
+- 完成了 Spring Boot 后端边界第一轮补齐：新增 `DatabaseService / EmbeddedDatabaseService / DatabaseExecution`，`RillQueryService` 与 `QueryTraceService` 已改为依赖应用层数据库边界，而不是直接贴着内核执行器
+- 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/service/**`、`rill-app-web/src/test/java/**`、`agent/modules/app.md`、`agent/STATUS.md`
+- 当前结果：Spring Boot 模块已经有更清晰的“应用层 -> 数据库内核”调用路径，后续替换为远程/分布式实现时不需要从 controller 开始返工
+- 下一步建议：继续补 `rill-app-web` 的 service/controller 单测，并把历史、trace、错误模型也逐步按同一层次收口
+- 完成了 Spring Boot 模块测试清理第一轮补齐：新增 `RillQueryServiceTest`，并把 `**/data/` 加入忽略，避免模块级测试把运行期数据库文件留在仓库工作区
+- 影响范围：`.gitignore`、`rill-app-web/src/test/java/**`、`agent/modules/app.md`、`agent/STATUS.md`
+- 当前结果：`rill-app-web` 新增的应用层边界现在有最小单测保护，局部测试后的工作区也更干净
+- 下一步建议：继续给 `QueryTraceService` 和 controller 层补单测，并逐步把 core 集成测试的数据目录改成更显式的临时路径
+- 完成了 Web UI 演示台第一轮补齐：新增 `OverviewService / OverviewController` 和前端 overview 数据链路，把页面从“单纯执行 SQL”升级为“SQL + 架构 + 能力 + 扩展路线”的项目演示台
+- 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,service,web}/**`、`web/src/**`、`agent/modules/{app,web}.md`、`agent/ARCHITECTURE.md`、`agent/STATUS.md`
+- 当前结果：浏览器端现在不只适合演示单次 SQL 执行，也能承载对模块结构、发布边界、网络编程与 Redis 扩展路线的讲解
+- 下一步建议：继续把 trace 做成完全动态，并补 `overview` / `query` controller 的单测，随后再评估是否引入更正式的 architecture / plan / catalog 专页
+- 完成了数据库内核系统语句测试第一轮补齐：`ParserTest`、`PlannerTest`、`SemanticAnalyzerTest`、`QueryProcessorTest` 新增 `CREATE DATABASE / SHOW DATABASES / USE / DROP DATABASE` 回归，补上系统语句在 parser、planner、执行层的空白覆盖
+- 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/{sql,execution}/**`、`agent/modules/compiler.md`、`agent/STATUS.md`
+- 当前结果：重构后最容易漏掉的“能解析但没有计划 / 没有执行 / 没有行为断言”的系统语句路径已经开始被锁住
+- 下一步建议：继续沿同一模板把 `SHOW COLUMNS / SHOW CREATE TABLE / ALTER TABLE` 等系统/DDL 语句也补成 parser、planner、执行的成套回归
 
 ## 当前建议顺序
 
