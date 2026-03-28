@@ -54,7 +54,7 @@ jobs:
           .\scripts\rill.cmd help
           .\scripts\rill.cmd log --help
           .\scripts\rill.cmd data --help
-          if not exist .\rill-app-web\target\rill-app-web-0.0.1-SNAPSHOT.jar exit /b 1
+          if (-not (Test-Path .\rill-app-web\target\rill-app-web-0.0.1-SNAPSHOT.jar)) { exit 1 }
 
       - name: Smoke test launcher scripts on Unix
         if: runner.os != 'Windows'

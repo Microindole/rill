@@ -12,8 +12,12 @@
 - `infrastructure.model`: 模型与序列化不变量
 - `infrastructure.database`: 数据库目录与路径管理
 - `infrastructure.transaction`: 日志记录编解码、日志文件读回、锁管理、事务状态转换
+- `storage.page`: slotted page 插入、删除、删除标记与空间边界
+- `storage.disk`: 数据页落盘与空闲页复用
+- `storage.buffer`: 命中率统计、页重载与淘汰后的读回
+- `storage.index`: `BPlusTree` 的最小插入/查找/删除 smoke
 - `compiler`: 词法/语法最小 smoke
-- `execution`: `QueryCompiler` 的 parse / compile 最小 smoke
+- `execution`: `QueryCompiler` 的 parse / compile 最小 smoke，`TableHeap` 的插入/更新/删除/迭代与约束校验
 - `integration`: 真实 SQL 执行、DML 变更、重启恢复最小 smoke
 
 后续补测试时，优先遵守：
@@ -31,8 +35,13 @@
 - `LogManagerBaselineTest`
 - `LockManagerBaselineTest`
 - `TransactionManagerBaselineTest`
+- `PageBaselineTest`
+- `DiskManagerBaselineTest`
+- `BufferPoolManagerBaselineTest`
+- `BPlusTreeSmokeTest`
 - `LexerParserBaselineTest`
 - `QueryCompilerBaselineTest`
+- `TableHeapBaselineTest`
 - `QueryProcessorSmokeTest`
 - `DmlMutationSmokeTest`
 - `RecoverySmokeTest`

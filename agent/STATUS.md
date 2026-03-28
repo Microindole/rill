@@ -224,6 +224,15 @@
 
 ## 最近一次变更
 
+- 把新的 `rill-core` 测试体系继续推进到了存储层：新增 `Page / DiskManager / BufferPoolManager / BPlusTree / TableHeap` 基线测试
+- 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/storage/**`、`rill-core/src/test/java/com/indolyn/rill/core/execution/TableHeapBaselineTest.java`、`rill-core/src/test/TESTING.md`
+- 当前结果：`./mvnw.cmd -q -pl rill-core -am verify` 已通过，存储层第一批不变量开始有正式回归保护
+- 下一步建议：继续补“存储/事务”这一层的更细边界，优先是页替换策略、恢复明细场景，以及更接近真实索引分裂/合并的 B+Tree 回归
+- 补了 Web API 的第一批 controller 测试：新增 `QueryControllerTest` 与 `OverviewControllerTest`，开始覆盖 HTTP 输入校验、history/trace 查询与 overview 返回
+- 影响范围：`rill-app-web/src/test/java/com/indolyn/rill/app/web/**`
+- 当前结果：`./mvnw.cmd -q -pl rill-app-web -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtest=EmbeddedDatabaseServiceTest,RillQueryServiceTest,OverviewControllerTest,QueryControllerTest" test` 已通过；本地全模块 `clean verify` 未通过的原因是 `rill-app-web/target/*.jar` 被外部进程占用，不是 controller 用例失败
+- 下一步建议：继续补 `QueryTraceService` 和协议/网络层的测试，把“通信层”从 Web API 扩到真正的服务端访问边界
+
 - 接入了 `rill-core` 覆盖率采集：新增 `JaCoCo` Maven 配置与 `core-coverage.yml`，CI 现在会在 Linux 上生成 `jacoco.xml` 并上传到 Codecov
 - 影响范围：`pom.xml`、`rill-core/pom.xml`、`.github/workflows/ci.yml`、`.github/workflows/core-coverage.yml`、`README.md`、`rill-core/src/test/TESTING.md`
 - 当前结果：覆盖率只用于展示 `rill-core` 重建进度和 PR 变化，不设置失败门槛，不会阻塞主 CI
