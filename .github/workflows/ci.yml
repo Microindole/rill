@@ -71,6 +71,11 @@ jobs:
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
     uses: ./.github/workflows/backend-cross-platform.yml
 
+  core-coverage:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
+    uses: ./.github/workflows/core-coverage.yml
+
   frontend-cross-platform:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflow == 'true'

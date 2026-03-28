@@ -224,6 +224,11 @@
 
 ## 最近一次变更
 
+- 接入了 `rill-core` 覆盖率采集：新增 `JaCoCo` Maven 配置与 `core-coverage.yml`，CI 现在会在 Linux 上生成 `jacoco.xml` 并上传到 Codecov
+- 影响范围：`pom.xml`、`rill-core/pom.xml`、`.github/workflows/ci.yml`、`.github/workflows/core-coverage.yml`、`README.md`、`rill-core/src/test/TESTING.md`
+- 当前结果：覆盖率只用于展示 `rill-core` 重建进度和 PR 变化，不设置失败门槛，不会阻塞主 CI
+- 下一步建议：继续按“基础设施 -> 存储/事务 -> 编译器 -> 执行 -> 通信 -> 集成”补测试，让 Codecov 曲线先具备真实参考价值
+
 - 重建了 `rill-core` 第一批新测试骨架：新增 `src/test/TESTING.md`，并建立 `infrastructure / compiler / integration` 三层起始目录
 - 新增第一批基线测试：`SchemaBaselineTest`、`DatabaseManagerBaselineTest`、`LogRecordBaselineTest`、`LogManagerBaselineTest`、`LockManagerBaselineTest`、`TransactionManagerBaselineTest`、`LexerParserBaselineTest`、`QueryCompilerBaselineTest`、`QueryProcessorSmokeTest`、`DmlMutationSmokeTest`、`RecoverySmokeTest`
 - 当前结果：`./mvnw.cmd -q -pl rill-core -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtest=SchemaBaselineTest,DatabaseManagerBaselineTest,LogRecordBaselineTest,LogManagerBaselineTest,LockManagerBaselineTest,TransactionManagerBaselineTest,LexerParserBaselineTest,QueryCompilerBaselineTest,QueryProcessorSmokeTest,DmlMutationSmokeTest,RecoverySmokeTest" test` 已通过
