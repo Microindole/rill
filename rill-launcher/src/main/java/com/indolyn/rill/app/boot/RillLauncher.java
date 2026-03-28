@@ -29,8 +29,8 @@ public final class RillLauncher {
             case "mysql-server" -> ServerRemote.main(forwardedArgs);
             case "sql", "client" -> InteractiveShell.main(forwardedArgs);
             case "gui" -> AdvancedShell.main(forwardedArgs);
-            case "data", "data-reader" -> DataToolLauncher.launch();
-            case "log", "log-reader" -> LogReaderLauncher.launch();
+            case "data", "data-reader" -> DataToolLauncher.launch(forwardedArgs);
+            case "log", "log-reader" -> LogReaderLauncher.launch(forwardedArgs);
             case "help", "-h", "--help" -> printUsage();
             default -> {
                 System.err.println("Unknown mode: " + args[0]);
@@ -58,7 +58,8 @@ public final class RillLauncher {
                   data-reader   Alias for data
                   log-reader    Alias for log
 
-                Note:
+                Notes:
+                  data/log default to terminal output and support --help for options.
                   Spring Boot / Web UI is packaged separately as rill-app-web.
                 """);
     }

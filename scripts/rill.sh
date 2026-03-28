@@ -38,40 +38,48 @@ Examples:
 EOF
 }
 
+resolve_jar() {
+  mode="$1"
+  case "$mode" in
+    server)
+      find "$SCRIPT_DIR/../rill-server/target" -maxdepth 1 -type f -name 'rill-server-*.jar' \
+        ! -name '*-mysql-server.jar' ! -name 'original-*' | sort | tail -n 1
+      ;;
+    mysql-server)
+      find "$SCRIPT_DIR/../rill-server/target" -maxdepth 1 -type f -name 'rill-server-*-mysql-server.jar' \
+        ! -name 'original-*' | sort | tail -n 1
+      ;;
+    sql|client)
+      find "$SCRIPT_DIR/../rill-client/target" -maxdepth 1 -type f -name 'rill-client-*-cli.jar' \
+        ! -name 'original-*' | sort | tail -n 1
+      ;;
+    gui)
+      find "$SCRIPT_DIR/../rill-client/target" -maxdepth 1 -type f -name 'rill-client-*-gui.jar' \
+        ! -name 'original-*' | sort | tail -n 1
+      ;;
+    web|spring)
+      find "$SCRIPT_DIR/../rill-app-web/target" -maxdepth 1 -type f -name 'rill-app-web-*.jar' \
+        ! -name '*.jar.original' ! -name 'original-*' | sort | tail -n 1
+      ;;
+    log|log-reader|data|data-reader)
+      find "$SCRIPT_DIR/../rill-launcher/target" -maxdepth 1 -type f -name 'rill-launcher-*.jar' \
+        ! -name 'original-*' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | sort | tail -n 1
+      ;;
+  esac
+}
+
 case "$MODE" in
   ""|help|-h|--help)
     usage
     exit 0
     ;;
-  server)
-    TARGET_DIR="$SCRIPT_DIR/../rill-server/target"
-    ARTIFACT_PATTERN='rill-server-*-server.jar'
-    ;;
-  mysql-server)
-    TARGET_DIR="$SCRIPT_DIR/../rill-server/target"
-    ARTIFACT_PATTERN='rill-server-*-mysql-server.jar'
-    ;;
-  sql|client)
-    TARGET_DIR="$SCRIPT_DIR/../rill-client/target"
-    ARTIFACT_PATTERN='rill-client-*-cli.jar'
-    ;;
-  gui)
-    TARGET_DIR="$SCRIPT_DIR/../rill-client/target"
-    ARTIFACT_PATTERN='rill-client-*-gui.jar'
-    ;;
-  web|spring)
-    TARGET_DIR="$SCRIPT_DIR/../rill-app-web/target"
-    ARTIFACT_PATTERN='rill-app-web-*.jar'
+  log|log-reader)
+    FORWARDED_MODE='log'
     ;;
   data|data-reader)
-    TARGET_DIR="$SCRIPT_DIR/../rill-launcher/target"
-    ARTIFACT_PATTERN='rill-launcher-*.jar'
     FORWARDED_MODE='data'
     ;;
-  log|log-reader)
-    TARGET_DIR="$SCRIPT_DIR/../rill-launcher/target"
-    ARTIFACT_PATTERN='rill-launcher-*.jar'
-    FORWARDED_MODE='log'
+  server|mysql-server|sql|client|gui|web|spring)
     ;;
   *)
     echo "Unsupported mode: $MODE"
@@ -82,7 +90,7 @@ esac
 
 shift
 
-JAR_PATH=$(ls -1t "$TARGET_DIR"/$ARTIFACT_PATTERN 2>/dev/null | head -n 1 || true)
+JAR_PATH="$(resolve_jar "$MODE")"
 
 if [ -z "$JAR_PATH" ]; then
   echo "No packaged $MODE jar found."

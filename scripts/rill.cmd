@@ -13,12 +13,15 @@ set "MODE=%~1"
 shift
 set "JAR_PATH="
 set "FORWARDED_MODE="
+set "TARGET_DIR="
+set "ARTIFACT_PATTERN="
+set "EXCLUDE_PATTERN="
 
 if /I "%MODE%"=="help" goto usage
 if /I "%MODE%"=="-h" goto usage
 if /I "%MODE%"=="--help" goto usage
 
-if /I "%MODE%"=="server" set "TARGET_DIR=%ROOT_DIR%\rill-server\target" & set "ARTIFACT_PATTERN=rill-server-*-server.jar"
+if /I "%MODE%"=="server" set "TARGET_DIR=%ROOT_DIR%\rill-server\target" & set "ARTIFACT_PATTERN=rill-server-*-server.jar" & set "EXCLUDE_PATTERN=-mysql-server.jar"
 if /I "%MODE%"=="mysql-server" set "TARGET_DIR=%ROOT_DIR%\rill-server\target" & set "ARTIFACT_PATTERN=rill-server-*-mysql-server.jar"
 if /I "%MODE%"=="sql" set "TARGET_DIR=%ROOT_DIR%\rill-client\target" & set "ARTIFACT_PATTERN=rill-client-*-cli.jar"
 if /I "%MODE%"=="client" set "TARGET_DIR=%ROOT_DIR%\rill-client\target" & set "ARTIFACT_PATTERN=rill-client-*-cli.jar"
@@ -36,9 +39,16 @@ if not defined TARGET_DIR (
     exit /b 1
 )
 
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$item = Get-ChildItem -Path '%TARGET_DIR%' -Filter '%ARTIFACT_PATTERN%' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName; if ($item) { $item }"`) do (
-    set "JAR_PATH=%%I"
-    goto found
+if defined EXCLUDE_PATTERN (
+    for /f "delims=" %%I in ('dir /b /o-d "%TARGET_DIR%\%ARTIFACT_PATTERN%" 2^>nul ^| findstr /v /c:"%EXCLUDE_PATTERN%" ^| findstr /v /c:"original-"') do (
+        set "JAR_PATH=%TARGET_DIR%\%%I"
+        goto found
+    )
+) else (
+    for /f "delims=" %%I in ('dir /b /o-d "%TARGET_DIR%\%ARTIFACT_PATTERN%" 2^>nul ^| findstr /v /c:"original-"') do (
+        set "JAR_PATH=%TARGET_DIR%\%%I"
+        goto found
+    )
 )
 
 :found

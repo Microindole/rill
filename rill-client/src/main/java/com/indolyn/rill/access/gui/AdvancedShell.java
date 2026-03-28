@@ -3,9 +3,14 @@ package com.indolyn.rill.access.gui;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.indolyn.rill.core.sql.lexer.TokenType;
 import com.indolyn.rill.tools.DataReader;
-import com.indolyn.rill.tools.LogReader;
+import com.indolyn.rill.tools.LogInspectionService;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Insets;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseWheelEvent;
@@ -21,9 +26,34 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Vector;
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.JToolBar;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.JFileChooser;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -43,7 +73,6 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  */
 public class AdvancedShell extends JFrame {
 
-    // --- UI Components ---
     private JComboBox<String> serverComboBox;
     private JTextField portField;
     private JTextField usernameField;
@@ -54,12 +83,13 @@ public class AdvancedShell extends JFrame {
     private JTextArea consoleTextArea;
     private JLabel statusBar;
 
-    // --- Networking & State ---
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
     private final List<String> commandHistory = new ArrayList<>();
+    private final transient LogInspectionService logInspectionService = new LogInspectionService();
     private int historyIndex = 0;
+    private String currentDatabase = "default";
 
     public AdvancedShell() {
         super("rill 高级客户端");
@@ -83,9 +113,7 @@ public class AdvancedShell extends JFrame {
         sqlEditor = new RSyntaxTextArea(20, 60);
         sqlEditor.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
         try {
-            Theme theme =
-                Theme.load(
-                    getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/monokai.xml"));
+            Theme theme = Theme.load(getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/monokai.xml"));
             theme.apply(sqlEditor);
         } catch (IOException e) {
             e.printStackTrace();
@@ -128,12 +156,9 @@ public class AdvancedShell extends JFrame {
         am.put(
             "smart-tab",
             new AbstractAction() {
+                @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
-                    if (ac.isPopupVisible()) {
-                        ac.doCompletion();
-                    } else {
-                        ac.doCompletion();
-                    }
+                    ac.doCompletion();
                 }
             });
     }
@@ -143,8 +168,7 @@ public class AdvancedShell extends JFrame {
         EnumSet<TokenType> keywords = EnumSet.range(TokenType.SELECT, TokenType.FULL);
         EnumSet<TokenType> functions = EnumSet.range(TokenType.COUNT, TokenType.MAX);
         EnumSet<TokenType> dataTypes =
-            EnumSet.of(
-                TokenType.INT, TokenType.VARCHAR, TokenType.DECIMAL, TokenType.DATE, TokenType.BOOLEAN);
+            EnumSet.of(TokenType.INT, TokenType.VARCHAR, TokenType.DECIMAL, TokenType.DATE, TokenType.BOOLEAN);
 
         for (TokenType type : TokenType.values()) {
             if (keywords.contains(type) || functions.contains(type) || dataTypes.contains(type)) {
@@ -180,12 +204,16 @@ public class AdvancedShell extends JFrame {
         importButton.addActionListener(e -> importSqlFile());
         toolBar.add(importButton);
 
+        JButton inspectDataButton = new JButton("查看数据");
+        inspectDataButton.addActionListener(e -> showDataInspector());
+        toolBar.add(inspectDataButton);
+
         JButton exportButton = new JButton("💾 导出SQL");
         exportButton.addActionListener(e -> exportDatabase());
         toolBar.add(exportButton);
 
         JButton logButton = new JButton("📜 查看日志");
-        logButton.addActionListener(e -> showLogReader());
+        logButton.addActionListener(e -> showLogInspector());
         toolBar.add(logButton);
 
         JButton clearButton = new JButton("清空");
@@ -200,7 +228,7 @@ public class AdvancedShell extends JFrame {
 
         RTextScrollPane sp = new RTextScrollPane(sqlEditor);
         sp.setBorder(BorderFactory.createEmptyBorder());
-        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, resultTabbedPane);
+        javax.swing.JSplitPane mainSplitPane = new javax.swing.JSplitPane(javax.swing.JSplitPane.VERTICAL_SPLIT, sp, resultTabbedPane);
         mainSplitPane.setResizeWeight(0.45);
         mainSplitPane.setBorder(null);
 
@@ -251,7 +279,9 @@ public class AdvancedShell extends JFrame {
                 public void keyPressed(KeyEvent e) {
                     if (e.getKeyCode() == KeyEvent.VK_UP) {
                         if (!commandHistory.isEmpty()) {
-                            if (historyIndex > 0) historyIndex--;
+                            if (historyIndex > 0) {
+                                historyIndex--;
+                            }
                             sqlEditor.setText(commandHistory.get(historyIndex));
                             e.consume();
                         }
@@ -273,13 +303,14 @@ public class AdvancedShell extends JFrame {
                 <h2 style='color:#569CD6;'>rill 高级客户端 - 使用说明</h2><hr>
                 <h3>快捷键 & 功能:</h3>
                 <ul>
-                    <li><b>智能补全:</b><ul><li>输入时会自动弹出关键字建议。</li><li>在任何时候按 <b>Tab</b> 键可触发建议或直接补全。</li></ul></li><br>
-                    <li><b>执行查询:</b><ul><li>点击工具栏上的 <b>▶️ 执行</b> 按钮。</li><li>在编辑器中按 <b>F5</b> 键。</li><li>如果选中了一段SQL，将只执行选中的部分。</li></ul></li><br>
-                    <li><b>字体缩放:</b><ul><li>在SQL编辑器区域，按住 <b>Ctrl</b> 并滚动<b>鼠标滚轮</b>。</li></ul></li><br>
-                    <li><b>历史命令:</b><ul><li>在SQL编辑器区域，使用<b>上下箭头键</b>翻阅历史记录。</li></ul></li>
-                </ul></body></html>""";
-        JOptionPane.showMessageDialog(
-            this, new JLabel(helpText), "使用说明", JOptionPane.INFORMATION_MESSAGE);
+                    <li><b>智能补全:</b><ul><li>输入时会自动弹出关键字建议。</li><li>按 <b>Tab</b> 键可补全。</li></ul></li><br>
+                    <li><b>执行查询:</b><ul><li>点击 <b>执行</b> 按钮。</li><li>按 <b>F5</b> 键。</li><li>选中 SQL 时只执行选中部分。</li></ul></li><br>
+                    <li><b>字体缩放:</b><ul><li>按住 <b>Ctrl</b> 并滚动<b>鼠标滚轮</b>。</li></ul></li><br>
+                    <li><b>历史命令:</b><ul><li>使用<b>上下箭头键</b>翻阅历史记录。</li></ul></li><br>
+                    <li><b>工具面板:</b><ul><li><b>查看数据</b> 和 <b>查看日志</b> 会基于当前数据库在当前 GUI 中展示结果。</li></ul></li>
+                </ul></body></html>
+                """;
+        JOptionPane.showMessageDialog(this, new JLabel(helpText), "使用说明", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void updateResultTable(String serverResponse) {
@@ -385,31 +416,32 @@ public class AdvancedShell extends JFrame {
                     try {
                         int count = get();
                         appendToConsole("--- 脚本执行完毕，共执行 " + count + " 条语句 ---");
-                        statusBar.setText("脚本导入成功！");
+                        statusBar.setText("脚本导入成功！ | 当前库: " + currentDatabase);
                     } catch (Exception e) {
                         appendToConsole("--- 脚本执行出错: " + e.getMessage() + " ---");
-                        statusBar.setText("脚本导入失败！");
+                        statusBar.setText("脚本导入失败！ | 当前库: " + currentDatabase);
                     }
                 }
             };
         worker.execute();
     }
 
-    // --- 显示日志读取器窗口 ---
-    private void showLogReader() {
-        // LogReader本身就是一个JFrame，可以直接创建并显示
-        // 为了避免阻塞主GUI，也在一个新的线程中显示它
-        SwingUtilities.invokeLater(
-            () -> {
-                LogReader logReader = new LogReader();
-                logReader.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // 关闭时不退出整个应用
-                logReader.setVisible(true);
-            });
+    private void showLogInspector() {
+        String dbName = currentDatabase;
+        JTextArea textArea = createInspectorTextArea("正在加载日志...");
+        showInspectorDialog("日志检查 - " + dbName, textArea, () -> loadLogInspector(textArea, dbName));
+        loadLogInspector(textArea, dbName);
     }
 
-    // --- 导出数据库为SQL文件 ---
+    private void showDataInspector() {
+        String dbName = currentDatabase;
+        JTextArea textArea = createInspectorTextArea("正在加载数据...");
+        showInspectorDialog("数据检查 - " + dbName, textArea, () -> loadDataInspector(textArea, dbName));
+        loadDataInspector(textArea, dbName);
+    }
+
     private void exportDatabase() {
-        String currentDb = "default";
+        String currentDb = currentDatabase;
 
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("请选择SQL文件的保存位置");
@@ -418,9 +450,8 @@ public class AdvancedShell extends JFrame {
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
-            statusBar.setText("正在导出数据库到 " + file.getName() + "...");
+            statusBar.setText("正在导出数据库 " + currentDb + " 到 " + file.getName() + "...");
 
-            // 在后台线程中执行导出
             SwingWorker<Void, Void> worker =
                 new SwingWorker<>() {
                     @Override
@@ -433,14 +464,14 @@ public class AdvancedShell extends JFrame {
                     protected void done() {
                         try {
                             get();
-                            statusBar.setText("数据库导出成功！");
+                            statusBar.setText("数据库导出成功！ | 当前库: " + currentDatabase);
                             JOptionPane.showMessageDialog(
                                 AdvancedShell.this,
                                 "数据库已成功导出到:\n" + file.getAbsolutePath(),
                                 "导出成功",
                                 JOptionPane.INFORMATION_MESSAGE);
                         } catch (Exception e) {
-                            statusBar.setText("数据库导出失败！");
+                            statusBar.setText("数据库导出失败！ | 当前库: " + currentDatabase);
                             JOptionPane.showMessageDialog(
                                 AdvancedShell.this,
                                 "导出失败: " + e.getMessage(),
@@ -454,8 +485,11 @@ public class AdvancedShell extends JFrame {
     }
 
     private void toggleConnection() {
-        if (socket == null || socket.isClosed()) connect();
-        else disconnect();
+        if (socket == null || socket.isClosed()) {
+            connect();
+        } else {
+            disconnect();
+        }
     }
 
     private void connect() {
@@ -484,7 +518,9 @@ public class AdvancedShell extends JFrame {
 
                 @Override
                 protected void process(List<String> chunks) {
-                    for (String msg : chunks) appendToConsole(msg);
+                    for (String msg : chunks) {
+                        appendToConsole(msg);
+                    }
                 }
 
                 @Override
@@ -492,7 +528,7 @@ public class AdvancedShell extends JFrame {
                     try {
                         get();
                         connectButton.setText("断开连接");
-                        statusBar.setText("已连接到 " + host + ":" + port + " | 用户: " + username);
+                        statusBar.setText("已连接到 " + host + ":" + port + " | 用户: " + username + " | 当前库: " + currentDatabase);
                     } catch (Exception e) {
                         JOptionPane.showMessageDialog(
                             AdvancedShell.this, "连接失败: " + e.getMessage(), "连接错误", JOptionPane.ERROR_MESSAGE);
@@ -506,18 +542,20 @@ public class AdvancedShell extends JFrame {
 
     private void disconnect() {
         try {
-            if (socket != null) socket.close();
+            if (socket != null) {
+                socket.close();
+            }
         } catch (Exception e) {
-            /* ignore */
+            // ignore
         }
         socket = null;
+        currentDatabase = "default";
         connectButton.setText("连接");
         statusBar.setText("未连接");
         appendToConsole("连接已断开。");
     }
 
     private void executeSql() {
-        // 优先执行选中的文本，否则执行全部文本
         String sqlText =
             sqlEditor.getSelectedText() != null && !sqlEditor.getSelectedText().isEmpty()
                 ? sqlEditor.getSelectedText()
@@ -530,7 +568,6 @@ public class AdvancedShell extends JFrame {
             return;
         }
 
-        // 将SQL文本添加到历史记录
         if (!commandHistory.contains(sqlText)) {
             commandHistory.add(sqlText);
         }
@@ -543,7 +580,6 @@ public class AdvancedShell extends JFrame {
             new SwingWorker<>() {
                 @Override
                 protected Void doInBackground() throws Exception {
-                    // 1. 按分号分割所有SQL命令
                     String[] sqlStatements = sqlText.split(";");
 
                     for (String sql : sqlStatements) {
@@ -552,28 +588,30 @@ public class AdvancedShell extends JFrame {
                             continue;
                         }
 
-                        // 2.【核心修复】将换行符替换为空格，确保命令在逻辑上是一行
                         String singleLineSql = singleSql.replaceAll("\\s+", " ");
-
-                        // 3. 逐条发送SQL语句到服务器
                         out.println(singleLineSql + ";");
-                        String response = in.readLine(); // 每发送一条，就等待一次响应
+                        String response = in.readLine();
 
-                        // 4. 将每次的请求和响应都发布，以便在控制台更新
-                        publish(
-                            ">> "
-                                + singleLineSql
-                                + "\n"
-                                + (response != null ? response.replace("<br>", "\n") : "与服务器断开连接。"));
+                        publish(">> " + singleLineSql + "\n" + (response != null ? response.replace("<br>", "\n") : "与服务器断开连接。"));
 
-                        // 将最后一条命令的响应也保存下来，用于可能更新表格视图
                         if (response != null) {
+                            if (response.toLowerCase().startsWith("database changed to")) {
+                                String normalized = singleLineSql.replace(";", "").trim();
+                                String[] parts = normalized.split("\\s+");
+                                if (parts.length >= 2) {
+                                    currentDatabase = parts[1];
+                                }
+                            }
                             final String lastResponse = response;
-                            SwingUtilities.invokeLater(() -> updateResultTable(lastResponse));
+                            SwingUtilities.invokeLater(() -> {
+                                updateResultTable(lastResponse);
+                                if (socket != null && !socket.isClosed()) {
+                                    statusBar.setText("已连接 | 当前库: " + currentDatabase);
+                                }
+                            });
                         }
 
                         if (response == null) {
-                            // 如果中途连接断开，则停止执行
                             publish("与服务器的连接已断开。");
                             break;
                         }
@@ -583,7 +621,6 @@ public class AdvancedShell extends JFrame {
 
                 @Override
                 protected void process(List<String> chunks) {
-                    // 实时更新控制台视图
                     for (String msg : chunks) {
                         appendToConsole(msg);
                     }
@@ -592,15 +629,83 @@ public class AdvancedShell extends JFrame {
                 @Override
                 protected void done() {
                     try {
-                        get(); // 调用 get() 来捕获 doInBackground 中可能抛出的异常
+                        get();
                         long duration = System.currentTimeMillis() - startTime;
-                        statusBar.setText("查询完成 | 耗时: " + duration + "ms");
-                        resultTabbedPane.setSelectedIndex(1); // 执行后，默认切换到信息更全的控制台视图
-
+                        statusBar.setText("查询完成 | 耗时: " + duration + "ms | 当前库: " + currentDatabase);
+                        resultTabbedPane.setSelectedIndex(1);
                     } catch (Exception e) {
-                        statusBar.setText("执行错误: " + e.getMessage());
+                        statusBar.setText("执行错误: " + e.getMessage() + " | 当前库: " + currentDatabase);
                         appendToConsole("错误: " + e.getMessage());
                         e.printStackTrace();
+                    }
+                }
+            };
+        worker.execute();
+    }
+
+    private JTextArea createInspectorTextArea(String initialText) {
+        JTextArea textArea = new JTextArea(initialText);
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setFont(new Font("Consolas", Font.PLAIN, 14));
+        textArea.setMargin(new Insets(8, 8, 8, 8));
+        return textArea;
+    }
+
+    private void showInspectorDialog(String title, JTextArea textArea, Runnable refreshAction) {
+        JDialog dialog = new JDialog(this, title, false);
+        dialog.setLayout(new BorderLayout());
+        JButton refreshButton = new JButton("刷新");
+        refreshButton.addActionListener(e -> refreshAction.run());
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.add(new JLabel("数据库: " + currentDatabase));
+        topPanel.add(refreshButton);
+        dialog.add(topPanel, BorderLayout.NORTH);
+        dialog.add(new JScrollPane(textArea), BorderLayout.CENTER);
+        dialog.setSize(900, 600);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void loadLogInspector(JTextArea textArea, String dbName) {
+        textArea.setText("正在加载日志...");
+        SwingWorker<String, Void> worker =
+            new SwingWorker<>() {
+                @Override
+                protected String doInBackground() throws Exception {
+                    return logInspectionService.renderConsoleReport(dbName, true);
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        textArea.setText(get());
+                        textArea.setCaretPosition(0);
+                    } catch (Exception e) {
+                        textArea.setText("加载日志失败: " + e.getMessage());
+                    }
+                }
+            };
+        worker.execute();
+    }
+
+    private void loadDataInspector(JTextArea textArea, String dbName) {
+        textArea.setText("正在加载数据...");
+        SwingWorker<String, Void> worker =
+            new SwingWorker<>() {
+                @Override
+                protected String doInBackground() throws Exception {
+                    return DataReader.renderDatabaseReport(dbName);
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        textArea.setText(get());
+                        textArea.setCaretPosition(0);
+                    } catch (Exception e) {
+                        textArea.setText("加载数据失败: " + e.getMessage());
                     }
                 }
             };

@@ -12,10 +12,10 @@ import com.indolyn.rill.core.sql.ast.expression.LiteralNode;
 import com.indolyn.rill.core.sql.lexer.TokenType;
 import com.indolyn.rill.core.session.Session;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.math.BigDecimal;
 
 class SemanticValidationSupport {
 
@@ -100,7 +100,7 @@ class SemanticValidationSupport {
                 Column column = checkColumnExists(tableInfo, colNode);
                 DataType expectedType = column.getType();
                 DataType actualType = getLiteralType(literalNode);
-                if (expectedType != actualType) {
+                if (!isCompatible(expectedType, actualType)) {
                     throw new SemanticException(
                         "Data type mismatch for column '"
                             + colNode.getFullName()

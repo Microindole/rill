@@ -91,6 +91,19 @@ class QueryProcessorTest {
         assertTrue(!showAfterDrop.contains(TEST_USE_DB_NAME));
     }
 
+    @Test
+    void executeAndGetResultShouldAllowUpdateAndDeletePredicatesWithSmallIntegerLiteralOnIntColumn() {
+        String updateResult = queryProcessor.executeAndGetResult("UPDATE users SET name = 'bob' WHERE id = 1;");
+        String selectAfterUpdate = queryProcessor.executeAndGetResult("SELECT * FROM users;");
+        String deleteResult = queryProcessor.executeAndGetResult("DELETE FROM users WHERE id = 1;");
+        String selectAfterDelete = queryProcessor.executeAndGetResult("SELECT * FROM users;");
+
+        assertTrue(updateResult.contains("Query OK, 1 rows affected."));
+        assertTrue(selectAfterUpdate.contains("bob"));
+        assertTrue(deleteResult.contains("Query OK, 1 rows affected."));
+        assertTrue(selectAfterDelete.contains("0 rows returned.") || !selectAfterDelete.contains("bob"));
+    }
+
     private void deleteDirectory(File directory) {
         if (!directory.exists()) {
             return;
