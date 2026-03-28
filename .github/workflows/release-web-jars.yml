@@ -38,7 +38,7 @@ jobs:
       - name: Stage pure Spring Boot jar
         run: |
           mkdir -p release-dist
-          cp rill-app-web/target/rill-app-web-0.0.1-SNAPSHOT.jar release-dist/rill-app-web-${GITHUB_REF_NAME}.jar
+          cp rill-app-web/target/rill-app-web-0.0.1-SNAPSHOT.jar release-dist/rill-web-api-${GITHUB_REF_NAME}.jar
 
       - name: Build frontend static assets
         working-directory: web
@@ -51,7 +51,7 @@ jobs:
 
       - name: Stage Spring Boot jar with embedded Web UI
         run: |
-          cp rill-app-web/target/rill-app-web-0.0.1-SNAPSHOT.jar release-dist/rill-app-web-${GITHUB_REF_NAME}-with-ui.jar
+          cp rill-app-web/target/rill-app-web-0.0.1-SNAPSHOT.jar release-dist/rill-web-ui-${GITHUB_REF_NAME}.jar
 
       - name: Upload web release artifacts
         uses: actions/upload-artifact@v4

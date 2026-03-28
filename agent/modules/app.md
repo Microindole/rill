@@ -39,7 +39,7 @@
 - `web/` 已起出第一版 Vue 前端骨架，当前已由 `app` 提供真实查询、trace、历史记录接口
 - 当前后端跨域来源已收口为配置项 `app.web.cors.allowed-origins`
 - 当前 `app` 已通过应用层数据库边界消费内核结构化结果，不再让 Web 层直接持有 `QueryProcessor`
-- 当前 `rill-app-web` 已支持两种发布形态：
+- 当前 `rill-app-web` 已支持两种发布形态，且两者都会通过 Maven 依赖携带 `rill-core`：
   - 纯 Spring Boot jar
   - 通过 `with-ui` profile 内嵌 `web/dist` 的单文件 jar
 - 当前 `rill-app-web` 已开始补应用层单测，先锁住 `DatabaseService` 边界与 `RillQueryService` 的委托关系

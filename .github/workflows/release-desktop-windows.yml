@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   desktop-windows:
-    name: Windows Installer
+    name: Windows Installer And Archives
     runs-on: windows-latest
 
     steps:
@@ -35,15 +35,51 @@ jobs:
           --no-man-pages
           --output release-dist\runtime
 
-      - name: Stage installer files
+      - name: Stage shared Windows files
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path release-dist\server,release-dist\client,release-dist\bin | Out-Null
+          New-Item -ItemType Directory -Force -Path release-dist\server,release-dist\client,release-dist\bin,release-assets | Out-Null
           Copy-Item (Get-ChildItem rill-server\target\rill-server-*-server.jar | Where-Object { $_.Name -notlike '*-mysql-server.jar' } | Select-Object -First 1) release-dist\server\rill-server.jar
           Copy-Item (Get-ChildItem rill-server\target\rill-server-*-mysql-server.jar | Select-Object -First 1) release-dist\server\rill-mysql-server.jar
           Copy-Item rill-client\target\rill-client-*-cli.jar release-dist\client\rill-cli.jar
           Copy-Item rill-client\target\rill-client-*-gui.jar release-dist\client\rill-gui.jar
+          Copy-Item (Get-ChildItem rill-launcher\target\rill-launcher-*.jar | Select-Object -First 1) release-dist\rill-launcher.jar
           Copy-Item packaging\windows\bin\*.cmd release-dist\bin\
+
+      - name: Create Windows edition archives
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          New-Item -ItemType Directory -Force -Path editions\core-cli,editions\desktop,editions\mysql-compat | Out-Null
+
+          Copy-Item release-dist\runtime editions\core-cli\runtime -Recurse
+          New-Item -ItemType Directory -Force -Path editions\core-cli\bin,editions\core-cli\server,editions\core-cli\client | Out-Null
+          Copy-Item release-dist\bin\*.cmd editions\core-cli\bin\
+          Copy-Item release-dist\server\rill-server.jar editions\core-cli\server\
+          Copy-Item release-dist\client\rill-cli.jar editions\core-cli\client\
+          Copy-Item release-dist\rill-launcher.jar editions\core-cli\
+          Set-Content editions\core-cli\EDITION.txt "edition=core-cli`nfeatures=server,sql,log,data"
+
+          Copy-Item editions\core-cli\* editions\desktop -Recurse
+          Copy-Item release-dist\client\rill-gui.jar editions\desktop\client\
+          Set-Content editions\desktop\EDITION.txt "edition=desktop`nfeatures=server,sql,gui,log,data"
+
+          Copy-Item editions\core-cli\* editions\mysql-compat -Recurse
+          Copy-Item release-dist\server\rill-mysql-server.jar editions\mysql-compat\server\
+          Set-Content editions\mysql-compat\EDITION.txt "edition=mysql-compat`nfeatures=server,sql,mysql-server,log,data"
+
+          Compress-Archive -Path editions\core-cli\* -DestinationPath release-assets\rill-core-cli-$version-windows-x64.zip -Force
+          Compress-Archive -Path editions\desktop\* -DestinationPath release-assets\rill-desktop-$version-windows-x64.zip -Force
+          Compress-Archive -Path editions\mysql-compat\* -DestinationPath release-assets\rill-mysql-compat-$version-windows-x64.zip -Force
+
+      - name: Smoke test Windows editions
+        shell: pwsh
+        run: |
+          cmd /c editions\core-cli\bin\rill.cmd help
+          cmd /c editions\desktop\bin\rill.cmd help
+          cmd /c editions\mysql-compat\bin\rill.cmd help
+          cmd /c editions\core-cli\bin\rill.cmd gui *> $null
+          if ($LASTEXITCODE -eq 0) { throw 'core-cli edition unexpectedly includes gui' }
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
@@ -57,9 +93,16 @@ jobs:
             "/DSourceDir=$pwd\release-dist" `
             "packaging\windows\rill-installer.iss"
 
-      - name: Upload Windows release artifact
+      - name: Copy installer to release assets
+        shell: pwsh
+        run: |
+          Copy-Item release-dist\output\*.exe release-assets\
+
+      - name: Upload Windows release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-windows-installer
-          path: release-dist/output/*.exe
+          name: release-windows-artifacts
+          path: |
+            release-assets/*.zip
+            release-assets/*.exe
           if-no-files-found: error

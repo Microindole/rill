@@ -8,6 +8,7 @@ if [ -n "${JAVA21_HOME:-}" ]; then
 fi
 
 MODE="${1:-}"
+FORWARDED_MODE=""
 
 usage() {
   cat <<'EOF'
@@ -17,14 +18,23 @@ Usage:
 Modes:
   server        Start the native rill TCP server
   mysql-server  Start the MySQL protocol server
-  client        Start the terminal client
+  sql           Start the terminal SQL client
   gui           Start the Swing GUI client
-  spring        Start the Spring Boot Web application
+  web           Start the Spring Boot Web application
+  data          Inspect or export database files
+  log           Inspect log files
+
+Compatibility aliases:
+  client        Alias for sql
+  spring        Alias for web
+  data-reader   Alias for data
+  log-reader    Alias for log
 
 Examples:
   ./scripts/rill.sh server --port=8848
-  ./scripts/rill.sh client --host=127.0.0.1 --port=8848 --user=root
-  ./scripts/rill.sh spring
+  ./scripts/rill.sh sql --host=127.0.0.1 --port=8848 --user=root
+  ./scripts/rill.sh log
+  ./scripts/rill.sh web
 EOF
 }
 
@@ -41,7 +51,7 @@ case "$MODE" in
     TARGET_DIR="$SCRIPT_DIR/../rill-server/target"
     ARTIFACT_PATTERN='rill-server-*-mysql-server.jar'
     ;;
-  client)
+  sql|client)
     TARGET_DIR="$SCRIPT_DIR/../rill-client/target"
     ARTIFACT_PATTERN='rill-client-*-cli.jar'
     ;;
@@ -49,13 +59,23 @@ case "$MODE" in
     TARGET_DIR="$SCRIPT_DIR/../rill-client/target"
     ARTIFACT_PATTERN='rill-client-*-gui.jar'
     ;;
-  spring)
+  web|spring)
     TARGET_DIR="$SCRIPT_DIR/../rill-app-web/target"
     ARTIFACT_PATTERN='rill-app-web-*.jar'
     ;;
+  data|data-reader)
+    TARGET_DIR="$SCRIPT_DIR/../rill-launcher/target"
+    ARTIFACT_PATTERN='rill-launcher-*.jar'
+    FORWARDED_MODE='data'
+    ;;
+  log|log-reader)
+    TARGET_DIR="$SCRIPT_DIR/../rill-launcher/target"
+    ARTIFACT_PATTERN='rill-launcher-*.jar'
+    FORWARDED_MODE='log'
+    ;;
   *)
     echo "Unsupported mode: $MODE"
-    echo "Supported modes: server, mysql-server, client, gui, spring"
+    echo "Supported modes: server, mysql-server, sql, gui, web, log, data"
     exit 1
     ;;
 esac
@@ -68,6 +88,10 @@ if [ -z "$JAR_PATH" ]; then
   echo "No packaged $MODE jar found."
   echo "Run ./scripts/build.sh first."
   exit 1
+fi
+
+if [ -n "$FORWARDED_MODE" ]; then
+  set -- "$FORWARDED_MODE" "$@"
 fi
 
 if [ -n "${JAVA_HOME:-}" ]; then

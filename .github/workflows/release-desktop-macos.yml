@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   desktop-macos:
-    name: macOS Archive
+    name: macOS Archives
     runs-on: macos-latest
 
     steps:
@@ -37,24 +37,52 @@ jobs:
           --no-man-pages
           --output release-dist/runtime
 
-      - name: Stage macOS archive files
+      - name: Stage shared macOS files
         run: |
           mkdir -p release-dist/bin release-dist/server release-dist/client release-assets
           cp "$(find rill-server/target -maxdepth 1 -type f -name 'rill-server-*-server.jar' ! -name '*-mysql-server.jar' | head -n 1)" release-dist/server/rill-server.jar
           cp "$(find rill-server/target -maxdepth 1 -type f -name 'rill-server-*-mysql-server.jar' | head -n 1)" release-dist/server/rill-mysql-server.jar
           cp rill-client/target/rill-client-*-cli.jar release-dist/client/rill-cli.jar
           cp rill-client/target/rill-client-*-gui.jar release-dist/client/rill-gui.jar
+          cp rill-launcher/target/rill-launcher-*.jar release-dist/rill-launcher.jar
           cp packaging/macos/bin/*.sh release-dist/bin/
           chmod +x release-dist/bin/*.sh
 
-      - name: Create macOS release archive
+      - name: Create macOS edition archives
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          tar -C release-dist -czf "release-assets/rill-${VERSION}-macos-arm64.tar.gz" .
+          mkdir -p editions/core-cli editions/desktop editions/mysql-compat
 
-      - name: Upload macOS release artifact
+          cp -R release-dist/runtime editions/core-cli/
+          mkdir -p editions/core-cli/bin editions/core-cli/server editions/core-cli/client
+          cp release-dist/bin/*.sh editions/core-cli/bin/
+          cp release-dist/server/rill-server.jar editions/core-cli/server/
+          cp release-dist/client/rill-cli.jar editions/core-cli/client/
+          cp release-dist/rill-launcher.jar editions/core-cli/
+          printf 'edition=core-cli\nfeatures=server,sql,log,data\n' > editions/core-cli/EDITION.txt
+
+          cp -R editions/core-cli/. editions/desktop/
+          cp release-dist/client/rill-gui.jar editions/desktop/client/
+          printf 'edition=desktop\nfeatures=server,sql,gui,log,data\n' > editions/desktop/EDITION.txt
+
+          cp -R editions/core-cli/. editions/mysql-compat/
+          cp release-dist/server/rill-mysql-server.jar editions/mysql-compat/server/
+          printf 'edition=mysql-compat\nfeatures=server,sql,mysql-server,log,data\n' > editions/mysql-compat/EDITION.txt
+
+          tar -C editions/core-cli -czf "release-assets/rill-core-cli-${VERSION}-macos-arm64.tar.gz" .
+          tar -C editions/desktop -czf "release-assets/rill-desktop-${VERSION}-macos-arm64.tar.gz" .
+          tar -C editions/mysql-compat -czf "release-assets/rill-mysql-compat-${VERSION}-macos-arm64.tar.gz" .
+
+      - name: Smoke test macOS editions
+        run: |
+          editions/core-cli/bin/rill.sh help
+          if editions/core-cli/bin/rill.sh gui >/dev/null 2>&1; then exit 1; fi
+          editions/desktop/bin/rill.sh help
+          editions/mysql-compat/bin/rill.sh help
+
+      - name: Upload macOS release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-macos-archive
+          name: release-macos-archives
           path: release-assets/*.tar.gz
           if-no-files-found: error

@@ -27,10 +27,10 @@ public final class RillLauncher {
         switch (mode) {
             case "server" -> ServerHost.main(forwardedArgs);
             case "mysql-server" -> ServerRemote.main(forwardedArgs);
-            case "client" -> InteractiveShell.main(forwardedArgs);
+            case "sql", "client" -> InteractiveShell.main(forwardedArgs);
             case "gui" -> AdvancedShell.main(forwardedArgs);
-            case "data-reader" -> DataToolLauncher.launch();
-            case "log-reader" -> LogReaderLauncher.launch();
+            case "data", "data-reader" -> DataToolLauncher.launch();
+            case "log", "log-reader" -> LogReaderLauncher.launch();
             case "help", "-h", "--help" -> printUsage();
             default -> {
                 System.err.println("Unknown mode: " + args[0]);
@@ -48,10 +48,15 @@ public final class RillLauncher {
                 Modes:
                   server        Start the native rill TCP server
                   mysql-server  Start the MySQL protocol server
-                  client        Start the terminal client
+                  sql           Start the terminal SQL client
                   gui           Start the Swing GUI client
-                  data-reader   Inspect data files
-                  log-reader    Inspect log files
+                  data          Inspect or export database files
+                  log           Inspect log files
+
+                Compatibility aliases:
+                  client        Alias for sql
+                  data-reader   Alias for data
+                  log-reader    Alias for log
 
                 Note:
                   Spring Boot / Web UI is packaged separately as rill-app-web.

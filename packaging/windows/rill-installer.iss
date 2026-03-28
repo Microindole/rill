@@ -39,8 +39,10 @@ Source: "{#SourceDir}\server\rill-server.jar"; DestDir: "{app}\server"; Componen
 Source: "{#SourceDir}\server\rill-mysql-server.jar"; DestDir: "{app}\server"; Components: mysqlcompat; Flags: ignoreversion
 Source: "{#SourceDir}\client\rill-cli.jar"; DestDir: "{app}\client"; Components: cli; Flags: ignoreversion
 Source: "{#SourceDir}\client\rill-gui.jar"; DestDir: "{app}\client"; Components: gui; Flags: ignoreversion
+Source: "{#SourceDir}\rill-launcher.jar"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
+Name: "{group}\Rill Command"; Filename: "{app}\bin\rill.cmd"
 Name: "{group}\Rill CLI"; Filename: "{app}\bin\rill-cli.cmd"; Components: cli
 Name: "{group}\Rill GUI"; Filename: "{app}\bin\rill-gui.cmd"; Components: gui
 Name: "{group}\Rill Server"; Filename: "{app}\bin\rill-server.cmd"; Components: core

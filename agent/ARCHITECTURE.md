@@ -25,9 +25,9 @@
 
 当前发布边界也已经与模块边界基本对齐：
 
-- 数据库主体安装包：`rill-core + rill-server`，并带上 CLI
-- 可选本地组件：GUI、MySQL/Navicat 兼容服务端
-- Web 控制台：`rill-app-web` 单独发布，可为纯后端 jar 或内嵌前端静态资源的单文件 jar
+- 数据库主体发布已开始 edition 化：`core-cli / desktop / mysql-compat`
+- 统一 `rill` 包装命令会按发行版已包含的组件能力降级
+- Web 控制台：`rill-app-web` 单独发布，可为纯后端 `rill-web-api` jar 或内嵌前端静态资源的 `rill-web-ui` jar
 
 ## 当前分层
 

@@ -18,7 +18,7 @@
 说明：
 
 - `DataReader / LogReader / ShellRunner` 已收口为可复用工具组件，不再自带独立 `main`
-- 开发期如果仍需启动数据/日志工具，统一通过 `RillLauncher` 的 `data-reader / log-reader` 子模式进入
+- 开发期如果仍需启动数据/日志工具，统一通过 `RillLauncher` 的 `data / log` 子模式进入
 
 ## 目标外部入口分类
 
@@ -49,7 +49,7 @@
 
 规划方向：
 
-- 统一收口到 `RillLauncher client` 或更明确的 CLI 子命令体系
+- 统一收口到 `RillLauncher sql` 或更明确的 CLI 子命令体系
 - 后续应支持非交互参数模式
 - 工具型能力尽量并入统一 CLI，而不是继续增加独立 `main`
 
@@ -194,14 +194,12 @@ export JAVA21_HOME=/path/to/jdk-21
 
 ## 当前发布与安装约定
 
-- 数据库主体发布物不包含 Spring Boot / Web UI
-- `rill-app-web` 独立发布为 Web 控制台
+- 数据库主体发布物不包含 Spring Boot / Web UI；但 `rill-app-web` 单独发布时内部仍依赖并携带 `rill-core`
 - tag 发布时当前会生成：
-  - Windows 安装包
-  - Linux 归档包
-  - macOS 归档包
-  - 纯 `rill-app-web` jar
-  - 带 UI 的 `rill-app-web` jar
+  - Windows/Linux/macOS 的 `core-cli / desktop / mysql-compat` edition 产物
+  - Windows 组件式安装器
+  - `rill-web-api` jar
+  - `rill-web-ui` jar
 - `packaging/windows|linux|macos/bin` 是平台专用启动脚本资产，不应忽略
 
 ## 当前废弃方向

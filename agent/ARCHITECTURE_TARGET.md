@@ -31,9 +31,9 @@
 
 当前发布边界为：
 
-- Windows：安装包，固定交付 `core + cli`，可选 `gui + mysqlcompat`
-- Linux/macOS：带内置 runtime 的归档包
-- Web：纯 Spring Boot jar 与内嵌前端静态资源的单文件 jar
+- Windows：edition 包 `core-cli / desktop / mysql-compat`，并保留可选组件式安装器
+- Linux/macOS：edition 化归档包 `core-cli / desktop / mysql-compat`，均带内置 runtime
+- Web：`rill-web-api` 与 `rill-web-ui` 两种独立 jar
 
 ## 第一阶段目标目录
 

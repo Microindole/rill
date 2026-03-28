@@ -48,6 +48,23 @@ jobs:
         if: runner.os != 'Windows'
         run: ./mvnw -B -DskipTests package
 
+      - name: Smoke test launcher scripts on Windows
+        if: runner.os == 'Windows'
+        run: |
+          .\scripts\rill.cmd help
+          .\scripts\rill.cmd log --help
+          .\scripts\rill.cmd data --help
+          .\scripts\rill.cmd web --help
+
+      - name: Smoke test launcher scripts on Unix
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x scripts/rill.sh
+          ./scripts/rill.sh help
+          ./scripts/rill.sh log --help
+          ./scripts/rill.sh data --help
+          ./scripts/rill.sh web --help
+
       - name: Upload packaged backend artifacts
         uses: actions/upload-artifact@v4
         with:

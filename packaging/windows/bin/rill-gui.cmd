@@ -1,4 +1,17 @@
 @echo off
 setlocal
 set "APP_HOME=%~dp0.."
-"%APP_HOME%\runtime\bin\java.exe" -jar "%APP_HOME%\client\rill-gui.jar" %*
+set "JAVA_EXE=%APP_HOME%\runtime\bin\java.exe"
+set "TARGET_JAR=%APP_HOME%\client\rill-gui.jar"
+
+if not exist "%JAVA_EXE%" (
+  echo Missing bundled runtime: %JAVA_EXE%
+  exit /b 1
+)
+
+if not exist "%TARGET_JAR%" (
+  echo GUI client is not included in this Rill distribution.
+  exit /b 2
+)
+
+"%JAVA_EXE%" -jar "%TARGET_JAR%" %*

@@ -96,6 +96,9 @@
 - 完成 Web UI 演示台第一轮升级：前端已从单页 SQL 控制台扩展为 SQL、模块结构、能力摘要、扩展路线并列展示，后端新增 `overview` 接口提供摘要数据
 - 完成数据库内核系统语句测试补齐第一轮：`Parser / Planner / Semantic / QueryProcessor` 已补上 `CREATE / SHOW / USE / DROP DATABASE` 回归，开始收口重构后最容易漏测的系统语句路径
 - 完成客户端工具入口第一轮收口：`DataReader / LogReader / ShellRunner` 已去掉独立 `main`，工具能力开始转为可复用组件，由 `rill-launcher` 或 GUI 调用
+- 完成统一命令入口第一轮收口：scripts/rill.* 与 RillLauncher 已开始使用 sql / log / data / web 作为正式子命令，client / spring / data-reader / log-reader 降级为兼容别名
+- 完成发布与 CI 命令层补齐：release 包已新增统一 rill 包装命令，backend 跨平台 CI 也开始对 help / log / data / web 做 smoke test
+- 完成发布包装脚本能力检测收口：desktop 发行版的 ill 命令不再假设所有组件都存在，缺失组件时会明确报错；ill-app-web 的独立发布定位也已明确为单独分发但内含 core 依赖
 
 ## 已确认事实
 
