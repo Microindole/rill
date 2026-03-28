@@ -95,6 +95,7 @@
 - 完成 Spring Boot 模块测试清理第一轮收口：新增应用层 service 单测，并把模块内测试生成的 `data/` 目录纳入忽略，避免局部测试污染工作区
 - 完成 Web UI 演示台第一轮升级：前端已从单页 SQL 控制台扩展为 SQL、模块结构、能力摘要、扩展路线并列展示，后端新增 `overview` 接口提供摘要数据
 - 完成数据库内核系统语句测试补齐第一轮：`Parser / Planner / Semantic / QueryProcessor` 已补上 `CREATE / SHOW / USE / DROP DATABASE` 回归，开始收口重构后最容易漏测的系统语句路径
+- 完成客户端工具入口第一轮收口：`DataReader / LogReader / ShellRunner` 已去掉独立 `main`，工具能力开始转为可复用组件，由 `rill-launcher` 或 GUI 调用
 
 ## 已确认事实
 
@@ -175,6 +176,7 @@
 - 当前数据库内核对系统语句的覆盖已不再只停留在零散集成测试，核心单测链路也开始补齐
 - 当前 `Parser` 已从“单类集中负责语句注册 + DDL 解析 + DML 解析 + 表达式解析”进一步收口到“核心 token 游标 + DML/表达式解析 + 独立语句协作者”
 - 当前 `Parser` 已进一步收口为“token 游标 + 通用 match/consume + 协作者入口”，语句解析、表达式解析、DDL 类型/列定义解析都已不再集中堆在一个类里
+- 当前客户端的数据导出、日志查看和存储演示工具已不再把独立 `main` 当成正式边界，`rill-client` 里保留的是可复用组件，启动壳已收口回 `rill-launcher`
 
 ## 用户已确定的总体规划
 

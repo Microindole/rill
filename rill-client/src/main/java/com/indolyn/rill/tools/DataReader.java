@@ -18,10 +18,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.Collectors;
-import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class DataReader {
     public static void exportDatabaseToFile(String dbName, File outputFile) throws IOException {
@@ -54,99 +51,38 @@ public class DataReader {
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        DatabaseManager dbManager = new DatabaseManager();
-        List<String> databases = dbManager.listDatabases();
-
-        if (databases.isEmpty()) {
-            System.out.println("在 'data' 目录下没有找到任何数据库。");
-            return;
-        }
-
-        System.out.println("--- rill 数据工具 ---");
-        System.out.println("可用的数据库: " + databases);
-
-        try (Scanner scanner = new Scanner(System.in)) {
-            String dbName = selectDatabase(scanner, databases);
-
-            System.out.println("\n请选择操作:");
-            System.out.println("  1. 在控制台查看数据");
-            System.out.println("  2. 导出为 SQL 文件");
-            int choice = selectChoice(scanner);
-
-            if (choice == 1) {
-                displayDataInConsole(dbName);
-            } else {
-                exportDatabaseToSqlInteractive(scanner, dbName);
-            }
-        }
-    }
-
-    private static void displayDataInConsole(String dbName) throws IOException {
+    public static String renderDatabaseReport(String dbName) throws IOException {
         DiskManager diskManager = new DiskManager(DatabaseManager.getDbFilePath(dbName));
         diskManager.open();
         BufferPoolManager bufferPoolManager = new BufferPoolManager(10, diskManager, "LRU");
         Catalog catalog = new Catalog(bufferPoolManager);
+        StringBuilder report = new StringBuilder();
 
-        System.out.println("\n--- 正在读取数据库 '" + dbName + "' 的数据 ---");
         List<String> userTables = catalog.getTableNames();
-        System.out.println("在数据库 '" + dbName + "' 中找到 " + userTables.size() + " 个用户表: " + userTables);
+        report
+            .append("\n--- 正在读取数据库 '")
+            .append(dbName)
+            .append("' 的数据 ---\n")
+            .append("在数据库 '")
+            .append(dbName)
+            .append("' 中找到 ")
+            .append(userTables.size())
+            .append(" 个用户表: ")
+            .append(userTables)
+            .append('\n');
 
         for (String tableName : userTables) {
-            System.out.println("\n--- 表 '" + tableName + "' 的数据 ---");
             TableInfo tableInfo = catalog.getTable(tableName);
             List<Tuple> allTuplesInTable = getAllTuplesForTable(tableInfo, bufferPoolManager);
-            System.out.println(QueryResultFormatter.format(tableInfo.getSchema(), allTuplesInTable));
+            report
+                .append("\n--- 表 '")
+                .append(tableName)
+                .append("' 的数据 ---\n")
+                .append(QueryResultFormatter.format(tableInfo.getSchema(), allTuplesInTable))
+                .append('\n');
         }
         diskManager.close();
-    }
-
-    private static void exportDatabaseToSqlInteractive(Scanner scanner, String dbName)
-        throws IOException {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("请选择SQL文件的保存位置");
-        chooser.setSelectedFile(new File(dbName + "_dump.sql"));
-        chooser.setFileFilter(new FileNameExtensionFilter("SQL File", "sql"));
-
-        if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-            File file = chooser.getSelectedFile();
-            exportDatabaseToFile(dbName, file);
-            System.out.println("--- 导出成功！ ---");
-            System.out.println("文件已保存到: " + file.getAbsolutePath());
-        } else {
-            System.out.println("导出已取消。");
-        }
-    }
-
-    private static String selectDatabase(Scanner scanner, List<String> databases) {
-        String dbName = "";
-        boolean isValidDb = false;
-        while (!isValidDb) {
-            System.out.print("请输入要操作的数据库名称: ");
-            dbName = scanner.nextLine();
-            if (databases.contains(dbName)) {
-                isValidDb = true;
-            } else {
-                System.err.println("错误: 数据库 '" + dbName + "' 不存在，请重试。");
-            }
-        }
-        return dbName;
-    }
-
-    private static int selectChoice(Scanner scanner) {
-        int choice = 0;
-        while (choice != 1 && choice != 2) {
-            System.out.print("请输入你的选择 (1 或 2): ");
-            try {
-                choice = Integer.parseInt(scanner.nextLine());
-                if (choice != 1 && choice != 2) {
-                    System.err.println("无效输入，请输入 1 或 2。");
-                }
-            } catch (NumberFormatException e) {
-                System.err.println("无效输入，请输入一个数字。");
-            }
-        }
-        return choice;
+        return report.toString();
     }
 
     private static String generateCreateTableSql(TableInfo tableInfo) {

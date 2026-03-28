@@ -4,8 +4,6 @@ import com.indolyn.rill.access.cli.InteractiveShell;
 import com.indolyn.rill.access.gui.AdvancedShell;
 import com.indolyn.rill.access.protocol.ServerHost;
 import com.indolyn.rill.access.protocol.ServerRemote;
-import com.indolyn.rill.tools.DataReader;
-import com.indolyn.rill.tools.LogReader;
 
 import java.util.Arrays;
 
@@ -31,8 +29,8 @@ public final class RillLauncher {
             case "mysql-server" -> ServerRemote.main(forwardedArgs);
             case "client" -> InteractiveShell.main(forwardedArgs);
             case "gui" -> AdvancedShell.main(forwardedArgs);
-            case "data-reader" -> DataReader.main(forwardedArgs);
-            case "log-reader" -> LogReader.main(forwardedArgs);
+            case "data-reader" -> DataToolLauncher.launch();
+            case "log-reader" -> LogReaderLauncher.launch();
             case "help", "-h", "--help" -> printUsage();
             default -> {
                 System.err.println("Unknown mode: " + args[0]);

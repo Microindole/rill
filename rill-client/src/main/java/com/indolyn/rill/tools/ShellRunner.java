@@ -16,10 +16,6 @@ public class ShellRunner {
 
     private final String DB_FILE_PATH = "rill.data";
 
-    public static void main(String[] args) throws Exception {
-        new ShellRunner().runDemo();
-    }
-
     public void runDemo() throws Exception {
         System.out.println("rill 存储引擎集成测试开始...");
 

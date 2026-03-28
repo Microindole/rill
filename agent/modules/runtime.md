@@ -14,8 +14,11 @@
 - `com.indolyn.rill.access.protocol.ServerRemote`
 - `com.indolyn.rill.access.cli.InteractiveShell`
 - `com.indolyn.rill.access.gui.AdvancedShell`
-- `com.indolyn.rill.tools.DataReader`
-- `com.indolyn.rill.tools.LogReader`
+
+说明：
+
+- `DataReader / LogReader / ShellRunner` 已收口为可复用工具组件，不再自带独立 `main`
+- 开发期如果仍需启动数据/日志工具，统一通过 `RillLauncher` 的 `data-reader / log-reader` 子模式进入
 
 ## 目标外部入口分类
 
@@ -181,13 +184,13 @@ export JAVA21_HOME=/path/to/jdk-21
 
 ### 工具能力
 
-- `DataReader`：工具能力保留，但不应长期维持为孤立入口
-- `LogReader`：工具能力保留，但应归入 GUI 或工具子模式
+- `DataReader`：工具能力保留，当前已转为可复用组件，由 launcher/GUI 调用
+- `LogReader`：工具能力保留，当前已转为可复用 GUI 组件，由 launcher/GUI 调用
 
 ### Spring Boot 能力
 
 - `RillApplication`：保留，当前已去除自动 demo 污染，并已成为 `rill-app-web` 的正式入口
-- `ShellRunner`：保留为手工演示工具，不再参与 Spring Boot 自动启动
+- `ShellRunner`：保留为手工演示工具组件，不再参与 Spring Boot 自动启动，也不再暴露独立 `main`
 
 ## 当前发布与安装约定
 
