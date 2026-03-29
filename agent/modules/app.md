@@ -15,11 +15,22 @@
 - `app.service.QueryTraceService`
 - `app.service.OverviewService`
 - `app.service.WorkspaceService`
+- `app.service.WorkspaceDashboardService`
+- `app.service.SqlSnippetService`
+- `app.service.DemoScenarioService`
+- `app.service.ExportTaskService`
 - `app.web.HealthController`
 - `app.web.OverviewController`
 - `app.web.QueryController`
 - `app.web.WorkspaceController`
+- `app.web.WorkspaceDashboardController`
+- `app.web.SqlSnippetController`
+- `app.web.DemoScenarioController`
+- `app.web.ExportTaskController`
 - `app.web.RestExceptionHandler`
+- `app.config.MybatisPlusConfig`
+- `app.persistence.entity.*`
+- `app.persistence.mapper.*`
 - `app.dto.*`
 - `app.config.WebCorsConfig`
 
@@ -49,16 +60,50 @@
 - 当前 `app` 的目标模型已经明确成双后端：
   - 业务链路：`Controller -> Service -> MyBatis-Plus -> PostgreSQL`
   - 内核链路：`Controller -> Service -> DatabaseService -> rill-core`
+- 当前 `app` 已开始真正接入 PostgreSQL + MyBatis-Plus，而不再只是停留在架构说明层
 - 当前 `WorkspaceController` 已支持：
+  - 会话列表
   - 创建工作台 session
   - 查询 session 当前数据库与最近查询
   - 在 session 上执行 SQL
+  - 查询指定 session 的历史记录
+  - 删除 session
+- 当前 `WorkspaceDashboardController` 已开始提供后台总览：
+  - 总 session 数
+  - 总 query history 数
+  - snippet / scenario 数量
+  - 最近查询
+  - 当前 session 摘要
+- 当前 `WorkspaceService` 已从纯内存实现切到持久化实现：
+  - `workspace_session`
+  - `query_history`
+- 当前 `SqlSnippetController` 已补出第一批业务 CRUD：
+  - 列表
+  - 详情
+  - 新建
+  - 更新
+  - 删除
+- 当前 `DemoScenarioController` 已补出第二批业务 CRUD 与执行能力：
+  - 列表
+  - 详情
+  - 新建
+  - 更新
+  - 删除
+  - 在指定 workspace session 上执行场景 SQL 脚本
+- 当前 `ExportTaskController` 已补出第三批业务 CRUD 与运行能力：
+  - 列表
+  - 详情
+  - 新建
+  - 更新
+  - 删除
+  - 运行导出任务并生成 csv/json 文件
+- 当前 `data.sql` 已开始提供默认 snippet 和默认 demo scenario，方便本地和演示环境开箱即用
 - 当前 `RestExceptionHandler` 已开始把 `ResponseStatusException` 收口成统一 JSON 错误模型
 - 当前 `rill-app-web` 已支持两种发布形态，且两者都会通过 Maven 依赖携带 `rill-core`：
   - 纯 Spring Boot jar
   - 通过 `with-ui` profile 内嵌 `web/dist` 的单文件 jar
 - 当前 `rill-app-web` 已开始补应用层单测，先锁住 `DatabaseService` 边界与 `RillQueryService` 的委托关系
-- 当前 `QueryTraceService`、`QueryController`、`OverviewController`、`WorkspaceService`、`WorkspaceController` 也已经有测试，Web 后端不再只靠手工联调
+- 当前 `QueryTraceService`、`QueryController`、`OverviewController`、`WorkspaceService`、`WorkspaceDashboardService`、`WorkspaceController`、`WorkspaceDashboardController`、`SqlSnippetService`、`SqlSnippetController`、`DemoScenarioService`、`DemoScenarioController`、`ExportTaskService`、`ExportTaskController` 也已经有测试，Web 后端不再只靠手工联调
 
 ## 后续重点
 
@@ -73,6 +118,8 @@
   - SQL 收藏 / 模板 / 历史
   - 演示场景
   - 导出任务 / 查询记录
+- 把当前已落地的 `workspace_session / query_history / sql_snippet / demo_scenario` 继续向前端工作台接通
+- 让 `export_task` 和 `workspace/dashboard` 也进入前端首页与资产管理视图
 - 把 Spring Boot 做成面试时可讲的“正式后台”，而不是只转发 SQL 的壳
 - 后续逐步把当前“阶段级 trace 推断”升级为执行链路真实埋点
 - 保持前后端分离部署能力，不写死前端地址
