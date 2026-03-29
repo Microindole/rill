@@ -1,6 +1,6 @@
 # 当前状态
 
-## 当前快照（2026-03-28）
+## 当前快照（2026-03-29）
 
 - 多模块结构、统一启动入口、edition 化发布和 `rill-app-web` 双形态 jar 已基本稳定
 - `rill-core` 旧测试已不再维护，但新的测试体系已经重新覆盖基础设施、存储、编译器、执行层和一批真实集成场景
@@ -8,10 +8,14 @@
 - Codecov 已接通，当前只展示 `rill-core` 覆盖率，不设置失败门槛
 - `ALTER TABLE` parser 主链已经接通，并补上了 parser / planner / integration 回归
 - `rill-core` 测试已进一步扩到 `BPlusTree` 深边界、未提交 `UPDATE/DELETE` 恢复回滚、跨页恢复、聚合函数、表生命周期和类型约束失败路径
+- `rill-core` 测试已继续补到主键冲突、索引列更新生命周期、已提交 `UPDATE/DELETE` 恢复保持，以及 `ALTER TABLE` 后列元数据/默认值的重启持久化
+- `rill-app-web` 已开始从“查询壳”升级为“工作台后端”，新增 workspace/session 应用层和统一 JSON 错误处理
+- 当前最高优先级已切换为：把 `rill-app-web` 做成面试主叙事中的正式后端产品层
+- 当前已经明确：Spring Boot 后端后续将采用“业务库 PostgreSQL + MyBatis-Plus”与“自研 `rill-core` 内核能力”双链路并存的结构
 
 ## 当前阶段
 
-阶段名称：内核第一轮重构已基本完成，新 core 测试体系已建立第一轮主骨架，当前重心转向继续补齐测试覆盖、编译器可扩展性与 PostgreSQL 方言收口
+阶段名称：内核第一轮重构已基本完成，新 core 测试体系已建立第一轮主骨架，当前重心正式转向 Spring Boot 工作台后台、业务 CRUD 与双后端编排
 
 ## 已完成
 
@@ -124,6 +128,7 @@
 - 当前已完成数据库内核主包迁移：`catalog/common/compiler/engine/executor/storage/transaction/DatabaseManager` 已进入 `core`
 - 当前 `core` 已不再直接依赖 `access`、`tools`、`app`
 - 当前 `app` 已开始作为 Spring Boot 外层适配层调用 `core`
+- 当前 `app` 已开始承载工作台 session、当前数据库和最近查询这类前端应用状态，而不只是薄 controller 转发
 - 当前已开始统一仓库换行策略，减少 Windows 环境下的提交噪音
 - 当前 Java 代码风格基准改为 IntelliJ IDEA 默认风格变体：4 空格缩进、`{` 行尾
 - 当前主代码与测试代码都已按新的 IDEA 风格统一过一轮
@@ -145,6 +150,7 @@
 - 当前 `web/` 已具备可构建的前端工程，并已优先调用 Spring Boot `query / trace / history` 接口，接口不可用时才回退到 mock 数据
 - 当前前后端已按分离部署思路收口：前端通过 `VITE_API_BASE_URL` 访问后端，后端通过 `app.web.cors.allowed-origins` 控制跨域
 - 当前 `app` 返回给前端的表格数据已来自 `core.execution.QueryResult`，不再依赖 `rawResult` 文本解析
+- 当前 `app` 已开始提供 `/api/workspace/sessions` 这一类正式工作台接口，为前端后续切换到“有状态工作台”结构做准备
 - 当前 Web UI 的 trace 已开始使用运行时真实命中组件，而不是只靠阶段级推断
 - 当前系统层已明确收口为 `storage / transaction / catalog` 共同构成的基础设施层，运行时默认组装已不再直接散落在 `QueryRuntime`
 - 当前日志与锁管理已开始从“具体实现类直连”转向“接口 + 默认实现”结构，单机默认实现仍由 `LogManager`、`LockManager` 提供
@@ -222,6 +228,9 @@
 - `CommandPlanningTest` 已移到正确的 `execution` 包路径，`rill-core verify` 不再被测试类路径问题阻塞
 - 恢复测试已覆盖未提交 `INSERT / UPDATE / DELETE` 和跨页宽 tuple 的 crash recovery 回滚
 - 索引测试已覆盖叶子链顺序、根收缩、缺失键删除和收缩后再插入
+- 主键约束测试已覆盖重复 `INSERT` 与主键更新冲突
+- 索引生命周期测试已覆盖先建索引、再按索引列查询、再更新索引列后的再次查询
+- `UpdateExecutor` 已修复按目标列类型解析整数字面量，`UPDATE ... SET id = 1` 不再落回 `SMALLINT/INT` 类型错配
 
 ## 测试重建大纲
 
@@ -378,6 +387,11 @@
 - 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,service,web}/**`、`web/src/**`、`agent/modules/{app,web}.md`、`agent/ARCHITECTURE.md`、`agent/STATUS.md`
 - 当前结果：浏览器端现在不只适合演示单次 SQL 执行，也能承载对模块结构、发布边界、网络编程与 Redis 扩展路线的讲解
 - 下一步建议：继续把 trace 做成完全动态，并补 `overview` / `query` controller 的单测，随后再评估是否引入更正式的 architecture / plan / catalog 专页
+
+- 完成了 Spring Boot 工作台后端第一轮补齐：新增 `WorkspaceService`、`WorkspaceController` 与 `RestExceptionHandler`，把 session、当前数据库、最近查询和统一错误模型从零散 controller 逻辑中抽出
+- 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,service,web}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,web}/**`、`agent/modules/app.md`
+- 当前结果：`rill-app-web` 现在不再只是单次 query/trace 壳，而开始具备“有状态工作台后端”的正式应用层结构；`WorkspaceServiceTest` 与 `WorkspaceControllerTest` 已通过
+- 下一步建议：继续把前端逐步切到 workspace/session 接口，再补统一 API 响应模型、查询收藏/模板和可讲的鉴权边界
 - 完成了数据库内核系统语句测试第一轮补齐：`ParserTest`、`PlannerTest`、`SemanticAnalyzerTest`、`QueryProcessorTest` 新增 `CREATE DATABASE / SHOW DATABASES / USE / DROP DATABASE` 回归，补上系统语句在 parser、planner、执行层的空白覆盖
 - 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/{sql,execution}/**`、`agent/modules/compiler.md`、`agent/STATUS.md`
 - 当前结果：重构后最容易漏掉的“能解析但没有计划 / 没有执行 / 没有行为断言”的系统语句路径已经开始被锁住
@@ -389,12 +403,12 @@
 
 ## 当前建议顺序
 
-1. 先修入口和启动模型
-2. 再拆 demo 逻辑
-3. 再把旧入口改成兼容层或移除
-4. 再做底层架构重构
-5. 再做 Web UI 和网络化扩展
-6. 最后补齐测试、管理和 CI/CD
+1. 先把 `rill-app-web` 做成正式工作台后台与面试主叙事入口
+2. 在 Spring Boot 层建立真实业务逻辑与 CRUD，业务数据优先落 PostgreSQL，并通过 MyBatis-Plus 管理
+3. 让 `rill-core` 继续作为数据库内核能力层，通过正式应用层边界被 Spring Boot 调用
+4. 继续补 `rill-core` 测试、通信层和恢复边界，作为 Spring Boot 产品层的技术底座
+5. 再推进网络编程、Redis、分布式预留与更完整 Web 产品能力
+6. 最后继续收口部署、CI/CD 与更完整发布体验
 
 ## 风险提示
 

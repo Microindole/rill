@@ -2,7 +2,7 @@
 
 ## 总体定位
 
-`rill` 当前本质上是一个“数据库内核实验项目”，而不是普通业务系统。
+`rill` 当前本质上是一个“自研数据库内核 + Spring Boot 工作台后台”的双层项目，而不是普通业务系统。
 
 项目核心价值在于：
 
@@ -11,17 +11,20 @@
 - 自己实现 B+Tree 索引
 - 自己实现事务、日志和恢复基础设施
 - 提供多种访问入口
+- 在 Spring Boot 层把这些内核能力包装成可演示、可扩展、可落业务逻辑的正式后端
 - 已形成按产品边界拆分的多模块构建与发布体系
 
 ## 当前快照
 
-截至 2026-03-28，项目已经具备这些稳定事实：
+截至 2026-03-29，项目已经具备这些稳定事实：
 
 - 多模块结构与 edition 化发布已落地
 - 统一 `rill` 命令入口已经落地到开发脚本和发布包装层
 - `rill-core` 的新测试体系已经重新建立，并覆盖基础设施、存储、编译器、执行层和一批集成场景
 - `rill-core` 当前 `mvn verify` 可通过，Codecov 已开始仅展示 `rill-core` 覆盖率
 - `ALTER TABLE` 这类仍未完全接通的能力，当前已经被测试显式标记为“未支持的当前行为”，而不是无人约束的灰区
+- `rill-app-web` 已经不再只是查询壳，而开始具备 workspace/session、overview、统一错误模型这类正式应用层结构
+- 项目当前最高优先级已从“继续扩内核与测试”切换到“先把 Spring Boot 工作台后台做成主产品叙事”
 
 ## 当前模块结构
 
@@ -63,14 +66,24 @@
 - `app.service.RillQueryService`
 - `app.web.HealthController`
 - `app.service.QueryTraceService`
+- `app.service.WorkspaceService`
 - `app.web.QueryController`
+- `app.web.WorkspaceController`
+- `app.web.RestExceptionHandler`
 
-这代表 Spring Boot 不再只是一个启动壳，而是开始成为正式的外层适配层。
+这代表 Spring Boot 不再只是一个启动壳，而是开始成为正式的外层适配层与工作台后端。
 当前 `web/` 目录下也已经起出了第一版前端骨架，采用 `Vue 3 + TypeScript + Vite + Pinia + Vue Router + Element Plus + Tailwind CSS + Vue Flow`。
 当前 `rill-app-web` 也已支持两种打包方式：
 
 - 纯 Spring Boot jar
 - 通过 `with-ui` profile 内嵌 `web/dist` 的单文件 jar
+
+当前 `app` 层的目标也已经明确成双后端编排：
+
+- 业务链路：`Controller -> Application Service -> MyBatis-Plus Mapper -> PostgreSQL`
+- 内核链路：`Controller -> Application Service -> DatabaseService -> rill-core`
+
+也就是说，Spring Boot 后端后续既要承载真实 CRUD 与业务状态，又要承载对自研数据库内核的演示、执行和观测。
 
 ### 2. SQL 处理层
 
@@ -205,16 +218,25 @@ SQL 编译链路的 DML 分支也已经开始继续拆细：
 - Web UI 用于部署后的展示和演示
 - Navicat 兼容入口用于外部数据库客户端接入
 
-Spring Boot 在后续应主要承担 Web UI 和服务化承载角色，而不是继续保留演示型启动副作用。
+Spring Boot 在后续应主要承担 Web UI、工作台业务后台和服务化承载角色，而不是继续保留演示型启动副作用。
 当前已完成的修正是：Spring Boot 启动不再自动触发 `ShellRunner` 演示逻辑。
 当前产品分发边界也已经明确：Spring Boot / Web 控制台不进入数据库主体安装包，而是保持独立 jar 发布。
 Web UI 的第一阶段定位也已经明确：不是介绍页，而是数据库可视化控制台，重点展示 SQL 执行、结果返回、执行流程与源码映射。
+当前第二阶段定位也已经明确：不是只做数据库可视化控制台，而是做“工作台 + 业务后台 + 内核演示台”的组合产品层。
 当前已经有第一版正式接口：
 
 - `POST /api/query/execute`
 - `GET /api/query/history`
 - `GET /api/query/trace/{traceId}`
 - `GET /api/health`
+
+后续最高优先级业务方向：
+
+- 工作台 session、当前数据库、最近查询
+- SQL 收藏、模板、历史、演示场景
+- 数据库对象浏览、执行观测、导入导出
+- 这些业务数据优先放到 PostgreSQL，借助 MyBatis-Plus 管理
+- `rill-core` 则继续负责 SQL 执行、trace、plan、元数据与数据库能力展示
 
 当前 `app` 层返回给前端的结果已经以结构化 `rows / columns / traceSteps` 为主，`rawResult` 仅保留为辅助展示，不再作为前端表格数据来源。
 当前 trace 也已经开始由运行时实际分发点产出，`SemanticAnalyzer`、`Planner`、`ExecutionEngine` 会记录命中的 validator / builder / executor。

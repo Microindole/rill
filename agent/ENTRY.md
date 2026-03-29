@@ -23,7 +23,7 @@
 
 ## 当前阶段
 
-当前处于“多模块、edition 化发布和统一启动入口已基本收口，`rill-core` 新测试体系正在持续重建并已重新覆盖基础设施/存储/编译器/执行/部分集成链路，接下来继续补通信层和剩余能力缺口”的阶段。
+当前处于“多模块、edition 化发布和统一启动入口已基本收口，`rill-core` 新测试体系已经重新立起，项目主重心转向 Spring Boot 工作台后端与可讲的业务层建设”的阶段。
 
 ## 用户已确定的大流程
 
@@ -36,16 +36,17 @@
 
 ## 当前优先目标
 
-- 继续重建并扩充 `rill-core` 测试体系，按“由内到外 + 由外到内”双线收口
-- 优先补通信层、协议层和更完整 SQL 场景测试，让新测试覆盖面超过历史旧测试
-- 继续把编译器重构为更符合开闭原则的结构，并补齐 PostgreSQL 方言缺口
-- 保持多模块、edition 发布、统一 launcher 和 Web 演示台边界稳定
+- 最高优先级：把 `rill-app-web` 做成正式的 Spring Boot 工作台后端与面试主叙事入口
+- 在 Spring Boot 层建立真实业务逻辑与 CRUD，而不是只做 SQL 转发页
+- 业务数据优先落到外部 PostgreSQL，并通过 MyBatis-Plus 组织实体、Mapper、Service 与查询逻辑
+- `rill-core` 继续作为数据库内核能力层，通过 `DatabaseService` 一类正式边界被 Spring Boot 调用
+- `rill-core` 测试、通信层测试、编译器收口继续推进，但让位于 Spring Boot 产品层建设
 
 ## 必读文档说明
 
 - `agent/STATUS.md`：记录当前状态、最近变更、下一步工作、已知问题。每次改动后必须更新。
-- `agent/ARCHITECTURE.md`：记录当前架构分层、关键运行链路、主要问题。发生架构变化时必须更新。
-- `agent/ARCHITECTURE_TARGET.md`：记录当前多模块结构、职责边界，以及后续产品分发与分布式预留方向。
+- `agent/ARCHITECTURE.md`：记录当前架构分层、关键运行链路、主要问题。当前重点要看 Spring Boot 如何同时编排业务库和 `rill-core`。
+- `agent/ARCHITECTURE_TARGET.md`：记录当前多模块结构、职责边界，以及后续产品分发与分布式预留方向。当前重点要看 `PostgreSQL + MyBatis-Plus + rill-core` 的双后端结构。
 - `agent/WORKFLOW.md`：定义 agent 在本项目中的工作方式，尤其是“改代码后如何同步文档”。
 
 ## 模块文档说明
