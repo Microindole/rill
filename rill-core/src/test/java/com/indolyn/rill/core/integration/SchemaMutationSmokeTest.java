@@ -47,13 +47,16 @@ class SchemaMutationSmokeTest {
     }
 
     @Test
-    void alterTableShouldCurrentlyFailWithParseErrorUntilParserSupportIsWired() {
+    void alterTableShouldAppendColumnAndUpdateMetadataViews() {
         queryProcessor.executeAndGetResult("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(20));");
 
         String alterResult = queryProcessor.executeAndGetResult("ALTER TABLE users ADD COLUMN email VARCHAR(50);");
+        String showColumnsResult = queryProcessor.executeAndGetResult("SHOW COLUMNS FROM users;");
+        String showCreateResult = queryProcessor.executeAndGetResult("SHOW CREATE TABLE users;");
 
-        assertTrue(alterResult.contains("ERROR:"));
-        assertTrue(alterResult.contains("Expected a valid statement"));
+        assertTrue(alterResult.contains("altered"));
+        assertTrue(showColumnsResult.contains("email"));
+        assertTrue(showCreateResult.contains("`email` VARCHAR(50)"));
     }
 
     private void deleteDirectory(File directory) {

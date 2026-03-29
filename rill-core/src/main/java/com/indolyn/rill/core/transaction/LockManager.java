@@ -17,7 +17,7 @@ public class LockManager implements LockService {
 
     private static class LockRequest {
         public final int txnId;
-        public final LockMode lockMode;
+        public LockMode lockMode;
         public boolean granted;
 
         public LockRequest(int txnId, LockMode lockMode) {
@@ -62,10 +62,38 @@ public class LockManager implements LockService {
     private void lock(Transaction txn, PageId pageId, LockMode lockMode) throws InterruptedException {
         int pageNum = pageId.getPageNum();
         LockRequestQueue queue = lockTable.computeIfAbsent(pageNum, k -> new LockRequestQueue());
-        LockRequest request = new LockRequest(txn.getTransactionId(), lockMode);
 
         queue.latch.lock();
         try {
+            LockRequest existingRequest = null;
+            for (LockRequest request : queue.requestList) {
+                if (request.txnId == txn.getTransactionId() && request.granted) {
+                    existingRequest = request;
+                    break;
+                }
+            }
+
+            if (existingRequest != null) {
+                if (existingRequest.lockMode == LockMode.EXCLUSIVE
+                    || existingRequest.lockMode == lockMode) {
+                    return;
+                }
+                while (queue.requestList.stream()
+                    .anyMatch(req -> req.granted && req.txnId != txn.getTransactionId())) {
+                    queue.condition.await();
+                }
+                queue.sharingCount = Math.max(0, queue.sharingCount - 1);
+                existingRequest.lockMode = LockMode.EXCLUSIVE;
+                System.out.println(
+                    "Transaction "
+                        + txn.getTransactionId()
+                        + " upgraded lock on page "
+                        + pageNum
+                        + " to EXCLUSIVE");
+                return;
+            }
+
+            LockRequest request = new LockRequest(txn.getTransactionId(), lockMode);
             queue.requestList.add(request);
             // 当无法立即获得锁时，循环等待
             while (!isLockCompatible(request, queue)) {

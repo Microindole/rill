@@ -67,4 +67,20 @@ class LockManagerBaselineTest {
             executor.shutdownNow();
         }
     }
+
+    @Test
+    void sameTransactionShouldUpgradeSharedLockToExclusiveWithoutDeadlock() throws Exception {
+        LockManager lockManager = new LockManager();
+        Transaction transaction = new Transaction(3);
+        PageId pageId = new PageId(12);
+
+        lockManager.lockShared(transaction, pageId);
+        lockManager.lockExclusive(transaction, pageId);
+
+        assertTrue(transaction.getLockedPageIds().contains(12));
+
+        lockManager.unlock(transaction, pageId);
+
+        assertFalse(transaction.getLockedPageIds().contains(12));
+    }
 }

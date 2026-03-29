@@ -15,10 +15,11 @@
 - `storage.page`: slotted page 插入、删除、删除标记与空间边界
 - `storage.disk`: 数据页落盘与空闲页复用
 - `storage.buffer`: 命中率统计、页重载与淘汰后的读回
-- `storage.index`: `BPlusTree` 的最小插入/查找/删除 smoke
+- `storage.index`: `BPlusTree` 的最小插入/查找/删除 smoke，以及分裂/合并后的结构稳定性
 - `compiler`: 词法/语法最小 smoke
 - `execution`: `QueryCompiler` 的 parse / compile 最小 smoke，`TableHeap` 的插入/更新/删除/迭代与约束校验
-- `integration`: 真实 SQL 执行、DML 变更、重启恢复最小 smoke
+- `integration`: 真实 SQL 执行、DML 变更、重启恢复、失败路径与 schema mutation smoke
+- `communication`: 原生 text server、MySQL 握手、CLI 命令流 smoke
 
 后续补测试时，优先遵守：
 
@@ -39,9 +40,19 @@
 - `DiskManagerBaselineTest`
 - `BufferPoolManagerBaselineTest`
 - `BPlusTreeSmokeTest`
+- `BPlusTreeStructureTest`
 - `LexerParserBaselineTest`
 - `QueryCompilerBaselineTest`
 - `TableHeapBaselineTest`
 - `QueryProcessorSmokeTest`
 - `DmlMutationSmokeTest`
 - `RecoverySmokeTest`
+- `RecoveryInterleavingTest`
+- `QueryFailurePathSmokeTest`
+
+最近补齐的重点缺口：
+
+- `ALTER TABLE ... ADD COLUMN` 已正式接入 parser 主链，并补上 parser / planning / integration 回归
+- `LockManager` 已补同事务共享锁升级为排他锁的回归，恢复期和执行期不再被自锁阻塞
+- `NativeServerSocketSmokeTest / MysqlServerSocketSmokeTest / InteractiveShellFlowTest` 已覆盖真实通信边界
+- `SHOW CREATE TABLE`、重复列 `ALTER TABLE`、缺失元数据对象、当前不支持的子查询等失败路径已有显式断言

@@ -9,6 +9,7 @@ import com.indolyn.rill.core.model.DataType;
 import com.indolyn.rill.core.model.Schema;
 import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.sql.ast.StatementNode;
+import com.indolyn.rill.core.sql.ast.statement.AlterTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateIndexStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateUserStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.GrantStatementNode;
@@ -16,6 +17,7 @@ import com.indolyn.rill.core.sql.ast.statement.ShowColumnsStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.ShowCreateTableStatementNode;
 import com.indolyn.rill.core.sql.planner.plan.command.CreateIndexPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.GrantPlanNode;
+import com.indolyn.rill.core.sql.planner.plan.command.AlterTablePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowColumnsPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowCreateTablePlanNode;
 
@@ -64,12 +66,14 @@ class CommandPlanningTest {
         StatementNode createUser = compiler.parse("CREATE USER 'reporter' IDENTIFIED BY 'secret';");
         StatementNode grant = compiler.parse("GRANT SELECT, INSERT ON users TO 'reporter';");
         StatementNode createIndex = compiler.parse("CREATE INDEX idx_users_name ON users (name);");
+        StatementNode alterTable = compiler.parse("ALTER TABLE users ADD COLUMN email VARCHAR(50);");
 
         assertInstanceOf(ShowColumnsStatementNode.class, showColumns);
         assertInstanceOf(ShowCreateTableStatementNode.class, showCreate);
         assertInstanceOf(CreateUserStatementNode.class, createUser);
         assertInstanceOf(GrantStatementNode.class, grant);
         assertInstanceOf(CreateIndexStatementNode.class, createIndex);
+        assertInstanceOf(AlterTableStatementNode.class, alterTable);
     }
 
     @Test
@@ -84,6 +88,10 @@ class CommandPlanningTest {
             compiler.compile(
                 "CREATE INDEX idx_users_name ON users (name);",
                 Session.createAuthenticatedSession(-1, "root"));
+        CompiledStatement alterTable =
+            compiler.compile(
+                "ALTER TABLE users ADD COLUMN email VARCHAR(50);",
+                Session.createAuthenticatedSession(-1, "root"));
         CompiledStatement grant =
             compiler.compile(
                 "GRANT SELECT, INSERT ON users TO 'reporter';",
@@ -93,6 +101,9 @@ class CommandPlanningTest {
         assertInstanceOf(ShowColumnsPlanNode.class, showColumns.plan());
         assertInstanceOf(ShowCreateTablePlanNode.class, showCreate.plan());
         assertInstanceOf(CreateIndexPlanNode.class, createIndex.plan());
+        AlterTablePlanNode alterPlan = assertInstanceOf(AlterTablePlanNode.class, alterTable.plan());
+        assertEquals("users", alterPlan.getTableName());
+        assertEquals("email", alterPlan.getNewColumn().getName());
         GrantPlanNode grantPlan = assertInstanceOf(GrantPlanNode.class, grant.plan());
         assertEquals("users", grantPlan.getTableName());
         assertEquals("reporter", grantPlan.getUsername());

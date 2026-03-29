@@ -9,6 +9,7 @@ import com.indolyn.rill.core.sql.ast.statement.CreateDatabaseStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateIndexStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateUserStatementNode;
+import com.indolyn.rill.core.sql.ast.statement.AlterTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.DropDatabaseStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.DropTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.GrantStatementNode;
@@ -100,6 +101,16 @@ final class DefinitionStatementParsers {
         IdentifierNode dbName =
             new IdentifierNode(parser.consume(TokenType.IDENTIFIER, "database name").lexeme());
         return new UseDatabaseStatementNode(dbName);
+    }
+
+    StatementNode parseAlterTableStatement() {
+        parser.consume(TokenType.TABLE, "'TABLE' keyword after 'ALTER'");
+        IdentifierNode tableName =
+            new IdentifierNode(parser.consume(TokenType.IDENTIFIER, "table name").lexeme());
+        parser.consume(TokenType.ADD, "'ADD' keyword after table name");
+        parser.match(TokenType.COLUMN);
+        ColumnDefinitionNode newColumnDefinition = parser.parseColumnDefinition();
+        return new AlterTableStatementNode(tableName, newColumnDefinition);
     }
 
     GrantStatementNode parseGrantStatement() {

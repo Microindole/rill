@@ -42,6 +42,10 @@ final class ParserStatementRegistry {
             parser.consume(TokenType.DROP, "'DROP' keyword");
             return definitionParsers.parseDropStatement();
         });
+        statementParsers.put(TokenType.ALTER, () -> {
+            parser.consume(TokenType.ALTER, "'ALTER' keyword");
+            return definitionParsers.parseAlterTableStatement();
+        });
         statementParsers.put(TokenType.USE, () -> {
             parser.consume(TokenType.USE, "'USE' keyword");
             return definitionParsers.parseUseDatabaseStatement();

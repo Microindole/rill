@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.indolyn.rill.core.sql.ast.StatementNode;
+import com.indolyn.rill.core.sql.ast.statement.AlterTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.SelectStatementNode;
 import com.indolyn.rill.core.sql.lexer.Lexer;
@@ -50,5 +51,16 @@ class LexerParserBaselineTest {
         assertEquals("users", select.fromTable().getName());
         assertTrue(select.isSelectAll());
         assertTrue(select.whereClause() != null);
+    }
+
+    @Test
+    void parserShouldBuildAlterTableAstForAddColumn() {
+        StatementNode statement =
+            new Parser(new Lexer("alter table users add column email varchar(50);").tokenize()).parse();
+
+        AlterTableStatementNode alterTable = assertInstanceOf(AlterTableStatementNode.class, statement);
+        assertEquals("users", alterTable.tableName().getName());
+        assertEquals("email", alterTable.newColumnDefinition().columnName().getName());
+        assertEquals("varchar", alterTable.newColumnDefinition().dataType().displayName());
     }
 }

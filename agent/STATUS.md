@@ -6,7 +6,7 @@
 - `rill-core` 旧测试已不再维护，但新的测试体系已经重新覆盖基础设施、存储、编译器、执行层和一批真实集成场景
 - 当前 `mvnw.cmd -q -pl rill-core -am verify` 已通过，`rill-core` 已重新成为可持续扩展的测试基线
 - Codecov 已接通，当前只展示 `rill-core` 覆盖率，不设置失败门槛
-- 当前还明确未完全接通的能力之一是 `ALTER TABLE` parser 主链支持；该现状已经有测试显式锁住
+- `ALTER TABLE` parser 主链已经接通，并补上了 parser / planner / integration 回归
 
 ## 当前阶段
 
@@ -378,6 +378,10 @@
 - 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/{sql,execution}/**`、`agent/modules/compiler.md`、`agent/STATUS.md`
 - 当前结果：重构后最容易漏掉的“能解析但没有计划 / 没有执行 / 没有行为断言”的系统语句路径已经开始被锁住
 - 下一步建议：继续沿同一模板把 `SHOW COLUMNS / SHOW CREATE TABLE / ALTER TABLE` 等系统/DDL 语句也补成 parser、planner、执行的成套回归
+- 完成了测试体系新一轮补齐：`ALTER TABLE` parser 主链已接通，新增真实通信 smoke（原生 server / MySQL 握手 / CLI 命令流）、`BPlusTree` 分裂/合并结构回归、未提交与多事务交错恢复回归，以及失败路径 SQL 回归
+- 影响范围：`rill-core/src/main/java/com/indolyn/rill/core/sql/parser/**`、`rill-core/src/main/java/com/indolyn/rill/core/transaction/LockManager.java`、`rill-core/src/test/java/com/indolyn/rill/core/{compiler,execution,infrastructure,integration,storage}/**`、`rill-server/src/test/java/com/indolyn/rill/access/protocol/**`、`rill-client/src/test/java/com/indolyn/rill/access/cli/**`、`rill-core/src/test/TESTING.md`
+- 当前结果：`./mvnw.cmd -q -pl rill-core -am verify`、`rill-server` 协议 smoke、`rill-client` CLI flow、`rill-app-web` service/controller 测试均已通过；通信、索引、恢复和 DDL 主链现在都有正式回归保护
+- 下一步建议：继续补更深的 `BPlusTree` 极端边界、多页恢复和更完整的子查询/DDL 能力；当前“测试骨架已建立”已推进到“关键缺口已补齐一轮”
 
 ## 当前建议顺序
 
