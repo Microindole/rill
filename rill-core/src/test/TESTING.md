@@ -18,7 +18,7 @@
 - `storage.index`: `BPlusTree` 的最小插入/查找/删除 smoke，以及分裂/合并、叶子链顺序、根收缩、缺失键删除、收缩后再插入的结构稳定性
 - `compiler`: 词法/语法最小 smoke
 - `execution`: `QueryCompiler` 的 parse / compile 最小 smoke，`TableHeap` 的插入/更新/删除/迭代与约束校验，以及未提交更新/删除/跨页写入后的恢复回滚
-- `integration`: 真实 SQL 执行、DML 变更、重启恢复、失败路径、schema mutation、类型约束、聚合函数和表生命周期 smoke
+- `integration`: 真实 SQL 执行、DML 变更、重启恢复、失败路径、schema mutation、类型约束、聚合函数、主键冲突、索引生命周期和表生命周期 smoke
 - `communication`: 原生 text server、MySQL 握手、CLI 命令流 smoke
 
 后续补测试时，优先遵守：
@@ -50,9 +50,13 @@
 - `RecoveryInterleavingTest`
 - `RecoveryMultiPageTest`
 - `RecoveryMutationUndoTest`
+- `RecoveryCommittedMutationTest`
 - `QueryFailurePathSmokeTest`
 - `TypeConstraintSmokeTest`
+- `PrimaryKeyConstraintSmokeTest`
 - `AggregateFunctionSmokeTest`
+- `IndexedMutationSmokeTest`
+- `MetadataPersistenceSmokeTest`
 - `TableLifecycleSmokeTest`
 
 最近补齐的重点缺口：
@@ -64,3 +68,6 @@
 - `BPlusTree` 已覆盖叶子链顺序、根收缩、缺失键删除和收缩后再插入
 - 恢复链路已覆盖未提交 `INSERT / UPDATE / DELETE` 以及跨页宽 tuple 回滚
 - SQL 集成层已覆盖 `COUNT/MIN/MAX/AVG` 聚合、`SHOW TABLES / DROP TABLE` 生命周期，以及 `VARCHAR/NUMERIC/NOT NULL` 约束失败路径
+- `UPDATE` 的整数字面量现在会按目标列类型落值，不再在主键更新冲突校验时回退到 `SMALLINT/INT` 混用
+- 主键冲突现在已有 `INSERT` 与 `UPDATE` 两条真实回归；索引列更新后的二次查询也已有 smoke
+- `ALTER TABLE` 后的列元数据、默认值和 `SHOW CREATE TABLE` 输出已加入重启后持久化回归

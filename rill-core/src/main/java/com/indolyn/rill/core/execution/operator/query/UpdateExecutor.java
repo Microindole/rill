@@ -62,7 +62,8 @@ public class UpdateExecutor implements TupleIterator {
             for (SetClauseNode clause : setClauses) {
                 String colName = clause.column().getName();
                 int colIndex = getColumnIndex(schema, colName);
-                Value newValue = getLiteralValue((LiteralNode) clause.value());
+                DataType targetType = schema.getColumns().get(colIndex).getType();
+                Value newValue = getLiteralValue((LiteralNode) clause.value(), targetType);
                 newValues.set(colIndex, newValue);
             }
             Tuple newTuple = new Tuple(newValues);
@@ -130,25 +131,28 @@ public class UpdateExecutor implements TupleIterator {
         throw new IllegalStateException("Column '" + columnName + "' not found in schema.");
     }
 
-    private Value getLiteralValue(LiteralNode literalNode) {
+    private Value getLiteralValue(LiteralNode literalNode, DataType targetType) {
         String lexeme = literalNode.literal().lexeme();
         return switch (literalNode.literal().type()) {
-            case INTEGER_CONST -> parseIntegerLiteral(lexeme);
+            case INTEGER_CONST -> parseIntegerLiteral(lexeme, targetType);
             case STRING_CONST -> new Value(lexeme);
             default -> throw new IllegalStateException("Unsupported literal type.");
         };
     }
 
-    private Value parseIntegerLiteral(String lexeme) {
-        try {
-            return new Value(Short.parseShort(lexeme));
-        } catch (NumberFormatException ignored) {
-        }
-        try {
-            return new Value(Integer.parseInt(lexeme));
-        } catch (NumberFormatException ignored) {
-        }
-        return new Value(Long.parseLong(lexeme));
+    private Value parseIntegerLiteral(String lexeme, DataType targetType) {
+        return switch (targetType) {
+            case SMALLINT -> new Value(Short.parseShort(lexeme));
+            case BIGINT -> new Value(Long.parseLong(lexeme));
+            case INT -> new Value(Integer.parseInt(lexeme));
+            default -> {
+                try {
+                    yield new Value(Integer.parseInt(lexeme));
+                } catch (NumberFormatException ignored) {
+                    yield new Value(Long.parseLong(lexeme));
+                }
+            }
+        };
     }
 
     @Override

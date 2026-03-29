@@ -12,6 +12,7 @@ import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.sql.ast.StatementNode;
 import com.indolyn.rill.core.sql.ast.statement.SelectStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.UseDatabaseStatementNode;
+import com.indolyn.rill.core.sql.planner.plan.query.IndexScanPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.JoinPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.query.ProjectPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.UseDatabasePlanNode;
@@ -111,6 +112,25 @@ class QueryCompilerBaselineTest {
 
         assertNotNull(aggregateProjectPlan.getOutputSchema());
         assertEquals(2, aggregateProjectPlan.getOutputSchema().getColumns().size());
+    }
+
+    @Test
+    void queryCompilerShouldPreferIndexScanForEqualityPredicateOnIndexedColumn() throws Exception {
+        QueryCompiler compiler = new QueryCompiler(queryRuntime.getCatalog(), queryRuntime.getPlanner());
+        queryRuntime.getCatalog().createTable(
+            "users",
+            new Schema(List.of(new Column("id", DataType.INT), new Column("name", DataType.VARCHAR))));
+        queryRuntime.getCatalog().createIndex("idx_users_name", "users", "name", 7);
+
+        CompiledStatement compiled =
+            compiler.compile(
+                "SELECT * FROM users WHERE name = 'alice';",
+                Session.createAuthenticatedSession(-1, "root"));
+
+        IndexScanPlanNode plan = assertInstanceOf(IndexScanPlanNode.class, compiled.plan());
+        assertEquals("users", plan.getTableInfo().getTableName());
+        assertEquals("idx_users_name", plan.getIndexInfo().getIndexName());
+        assertEquals("alice", plan.getSearchKey().getValue());
     }
 
     private void deleteDirectory(File directory) {
