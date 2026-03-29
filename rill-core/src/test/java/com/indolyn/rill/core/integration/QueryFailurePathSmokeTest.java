@@ -59,6 +59,39 @@ class QueryFailurePathSmokeTest {
         assertTrue(missingShowCreate.contains("missing_users"));
     }
 
+    @Test
+    void duplicateTableMissingDropTableAndInvalidIndexTargetsShouldReturnErrors() {
+        queryProcessor.executeAndGetResult("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(20));");
+
+        String duplicateTableResult =
+            queryProcessor.executeAndGetResult("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(20));");
+        String missingDropTableResult =
+            queryProcessor.executeAndGetResult("DROP TABLE ghost_users;");
+        String missingIndexTableResult =
+            queryProcessor.executeAndGetResult("CREATE INDEX idx_missing_name ON ghost_users (name);");
+
+        assertTrue(duplicateTableResult.startsWith("ERROR:"));
+        assertTrue(duplicateTableResult.toLowerCase().contains("already exists"));
+        assertTrue(missingDropTableResult.startsWith("ERROR:"));
+        assertTrue(
+            missingDropTableResult.toLowerCase().contains("does not exist")
+                || missingDropTableResult.toLowerCase().contains("not found"));
+        assertTrue(missingIndexTableResult.startsWith("ERROR:"));
+        assertTrue(missingIndexTableResult.toLowerCase().contains("not found"));
+    }
+
+    @Test
+    void duplicateIndexNameShouldBeRejected() {
+        queryProcessor.executeAndGetResult("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(20));");
+        queryProcessor.executeAndGetResult("CREATE INDEX idx_users_name ON users (name);");
+
+        String duplicateIndexResult =
+            queryProcessor.executeAndGetResult("CREATE INDEX idx_users_name ON users (name);");
+
+        assertTrue(duplicateIndexResult.startsWith("ERROR:"));
+        assertTrue(duplicateIndexResult.toLowerCase().contains("already exists"));
+    }
+
     private void deleteDirectory(File directory) {
         if (!directory.exists()) {
             return;

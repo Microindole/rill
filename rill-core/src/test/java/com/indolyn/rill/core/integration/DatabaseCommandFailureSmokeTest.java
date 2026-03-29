@@ -42,6 +42,31 @@ class DatabaseCommandFailureSmokeTest {
         }
     }
 
+    @Test
+    void queryProcessorShouldRejectDuplicateCreateDatabaseAndMissingDropDatabase() throws Exception {
+        String createdDbName = "db_failure_demo_" + System.nanoTime();
+        deleteDirectory(new File("data/" + TEST_DB_NAME));
+        deleteDirectory(new File("data/" + createdDbName));
+
+        QueryProcessor queryProcessor = new QueryProcessor(TEST_DB_NAME);
+        try {
+            String firstCreate =
+                queryProcessor.executeAndGetResult("CREATE DATABASE " + createdDbName + ";");
+            String duplicateCreate =
+                queryProcessor.executeAndGetResult("CREATE DATABASE " + createdDbName + ";");
+            String missingDrop =
+                queryProcessor.executeAndGetResult("DROP DATABASE db_missing_failure_case;");
+
+            assertTrue(firstCreate.contains("created") || firstCreate.contains("Query OK"));
+            assertTrue(duplicateCreate.startsWith("ERROR:"));
+            assertTrue(missingDrop.startsWith("ERROR:"));
+        } finally {
+            queryProcessor.close();
+            deleteDirectory(new File("data/" + TEST_DB_NAME));
+            deleteDirectory(new File("data/" + createdDbName));
+        }
+    }
+
     private void deleteDirectory(File directory) throws IOException {
         if (!directory.exists()) {
             return;

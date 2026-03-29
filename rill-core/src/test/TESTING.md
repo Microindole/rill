@@ -15,10 +15,10 @@
 - `storage.page`: slotted page 插入、删除、删除标记与空间边界
 - `storage.disk`: 数据页落盘与空闲页复用
 - `storage.buffer`: 命中率统计、页重载与淘汰后的读回
-- `storage.index`: `BPlusTree` 的最小插入/查找/删除 smoke，以及分裂/合并后的结构稳定性
+- `storage.index`: `BPlusTree` 的最小插入/查找/删除 smoke，以及分裂/合并、叶子链顺序、根收缩、缺失键删除、收缩后再插入的结构稳定性
 - `compiler`: 词法/语法最小 smoke
-- `execution`: `QueryCompiler` 的 parse / compile 最小 smoke，`TableHeap` 的插入/更新/删除/迭代与约束校验
-- `integration`: 真实 SQL 执行、DML 变更、重启恢复、失败路径与 schema mutation smoke
+- `execution`: `QueryCompiler` 的 parse / compile 最小 smoke，`TableHeap` 的插入/更新/删除/迭代与约束校验，以及未提交更新/删除/跨页写入后的恢复回滚
+- `integration`: 真实 SQL 执行、DML 变更、重启恢复、失败路径、schema mutation、类型约束、聚合函数和表生命周期 smoke
 - `communication`: 原生 text server、MySQL 握手、CLI 命令流 smoke
 
 后续补测试时，优先遵守：
@@ -48,7 +48,12 @@
 - `DmlMutationSmokeTest`
 - `RecoverySmokeTest`
 - `RecoveryInterleavingTest`
+- `RecoveryMultiPageTest`
+- `RecoveryMutationUndoTest`
 - `QueryFailurePathSmokeTest`
+- `TypeConstraintSmokeTest`
+- `AggregateFunctionSmokeTest`
+- `TableLifecycleSmokeTest`
 
 最近补齐的重点缺口：
 
@@ -56,3 +61,6 @@
 - `LockManager` 已补同事务共享锁升级为排他锁的回归，恢复期和执行期不再被自锁阻塞
 - `NativeServerSocketSmokeTest / MysqlServerSocketSmokeTest / InteractiveShellFlowTest` 已覆盖真实通信边界
 - `SHOW CREATE TABLE`、重复列 `ALTER TABLE`、缺失元数据对象、当前不支持的子查询等失败路径已有显式断言
+- `BPlusTree` 已覆盖叶子链顺序、根收缩、缺失键删除和收缩后再插入
+- 恢复链路已覆盖未提交 `INSERT / UPDATE / DELETE` 以及跨页宽 tuple 回滚
+- SQL 集成层已覆盖 `COUNT/MIN/MAX/AVG` 聚合、`SHOW TABLES / DROP TABLE` 生命周期，以及 `VARCHAR/NUMERIC/NOT NULL` 约束失败路径

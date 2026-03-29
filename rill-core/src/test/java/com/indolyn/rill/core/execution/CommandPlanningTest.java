@@ -15,16 +15,14 @@ import com.indolyn.rill.core.sql.ast.statement.CreateUserStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.GrantStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.ShowColumnsStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.ShowCreateTableStatementNode;
+import com.indolyn.rill.core.sql.planner.plan.command.AlterTablePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.CreateIndexPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.GrantPlanNode;
-import com.indolyn.rill.core.sql.planner.plan.command.AlterTablePlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowColumnsPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.ShowCreateTablePlanNode;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

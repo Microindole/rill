@@ -12,6 +12,8 @@ import com.indolyn.rill.core.session.Session;
 import com.indolyn.rill.core.sql.ast.StatementNode;
 import com.indolyn.rill.core.sql.ast.statement.SelectStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.UseDatabaseStatementNode;
+import com.indolyn.rill.core.sql.planner.plan.query.JoinPlanNode;
+import com.indolyn.rill.core.sql.planner.plan.query.ProjectPlanNode;
 import com.indolyn.rill.core.sql.planner.plan.command.UseDatabasePlanNode;
 
 import java.io.File;
@@ -81,6 +83,34 @@ class QueryCompilerBaselineTest {
         assertNotNull(compiled);
         assertInstanceOf(SelectStatementNode.class, compiled.ast());
         assertNotNull(compiled.plan());
+    }
+
+    @Test
+    void queryCompilerShouldCompileJoinAndAggregationQueriesAgainstPreparedCatalog() throws Exception {
+        QueryCompiler compiler = new QueryCompiler(queryRuntime.getCatalog(), queryRuntime.getPlanner());
+        queryRuntime.getCatalog().createTable(
+            "users",
+            new Schema(List.of(new Column("id", DataType.INT), new Column("name", DataType.VARCHAR))));
+        queryRuntime.getCatalog().createTable(
+            "orders",
+            new Schema(List.of(new Column("id", DataType.INT), new Column("user_id", DataType.INT), new Column("amount", DataType.INT))));
+
+        CompiledStatement joinCompiled =
+            compiler.compile(
+                "SELECT users.name, orders.amount FROM users JOIN orders ON users.id = orders.user_id;",
+                Session.createAuthenticatedSession(-1, "root"));
+        CompiledStatement aggregateCompiled =
+            compiler.compile(
+                "SELECT user_id, SUM(amount) FROM orders GROUP BY user_id HAVING SUM(amount) > 5;",
+                Session.createAuthenticatedSession(-1, "root"));
+
+        ProjectPlanNode joinProjectPlan = assertInstanceOf(ProjectPlanNode.class, joinCompiled.plan());
+        assertInstanceOf(JoinPlanNode.class, joinProjectPlan.getChild());
+        ProjectPlanNode aggregateProjectPlan =
+            assertInstanceOf(ProjectPlanNode.class, aggregateCompiled.plan());
+
+        assertNotNull(aggregateProjectPlan.getOutputSchema());
+        assertEquals(2, aggregateProjectPlan.getOutputSchema().getColumns().size());
     }
 
     private void deleteDirectory(File directory) {

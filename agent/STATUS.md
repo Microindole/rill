@@ -7,6 +7,7 @@
 - 当前 `mvnw.cmd -q -pl rill-core -am verify` 已通过，`rill-core` 已重新成为可持续扩展的测试基线
 - Codecov 已接通，当前只展示 `rill-core` 覆盖率，不设置失败门槛
 - `ALTER TABLE` parser 主链已经接通，并补上了 parser / planner / integration 回归
+- `rill-core` 测试已进一步扩到 `BPlusTree` 深边界、未提交 `UPDATE/DELETE` 恢复回滚、跨页恢复、聚合函数、表生命周期和类型约束失败路径
 
 ## 当前阶段
 
@@ -215,9 +216,12 @@
 
 - 执行层已新增 `BuiltInCommandHandler / StatementTableNameResolver / QueryResultRenderer / ProjectionColumnResolver / PredicateFactory / ExpressionEvaluator / ExecutionSupport / command executors` 回归
 - 编译器已新增 `PostgreSqlTypeResolver`、系统命令规划回归
-- 集成链路已新增数据库命令、元数据命令、查询特性、权限命令和 schema mutation 回归
+- 集成链路已新增数据库命令、元数据命令、查询特性、权限命令、聚合函数、表生命周期、类型约束和 schema mutation 回归
 - `SHOW CREATE TABLE` 已在 `rill-core` 真正打通，不再只是协议层单独展示
 - `ShowTablesExecutor` 已修复对不可变列表做原地修改的问题
+- `CommandPlanningTest` 已移到正确的 `execution` 包路径，`rill-core verify` 不再被测试类路径问题阻塞
+- 恢复测试已覆盖未提交 `INSERT / UPDATE / DELETE` 和跨页宽 tuple 的 crash recovery 回滚
+- 索引测试已覆盖叶子链顺序、根收缩、缺失键删除和收缩后再插入
 
 ## 测试重建大纲
 

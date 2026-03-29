@@ -83,4 +83,60 @@ class LockManagerBaselineTest {
 
         assertFalse(transaction.getLockedPageIds().contains(12));
     }
+
+    @Test
+    void sharedLocksFromDifferentTransactionsShouldCoexist() throws Exception {
+        LockManager lockManager = new LockManager();
+        Transaction firstTransaction = new Transaction(4);
+        Transaction secondTransaction = new Transaction(5);
+        PageId pageId = new PageId(15);
+
+        lockManager.lockShared(firstTransaction, pageId);
+        lockManager.lockShared(secondTransaction, pageId);
+
+        assertTrue(firstTransaction.getLockedPageIds().contains(15));
+        assertTrue(secondTransaction.getLockedPageIds().contains(15));
+
+        lockManager.unlock(firstTransaction, pageId);
+        lockManager.unlock(secondTransaction, pageId);
+
+        assertFalse(firstTransaction.getLockedPageIds().contains(15));
+        assertFalse(secondTransaction.getLockedPageIds().contains(15));
+    }
+
+    @Test
+    void waitingSharedLockShouldProceedAfterExclusiveLockReleases() throws Exception {
+        LockManager lockManager = new LockManager();
+        Transaction exclusiveHolder = new Transaction(6);
+        Transaction waitingReader = new Transaction(7);
+        PageId pageId = new PageId(18);
+
+        lockManager.lockExclusive(exclusiveHolder, pageId);
+
+        CountDownLatch acquiredSignal = new CountDownLatch(1);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> future =
+            executor.submit(
+                () -> {
+                    try {
+                        lockManager.lockShared(waitingReader, pageId);
+                        acquiredSignal.countDown();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                });
+
+        try {
+            assertFalse(acquiredSignal.await(200, TimeUnit.MILLISECONDS));
+
+            lockManager.unlock(exclusiveHolder, pageId);
+
+            assertTrue(acquiredSignal.await(2, TimeUnit.SECONDS));
+            assertTrue(waitingReader.getLockedPageIds().contains(18));
+        } finally {
+            lockManager.unlock(waitingReader, pageId);
+            future.cancel(true);
+            executor.shutdownNow();
+        }
+    }
 }
