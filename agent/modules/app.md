@@ -139,6 +139,13 @@
   - 注册时写入 bcrypt 哈希
   - 登录时用 `PasswordEncoder.matches(...)` 校验
   - 默认 `demo / guest` 用户改成启动期自动补种和自动迁移旧明文
+- 当前认证链又往前推进了一轮：
+  - 登录已支持“普通验证”模式的验证码接入点，默认推荐 Cloudflare Turnstile
+  - 注册不再直接发登录态，而是发送带时效性的邮箱验证链接
+  - 修改密码需要先验证当前密码，再发送邮箱确认链接
+  - 忘记密码通过注册邮箱发送带时效性的重置链接
+  - 管理员接口已开始独立到 `app.controller.AdminUserController`
+  - Spring Boot 已开始通过 `config/rill-app-secrets.properties` 外部化敏感配置
 - 当前 `data.sql` 已开始提供默认 snippet 和默认 demo scenario，方便本地和演示环境开箱即用
 - 当前 `RestExceptionHandler` 已开始把 `ResponseStatusException` 收口成统一 JSON 错误模型
 - 当前 `rill-app-web` 已支持两种发布形态，且两者都会通过 Maven 依赖携带 `rill-core`：
@@ -168,6 +175,12 @@
   - 更安全的密码存储
   - token 生命周期、刷新与撤销策略
   - 基于用户隔离工作台资产
+- 继续把管理员后台和用户自助认证流程补完整：
+  - 用户列表 / 用户详情
+  - 用户数据库分配与删除
+  - 验证码联调
+  - 邮件模板和真实 SMTP 环境联调
+  - 前端登录/注册/改密/忘记密码完整页面
 - 继续把“游客 / 用户 / 管理员”的数据库访问边界落实到前端控制台和后台管理界面
 - 继续把首页 / 登录页 / 控制台 / 项目介绍页收口成完整站点，而不是单页 SQL 控制台
 - 把当前已落地的 `workspace_session / query_history / sql_snippet / demo_scenario` 继续向前端工作台接通

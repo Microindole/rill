@@ -18,6 +18,7 @@
 - `rill-app-web` 已补出 `export_task`，开始把“执行 SQL”与“交付 csv/json 导出结果”连接起来
 - `rill-app-web` 已开始补出最小用户边界，新增 `app_user`、`/api/auth/register`、`/api/auth/login`、`/api/auth/me`、`/api/auth/logout`，并把 `workspace_session / query_history / sql_snippet / demo_scenario / export_task` 接到 `owner_id` 隔离链路
 - `rill-app-web` 已把最小登录态升级到 JWT：新增 `app_jwt_session`、游客/用户/管理员三种数据库访问边界、注册自动分配个人内核数据库，并开始把前端重构成首页 / 登录页 / 控制台 / 项目介绍四页站点
+- `rill-app-web` 已进一步补上管理员与邮箱验证基础设施：新增 `app_verification_token`、管理员用户接口、登录验证码接入点、注册验证邮件、改密确认邮件、忘记密码邮件，以及外部敏感配置文件加载能力
 
 ## 当前阶段
 

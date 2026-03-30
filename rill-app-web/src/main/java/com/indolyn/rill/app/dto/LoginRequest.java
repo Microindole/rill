@@ -1,4 +1,4 @@
 package com.indolyn.rill.app.dto;
 
-public record LoginRequest(String username, String password) {
+public record LoginRequest(String username, String password, String captchaToken) {
 }

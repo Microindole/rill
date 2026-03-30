@@ -12,10 +12,13 @@ public class AppUserEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String username;
+    private String email;
     private String displayName;
     private String password;
     private String role;
     private String kernelDbName;
+    private boolean emailVerified;
+    private boolean kernelDbProvisioned;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -37,6 +40,14 @@ public class AppUserEntity {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public void setDisplayName(String displayName) {
@@ -65,6 +76,22 @@ public class AppUserEntity {
 
     public void setKernelDbName(String kernelDbName) {
         this.kernelDbName = kernelDbName;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public boolean isKernelDbProvisioned() {
+        return kernelDbProvisioned;
+    }
+
+    public void setKernelDbProvisioned(boolean kernelDbProvisioned) {
+        this.kernelDbProvisioned = kernelDbProvisioned;
     }
 
     public Instant getCreatedAt() {

@@ -3,20 +3,25 @@ package com.indolyn.rill.app.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.indolyn.rill.app.persistence.entity.AppJwtSessionEntity;
 import com.indolyn.rill.app.persistence.entity.AppUserEntity;
+import com.indolyn.rill.app.persistence.entity.AppVerificationTokenEntity;
 import com.indolyn.rill.app.persistence.mapper.AppJwtSessionMapper;
 import com.indolyn.rill.app.persistence.mapper.AppUserMapper;
 import com.indolyn.rill.app.security.RequestUserContext;
 import com.indolyn.rill.app.security.RequestUserContextHolder;
 import com.indolyn.rill.app.service.AuthService;
 import com.indolyn.rill.app.service.AuthenticatedUser;
+import com.indolyn.rill.app.service.CaptchaVerificationService;
 import com.indolyn.rill.app.service.JwtService;
+import com.indolyn.rill.app.service.MailService;
 import com.indolyn.rill.app.service.RillQueryService;
+import com.indolyn.rill.app.service.VerificationTokenService;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,24 +38,37 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final RillQueryService rillQueryService;
     private final PasswordEncoder passwordEncoder;
+    private final CaptchaVerificationService captchaVerificationService;
+    private final VerificationTokenService verificationTokenService;
+    private final MailService mailService;
+    private final String frontendBaseUrl;
 
     public AuthServiceImpl(
         AppUserMapper appUserMapper,
         AppJwtSessionMapper appJwtSessionMapper,
         JwtService jwtService,
         RillQueryService rillQueryService,
-        PasswordEncoder passwordEncoder) {
+        PasswordEncoder passwordEncoder,
+        CaptchaVerificationService captchaVerificationService,
+        VerificationTokenService verificationTokenService,
+        MailService mailService,
+        @Value("${app.auth.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
         this.appUserMapper = appUserMapper;
         this.appJwtSessionMapper = appJwtSessionMapper;
         this.jwtService = jwtService;
         this.rillQueryService = rillQueryService;
         this.passwordEncoder = passwordEncoder;
+        this.captchaVerificationService = captchaVerificationService;
+        this.verificationTokenService = verificationTokenService;
+        this.mailService = mailService;
+        this.frontendBaseUrl = frontendBaseUrl;
     }
 
     @Override
     @Transactional
-    public AuthenticatedUser register(String username, String displayName, String password) {
+    public void register(String username, String email, String displayName, String password) {
         String normalizedUsername = normalizeUsername(username);
+        String normalizedEmail = normalizeEmail(email);
         String normalizedDisplayName = normalizeDisplayName(displayName);
         String normalizedPassword = normalizePassword(password);
         AppUserEntity existing =
@@ -59,23 +77,50 @@ public class AuthServiceImpl implements AuthService {
         if (existing != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
+        AppUserEntity emailExisting =
+            appUserMapper.selectOne(
+                new QueryWrapper<AppUserEntity>().eq("email", normalizedEmail).last("limit 1"));
+        if (emailExisting != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
         Instant now = Instant.now();
         AppUserEntity user = new AppUserEntity();
         user.setUsername(normalizedUsername);
+        user.setEmail(normalizedEmail);
         user.setDisplayName(normalizedDisplayName);
         user.setPassword(passwordEncoder.encode(normalizedPassword));
         user.setRole("USER");
         user.setKernelDbName(allocateKernelDatabaseName(normalizedUsername));
+        user.setEmailVerified(false);
+        user.setKernelDbProvisioned(false);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
         appUserMapper.insert(user);
-        ensureKernelDatabaseExists(user.getKernelDbName());
+        AppVerificationTokenEntity token = verificationTokenService.create(user, VerificationTokenService.PURPOSE_REGISTER);
+        sendVerificationEmail(user, token);
+    }
+
+    @Override
+    @Transactional
+    public AuthenticatedUser confirmEmail(String token) {
+        AppVerificationTokenEntity verificationToken =
+            verificationTokenService.requireUsableToken(token, VerificationTokenService.PURPOSE_REGISTER);
+        AppUserEntity user = requireUser(verificationToken.getUserId());
+        if (!user.isKernelDbProvisioned()) {
+            ensureKernelDatabaseExists(user.getKernelDbName());
+            user.setKernelDbProvisioned(true);
+        }
+        user.setEmailVerified(true);
+        user.setUpdatedAt(Instant.now());
+        appUserMapper.updateById(user);
+        verificationTokenService.markUsed(verificationToken);
         return issueToken(user);
     }
 
     @Override
     @Transactional
-    public AuthenticatedUser login(String username, String password) {
+    public AuthenticatedUser login(String username, String password, String captchaToken) {
+        captchaVerificationService.verifyLoginCaptcha(captchaToken);
         String normalizedUsername = normalizeUsername(username);
         String normalizedPassword = normalizePassword(password);
         AppUserEntity user =
@@ -84,7 +129,53 @@ public class AuthServiceImpl implements AuthService {
         if (user == null || user.getPassword() == null || !passwordEncoder.matches(normalizedPassword, user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
         }
+        if (!user.isEmailVerified() && !GUEST_USERNAME.equalsIgnoreCase(user.getUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Email verification required");
+        }
         return issueToken(user);
+    }
+
+    @Override
+    @Transactional
+    public void requestPasswordChange(Long userId, String currentPassword, String newPassword) {
+        AppUserEntity user = requireUser(userId);
+        if (!passwordEncoder.matches(normalizePassword(currentPassword), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+        }
+        normalizePassword(newPassword);
+        AppVerificationTokenEntity token =
+            verificationTokenService.create(user, VerificationTokenService.PURPOSE_PASSWORD_CHANGE);
+        sendPasswordChangeEmail(user, token);
+    }
+
+    @Override
+    @Transactional
+    public void confirmPasswordChange(String token, String newPassword) {
+        AppVerificationTokenEntity verificationToken =
+            verificationTokenService.requireUsableToken(token, VerificationTokenService.PURPOSE_PASSWORD_CHANGE);
+        updatePassword(verificationToken, normalizePassword(newPassword));
+    }
+
+    @Override
+    @Transactional
+    public void requestPasswordReset(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        AppUserEntity user =
+            appUserMapper.selectOne(new QueryWrapper<AppUserEntity>().eq("email", normalizedEmail).last("limit 1"));
+        if (user == null) {
+            return;
+        }
+        AppVerificationTokenEntity token =
+            verificationTokenService.create(user, VerificationTokenService.PURPOSE_PASSWORD_RESET);
+        sendPasswordResetEmail(user, token);
+    }
+
+    @Override
+    @Transactional
+    public void confirmPasswordReset(String token, String newPassword) {
+        AppVerificationTokenEntity verificationToken =
+            verificationTokenService.requireUsableToken(token, VerificationTokenService.PURPOSE_PASSWORD_RESET);
+        updatePassword(verificationToken, normalizePassword(newPassword));
     }
 
     @Override
@@ -122,6 +213,14 @@ public class AuthServiceImpl implements AuthService {
         return new AuthenticatedUser(user, jwtService.issueToken(user, jwtId, jwtSession.getExpiresAt()));
     }
 
+    private void updatePassword(AppVerificationTokenEntity verificationToken, String newPassword) {
+        AppUserEntity user = requireUser(verificationToken.getUserId());
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(Instant.now());
+        appUserMapper.updateById(user);
+        verificationTokenService.markUsed(verificationToken);
+    }
+
     private String allocateKernelDatabaseName(String username) {
         String normalized = username.trim().toLowerCase().replaceAll("[^a-z0-9_]", "_");
         if (normalized.isBlank() || "default".equals(normalized) || GUEST_USERNAME.equals(normalized)) {
@@ -138,11 +237,26 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    private AppUserEntity requireUser(Long userId) {
+        AppUserEntity user = appUserMapper.selectById(userId);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+        return user;
+    }
+
     private String normalizeUsername(String username) {
         if (username == null || username.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be empty");
         }
         return username.trim();
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email cannot be empty");
+        }
+        return email.trim().toLowerCase();
     }
 
     private String normalizeDisplayName(String displayName) {
@@ -157,5 +271,29 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password cannot be empty");
         }
         return password;
+    }
+
+    private void sendVerificationEmail(AppUserEntity user, AppVerificationTokenEntity token) {
+        String link = frontendBaseUrl + "/login?mode=verify&token=" + token.getToken();
+        mailService.sendEmail(
+            user.getEmail(),
+            "Verify your Rill account",
+            "Click the link to verify your account within 30 minutes:\n" + link);
+    }
+
+    private void sendPasswordChangeEmail(AppUserEntity user, AppVerificationTokenEntity token) {
+        String link = frontendBaseUrl + "/login?mode=change-password&token=" + token.getToken();
+        mailService.sendEmail(
+            user.getEmail(),
+            "Confirm your Rill password change",
+            "Click the link to confirm your password change within 30 minutes:\n" + link);
+    }
+
+    private void sendPasswordResetEmail(AppUserEntity user, AppVerificationTokenEntity token) {
+        String link = frontendBaseUrl + "/login?mode=reset-password&token=" + token.getToken();
+        mailService.sendEmail(
+            user.getEmail(),
+            "Reset your Rill password",
+            "Click the link to reset your password within 30 minutes:\n" + link);
     }
 }

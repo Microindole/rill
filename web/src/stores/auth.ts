@@ -1,7 +1,7 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
-import { currentUser, login, logout, register } from "@/services/api";
-import type { AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
+import { currentUser, getAuthConfig, login, logout, register } from "@/services/api";
+import type { AuthConfig, AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
 
 const TOKEN_KEY = "rill.web.token";
 
@@ -10,9 +10,16 @@ export const useAuthStore = defineStore("auth", () => {
     const user = ref<AuthUser | null>({
         userId: 0,
         username: "guest",
+        email: "guest@example.com",
+        emailVerified: true,
         displayName: "Guest",
         role: "GUEST",
         kernelDbName: "default"
+    });
+    const authConfig = ref<AuthConfig>({
+        captchaEnabled: false,
+        captchaProvider: "turnstile",
+        captchaSiteKey: ""
     });
     const loading = ref(false);
     const error = ref("");
@@ -46,6 +53,8 @@ export const useAuthStore = defineStore("auth", () => {
             user.value = {
                 userId: response.userId,
                 username: response.username,
+                email: response.email,
+                emailVerified: response.emailVerified,
                 displayName: response.displayName,
                 role: response.role,
                 kernelDbName: response.kernelDbName
@@ -62,21 +71,17 @@ export const useAuthStore = defineStore("auth", () => {
         loading.value = true;
         error.value = "";
         try {
-            const response = await register(payload);
-            setToken(response.token);
-            user.value = {
-                userId: response.userId,
-                username: response.username,
-                displayName: response.displayName,
-                role: response.role,
-                kernelDbName: response.kernelDbName
-            };
+            await register(payload);
         } catch (err) {
             error.value = err instanceof Error ? err.message : "注册失败";
             throw err;
         } finally {
             loading.value = false;
         }
+    }
+
+    async function loadAuthConfig() {
+        authConfig.value = await getAuthConfig();
     }
 
     async function logoutCurrentUser() {
@@ -95,6 +100,8 @@ export const useAuthStore = defineStore("auth", () => {
         user.value = {
             userId: 0,
             username: "guest",
+            email: "guest@example.com",
+            emailVerified: true,
             displayName: "Guest",
             role: "GUEST",
             kernelDbName: "default"
@@ -106,8 +113,10 @@ export const useAuthStore = defineStore("auth", () => {
         user,
         loading,
         error,
+        authConfig,
         isAuthenticated,
         isGuest,
+        loadAuthConfig,
         hydrateUser,
         loginWithPassword,
         registerAccount,

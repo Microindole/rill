@@ -1,5 +1,12 @@
 import { apiBaseUrl } from "@/config/env";
-import type { LoginPayload, LoginResponse, RegisterPayload, AuthUser } from "@/types/auth";
+import type {
+    ActionMessageResponse,
+    AuthConfig,
+    LoginPayload,
+    LoginResponse,
+    RegisterPayload,
+    AuthUser
+} from "@/types/auth";
 import type { SystemOverview } from "@/types/overview";
 import type { QueryExecutionResult } from "@/types/trace";
 
@@ -72,6 +79,17 @@ export interface ExportTask {
     completedAt: string | null;
 }
 
+export interface AdminUser {
+    userId: number;
+    username: string;
+    email: string;
+    emailVerified: boolean;
+    displayName: string;
+    role: string;
+    kernelDbName: string;
+    kernelDbProvisioned: boolean;
+}
+
 interface ExecuteQueryRequest {
     sql: string;
 }
@@ -117,8 +135,12 @@ async function request<T>(path: string, method: HttpMethod, token?: string, body
     return parseJsonResponse<T>(response);
 }
 
-export function register(payload: RegisterPayload): Promise<LoginResponse> {
-    return request<LoginResponse>("/api/auth/register", "POST", undefined, payload);
+export function getAuthConfig(): Promise<AuthConfig> {
+    return request<AuthConfig>("/api/auth/config", "GET");
+}
+
+export function register(payload: RegisterPayload): Promise<ActionMessageResponse> {
+    return request<ActionMessageResponse>("/api/auth/register", "POST", undefined, payload);
 }
 
 export function login(payload: LoginPayload): Promise<LoginResponse> {
@@ -176,4 +198,16 @@ export function listScenarios(token?: string): Promise<DemoScenario[]> {
 
 export function listExportTasks(token?: string): Promise<ExportTask[]> {
     return request<ExportTask[]>("/api/workspace/export-tasks", "GET", token);
+}
+
+export function listAdminUsers(token?: string): Promise<AdminUser[]> {
+    return request<AdminUser[]>("/api/admin/users", "GET", token);
+}
+
+export function provisionAdminUserDatabase(token: string | undefined, userId: number): Promise<AdminUser> {
+    return request<AdminUser>(`/api/admin/users/${userId}/database/provision`, "POST", token);
+}
+
+export function deleteAdminUserDatabase(token: string | undefined, userId: number): Promise<void> {
+    return request<void>(`/api/admin/users/${userId}/database`, "DELETE", token);
 }

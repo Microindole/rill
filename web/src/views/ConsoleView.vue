@@ -76,6 +76,29 @@
                         游客模式下只会操作共享 default 数据库。登录后会自动切换到你的个人数据库并保留自己的工作台资产。
                     </p>
                 </article>
+
+                <article v-if="auth.user?.role === 'ADMIN'" class="workspace-card">
+                    <h2>管理员面板</h2>
+                    <div class="list-block" v-if="platform.adminUsers.length">
+                        <div v-for="item in platform.adminUsers" :key="item.userId" class="list-item static">
+                            <strong>{{ item.username }} · {{ item.role }}</strong>
+                            <span>{{ item.email }} · DB {{ item.kernelDbName }} · {{ item.kernelDbProvisioned ? "已分配" : "未分配" }}</span>
+                            <div class="console-query-actions">
+                                <el-button size="small" @click="platform.provisionUserDatabase(item.userId)">分配数据库</el-button>
+                                <el-button
+                                    size="small"
+                                    type="danger"
+                                    plain
+                                    :disabled="item.role === 'ADMIN' || item.kernelDbName === 'default'"
+                                    @click="platform.dropUserDatabase(item.userId)"
+                                >
+                                    删除数据库
+                                </el-button>
+                            </div>
+                        </div>
+                    </div>
+                    <el-empty v-else description="暂无用户数据" />
+                </article>
             </aside>
 
             <main class="workspace-main">

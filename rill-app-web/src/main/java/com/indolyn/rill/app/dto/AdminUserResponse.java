@@ -1,11 +1,12 @@
 package com.indolyn.rill.app.dto;
 
-public record CurrentUserResponse(
+public record AdminUserResponse(
     Long userId,
     String username,
     String email,
     boolean emailVerified,
     String displayName,
     String role,
-    String kernelDbName) {
+    String kernelDbName,
+    boolean kernelDbProvisioned) {
 }

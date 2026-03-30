@@ -4,14 +4,18 @@ import { mockOverview } from "@/data/mockOverview";
 import { mockQueryResult } from "@/data/mockTrace";
 import {
     createWorkspaceSession,
+    deleteAdminUserDatabase,
     executeQuery,
     getDashboard,
     getSystemOverview,
     getWorkspaceSession,
     listExportTasks,
+    listAdminUsers,
     listScenarios,
     listSnippets,
     listWorkspaceSessions,
+    provisionAdminUserDatabase,
+    type AdminUser,
     type DashboardResponse,
     type DemoScenario,
     type ExportTask,
@@ -34,6 +38,7 @@ export const usePlatformStore = defineStore("platform", () => {
     const snippets = ref<SqlSnippet[]>([]);
     const scenarios = ref<DemoScenario[]>([]);
     const exportTasks = ref<ExportTask[]>([]);
+    const adminUsers = ref<AdminUser[]>([]);
     const result = ref<QueryExecutionResult | null>(mockQueryResult);
     const running = ref(false);
     const sql = ref("show tables;");
@@ -69,6 +74,11 @@ export const usePlatformStore = defineStore("platform", () => {
             snippets.value = snippetList;
             scenarios.value = scenarioList;
             exportTasks.value = exportTaskList;
+            if (auth.user?.role === "ADMIN") {
+                adminUsers.value = await listAdminUsers(auth.token || undefined);
+            } else {
+                adminUsers.value = [];
+            }
 
             if (sessionList.length > 0) {
                 await selectSession(sessionList[0].sessionId);
@@ -111,6 +121,19 @@ export const usePlatformStore = defineStore("platform", () => {
     async function refreshSummaries() {
         sessions.value = await listWorkspaceSessions(auth.token || undefined);
         dashboard.value = await getDashboard(auth.token || undefined);
+        if (auth.user?.role === "ADMIN") {
+            adminUsers.value = await listAdminUsers(auth.token || undefined);
+        }
+    }
+
+    async function provisionUserDatabase(userId: number) {
+        await provisionAdminUserDatabase(auth.token || undefined, userId);
+        await refreshSummaries();
+    }
+
+    async function dropUserDatabase(userId: number) {
+        await deleteAdminUserDatabase(auth.token || undefined, userId);
+        await refreshSummaries();
     }
 
     function resetWorkspaceState() {
@@ -120,6 +143,7 @@ export const usePlatformStore = defineStore("platform", () => {
         snippets.value = [];
         scenarios.value = [];
         exportTasks.value = [];
+        adminUsers.value = [];
         result.value = mockQueryResult;
         dataError.value = "";
     }
@@ -134,6 +158,7 @@ export const usePlatformStore = defineStore("platform", () => {
         snippets,
         scenarios,
         exportTasks,
+        adminUsers,
         result,
         running,
         sql,
@@ -144,6 +169,8 @@ export const usePlatformStore = defineStore("platform", () => {
         createSession,
         selectSession,
         runQuery,
+        provisionUserDatabase,
+        dropUserDatabase,
         resetWorkspaceState
     };
 });

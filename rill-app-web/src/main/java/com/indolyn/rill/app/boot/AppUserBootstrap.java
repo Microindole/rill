@@ -24,30 +24,44 @@ public class AppUserBootstrap implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        ensureUser("demo", "Demo Admin", "demo123", "ADMIN", "demo");
-        ensureUser("guest", "Guest", "guest", "GUEST", "default");
+        ensureUser("demo", "demo@example.com", "Demo Admin", "demo123", "ADMIN", "demo", true, true);
+        ensureUser("guest", "guest@example.com", "Guest", "guest", "GUEST", "default", true, true);
     }
 
-    private void ensureUser(String username, String displayName, String rawPassword, String role, String kernelDbName) {
+    private void ensureUser(
+        String username,
+        String email,
+        String displayName,
+        String rawPassword,
+        String role,
+        String kernelDbName,
+        boolean emailVerified,
+        boolean kernelDbProvisioned) {
         AppUserEntity existing =
             appUserMapper.selectOne(new QueryWrapper<AppUserEntity>().eq("username", username).last("limit 1"));
         if (existing == null) {
             Instant now = Instant.now();
             AppUserEntity user = new AppUserEntity();
             user.setUsername(username);
+            user.setEmail(email);
             user.setDisplayName(displayName);
             user.setPassword(passwordEncoder.encode(rawPassword));
             user.setRole(role);
             user.setKernelDbName(kernelDbName);
+            user.setEmailVerified(emailVerified);
+            user.setKernelDbProvisioned(kernelDbProvisioned);
             user.setCreatedAt(now);
             user.setUpdatedAt(now);
             appUserMapper.insert(user);
             return;
         }
+        existing.setEmail(email);
+        existing.setEmailVerified(emailVerified);
+        existing.setKernelDbProvisioned(kernelDbProvisioned);
         if (existing.getPassword() == null || !existing.getPassword().startsWith("$2")) {
             existing.setPassword(passwordEncoder.encode(rawPassword));
-            existing.setUpdatedAt(Instant.now());
-            appUserMapper.updateById(existing);
         }
+        existing.setUpdatedAt(Instant.now());
+        appUserMapper.updateById(existing);
     }
 }

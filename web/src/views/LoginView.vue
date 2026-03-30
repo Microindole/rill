@@ -19,9 +19,20 @@
                     :closable="false"
                     class="auth-alert"
                 />
+                <el-alert
+                    v-if="successMessage"
+                    type="success"
+                    :description="successMessage"
+                    show-icon
+                    :closable="false"
+                    class="auth-alert"
+                />
                 <el-form @submit.prevent>
                     <el-form-item label="用户名">
                         <el-input v-model="username" placeholder="demo" />
+                    </el-form-item>
+                    <el-form-item v-if="mode === 'register'" label="邮箱">
+                        <el-input v-model="email" placeholder="demo@example.com" />
                     </el-form-item>
                     <el-form-item v-if="mode === 'register'" label="展示名">
                         <el-input v-model="displayName" placeholder="Demo User" />
@@ -29,8 +40,18 @@
                     <el-form-item label="密码">
                         <el-input v-model="password" type="password" show-password />
                     </el-form-item>
+                    <el-form-item
+                        v-if="mode === 'login' && auth.authConfig.captchaEnabled && auth.authConfig.captchaProvider === 'turnstile'"
+                        label="登录验证"
+                    >
+                        <TurnstileWidget
+                            :enabled="auth.authConfig.captchaEnabled"
+                            :site-key="auth.authConfig.captchaSiteKey"
+                            @token="(value) => (captchaToken = value)"
+                        />
+                    </el-form-item>
                     <el-button type="primary" :loading="auth.loading" class="auth-submit" @click="submit">
-                        {{ mode === "login" ? "登录" : "注册并登录" }}
+                        {{ mode === "login" ? "登录" : "注册并发送验证邮件" }}
                     </el-button>
                     <el-button class="auth-submit" @click="continueAsGuest">
                         以游客身份进入共享 default 数据库
@@ -45,9 +66,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import TurnstileWidget from "@/components/TurnstileWidget.vue";
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -55,27 +77,41 @@ const router = useRouter();
 
 const mode = ref<"login" | "register">("login");
 const username = ref("demo");
+const email = ref("demo@example.com");
 const displayName = ref("Demo User");
 const password = ref("demo123");
+const successMessage = ref("");
+let captchaToken = "";
+
+onMounted(async () => {
+    await auth.loadAuthConfig();
+});
 
 async function submit() {
+    successMessage.value = "";
     if (mode.value === "login") {
         await auth.loginWithPassword({
             username: username.value,
-            password: password.value
+            password: password.value,
+            captchaToken
         });
+        successMessage.value = "";
+        const redirect =
+            typeof route.query.redirect === "string" && route.query.redirect.length > 0
+                ? route.query.redirect
+                : "/console";
+        await router.push(redirect);
     } else {
         await auth.registerAccount({
             username: username.value,
+            email: email.value,
             displayName: displayName.value,
             password: password.value
         });
+        successMessage.value = "注册成功，验证邮件已发送。完成邮箱验证后再登录。";
+        mode.value = "login";
+        return;
     }
-    const redirect =
-        typeof route.query.redirect === "string" && route.query.redirect.length > 0
-            ? route.query.redirect
-            : "/console";
-    await router.push(redirect);
 }
 
 async function continueAsGuest() {
