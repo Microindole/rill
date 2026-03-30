@@ -25,4 +25,4 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || '22' }}
           script_stop: true
           script: |
-            /home/indolyn/deploy-rill.sh
+            bash /home/indolyn/deploy-rill.sh
