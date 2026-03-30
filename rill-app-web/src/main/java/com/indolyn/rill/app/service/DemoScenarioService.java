@@ -23,15 +23,24 @@ public class DemoScenarioService {
 
     private final DemoScenarioMapper demoScenarioMapper;
     private final WorkspaceService workspaceService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public DemoScenarioService(DemoScenarioMapper demoScenarioMapper, WorkspaceService workspaceService) {
+    public DemoScenarioService(
+        DemoScenarioMapper demoScenarioMapper,
+        WorkspaceService workspaceService,
+        CurrentUserProvider currentUserProvider) {
         this.demoScenarioMapper = demoScenarioMapper;
         this.workspaceService = workspaceService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     public List<DemoScenarioResponse> listScenarios() {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         return demoScenarioMapper
-            .selectList(new LambdaQueryWrapper<DemoScenarioEntity>().orderByDesc(DemoScenarioEntity::getUpdatedAt))
+            .selectList(
+                new LambdaQueryWrapper<DemoScenarioEntity>()
+                    .eq(DemoScenarioEntity::getOwnerId, ownerId)
+                    .orderByDesc(DemoScenarioEntity::getUpdatedAt))
             .stream()
             .map(this::toResponse)
             .toList();
@@ -45,6 +54,7 @@ public class DemoScenarioService {
         validateRequest(request);
         Instant now = Instant.now();
         DemoScenarioEntity entity = new DemoScenarioEntity();
+        entity.setOwnerId(currentUserProvider.requireCurrentUserId());
         entity.setTitle(request.title().trim());
         entity.setDescription(normalizeText(request.description()));
         entity.setSqlScript(request.sqlScript().trim());
@@ -105,7 +115,12 @@ public class DemoScenarioService {
     }
 
     private DemoScenarioEntity requireScenario(long id) {
-        DemoScenarioEntity entity = demoScenarioMapper.selectById(id);
+        DemoScenarioEntity entity =
+            demoScenarioMapper.selectOne(
+                new LambdaQueryWrapper<DemoScenarioEntity>()
+                    .eq(DemoScenarioEntity::getId, id)
+                    .eq(DemoScenarioEntity::getOwnerId, currentUserProvider.requireCurrentUserId())
+                    .last("limit 1"));
         if (entity == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Demo scenario not found");
         }

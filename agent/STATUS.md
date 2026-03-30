@@ -16,6 +16,7 @@
 - `rill-app-web` 已补出第二批业务对象 `demo_scenario`，开始把“业务 CRUD”与“调用自研内核执行场景脚本”真正串起来
 - `rill-app-web` 已补出 `workspace dashboard` 和默认种子数据，后台开始具备“总览 + 默认演示素材”能力
 - `rill-app-web` 已补出 `export_task`，开始把“执行 SQL”与“交付 csv/json 导出结果”连接起来
+- `rill-app-web` 已开始补出最小用户边界，新增 `app_user`、`/api/auth/login`、`/api/auth/me`，并把 `workspace_session / query_history / sql_snippet / demo_scenario / export_task` 接到 `owner_id` 隔离链路
 
 ## 当前阶段
 

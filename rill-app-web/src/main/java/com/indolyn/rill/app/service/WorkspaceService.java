@@ -28,23 +28,28 @@ public class WorkspaceService {
     private final RillQueryService rillQueryService;
     private final WorkspaceSessionMapper workspaceSessionMapper;
     private final QueryHistoryMapper queryHistoryMapper;
+    private final CurrentUserProvider currentUserProvider;
 
     public WorkspaceService(
         QueryTraceService queryTraceService,
         RillQueryService rillQueryService,
         WorkspaceSessionMapper workspaceSessionMapper,
-        QueryHistoryMapper queryHistoryMapper) {
+        QueryHistoryMapper queryHistoryMapper,
+        CurrentUserProvider currentUserProvider) {
         this.queryTraceService = queryTraceService;
         this.rillQueryService = rillQueryService;
         this.workspaceSessionMapper = workspaceSessionMapper;
         this.queryHistoryMapper = queryHistoryMapper;
+        this.currentUserProvider = currentUserProvider;
     }
 
     public WorkspaceSessionResponse createSession() {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         String sessionId = UUID.randomUUID().toString();
         Instant now = Instant.now();
         WorkspaceSessionEntity session = new WorkspaceSessionEntity();
         session.setSessionId(sessionId);
+        session.setOwnerId(ownerId);
         session.setCurrentDatabase("default");
         session.setCreatedAt(now);
         session.setLastUsedAt(now);
@@ -57,8 +62,10 @@ public class WorkspaceService {
     }
 
     public List<WorkspaceSessionSummaryResponse> listSessions() {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         return workspaceSessionMapper
-            .selectList(new QueryWrapper<WorkspaceSessionEntity>().orderByDesc("last_used_at"))
+            .selectList(
+                new QueryWrapper<WorkspaceSessionEntity>().eq("owner_id", ownerId).orderByDesc("last_used_at"))
             .stream()
             .map(
                 session ->
@@ -77,9 +84,15 @@ public class WorkspaceService {
     }
 
     public void deleteSession(String sessionId) {
-        requireSession(sessionId);
-        queryHistoryMapper.delete(new QueryWrapper<QueryHistoryEntity>().eq("session_id", sessionId));
-        workspaceSessionMapper.deleteById(sessionId);
+        WorkspaceSessionEntity session = requireSession(sessionId);
+        queryHistoryMapper.delete(
+            new QueryWrapper<QueryHistoryEntity>()
+                .eq("owner_id", session.getOwnerId())
+                .eq("session_id", sessionId));
+        workspaceSessionMapper.delete(
+            new QueryWrapper<WorkspaceSessionEntity>()
+                .eq("owner_id", session.getOwnerId())
+                .eq("session_id", sessionId));
     }
 
     public QueryExecuteResponse execute(String sessionId, String sql) {
@@ -90,7 +103,12 @@ public class WorkspaceService {
     }
 
     private WorkspaceSessionEntity requireSession(String sessionId) {
-        WorkspaceSessionEntity session = workspaceSessionMapper.selectById(sessionId);
+        WorkspaceSessionEntity session =
+            workspaceSessionMapper.selectOne(
+                new QueryWrapper<WorkspaceSessionEntity>()
+                    .eq("owner_id", currentUserProvider.requireCurrentUserId())
+                    .eq("session_id", sessionId)
+                    .last("limit 1"));
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace session not found");
         }
@@ -116,9 +134,11 @@ public class WorkspaceService {
     }
 
     private List<QueryHistoryItemResponse> loadRecentQueries(String sessionId) {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         return queryHistoryMapper
             .selectList(
                 new QueryWrapper<QueryHistoryEntity>()
+                    .eq("owner_id", ownerId)
                     .eq("session_id", sessionId)
                     .orderByDesc("executed_at")
                     .last("limit " + MAX_SESSION_HISTORY))
@@ -128,12 +148,15 @@ public class WorkspaceService {
     }
 
     private int countQueries(String sessionId) {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         return Math.toIntExact(
-            queryHistoryMapper.selectCount(new QueryWrapper<QueryHistoryEntity>().eq("session_id", sessionId)));
+            queryHistoryMapper.selectCount(
+                new QueryWrapper<QueryHistoryEntity>().eq("owner_id", ownerId).eq("session_id", sessionId)));
     }
 
     private QueryHistoryEntity toHistoryEntity(String sessionId, QueryExecuteResponse response) {
         QueryHistoryEntity entity = new QueryHistoryEntity();
+        entity.setOwnerId(currentUserProvider.requireCurrentUserId());
         entity.setSessionId(sessionId);
         entity.setTraceId(response.traceId());
         entity.setDbName(response.dbName());

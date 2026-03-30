@@ -32,7 +32,10 @@ class ExportTaskServiceTest {
     void createTaskShouldPersistPendingTask() {
         ExportTaskMapper exportTaskMapper = Mockito.mock(ExportTaskMapper.class);
         QueryTraceService queryTraceService = Mockito.mock(QueryTraceService.class);
-        ExportTaskService service = new ExportTaskService(exportTaskMapper, queryTraceService, tempDir.toString());
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        ExportTaskService service =
+            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
 
         ExportTaskResponse response =
             service.createTask(new ExportTaskRequest("Export users", "csv export", "demo", "select * from users;", "csv"));
@@ -46,9 +49,12 @@ class ExportTaskServiceTest {
     void runTaskShouldWriteCsvFileAndMarkCompleted() throws Exception {
         ExportTaskMapper exportTaskMapper = Mockito.mock(ExportTaskMapper.class);
         QueryTraceService queryTraceService = Mockito.mock(QueryTraceService.class);
-        ExportTaskService service = new ExportTaskService(exportTaskMapper, queryTraceService, tempDir.toString());
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        ExportTaskService service =
+            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
         ExportTaskEntity entity = task(1L, "csv");
-        when(exportTaskMapper.selectById(1L)).thenReturn(entity);
+        when(exportTaskMapper.selectOne(any())).thenReturn(entity);
         when(queryTraceService.execute("demo", "select * from users;"))
             .thenReturn(
                 new QueryExecuteResponse(
@@ -74,9 +80,12 @@ class ExportTaskServiceTest {
     void runTaskShouldMarkFailedWhenQueryFails() {
         ExportTaskMapper exportTaskMapper = Mockito.mock(ExportTaskMapper.class);
         QueryTraceService queryTraceService = Mockito.mock(QueryTraceService.class);
-        ExportTaskService service = new ExportTaskService(exportTaskMapper, queryTraceService, tempDir.toString());
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        ExportTaskService service =
+            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
         ExportTaskEntity entity = task(1L, "json");
-        when(exportTaskMapper.selectById(1L)).thenReturn(entity);
+        when(exportTaskMapper.selectOne(any())).thenReturn(entity);
         when(queryTraceService.execute("demo", "select * from users;"))
             .thenReturn(
                 new QueryExecuteResponse(
@@ -101,7 +110,10 @@ class ExportTaskServiceTest {
     void invalidFormatShouldRejectRequest() {
         ExportTaskMapper exportTaskMapper = Mockito.mock(ExportTaskMapper.class);
         QueryTraceService queryTraceService = Mockito.mock(QueryTraceService.class);
-        ExportTaskService service = new ExportTaskService(exportTaskMapper, queryTraceService, tempDir.toString());
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        ExportTaskService service =
+            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
 
         ResponseStatusException exception =
             assertThrows(
@@ -114,6 +126,7 @@ class ExportTaskServiceTest {
     private ExportTaskEntity task(Long id, String format) {
         ExportTaskEntity entity = new ExportTaskEntity();
         entity.setId(id);
+        entity.setOwnerId(1L);
         entity.setTitle("Export users");
         entity.setDescription("export");
         entity.setDbName("demo");

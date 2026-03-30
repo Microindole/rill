@@ -18,14 +18,20 @@ import org.springframework.web.server.ResponseStatusException;
 public class SqlSnippetService {
 
     private final SqlSnippetMapper sqlSnippetMapper;
+    private final CurrentUserProvider currentUserProvider;
 
-    public SqlSnippetService(SqlSnippetMapper sqlSnippetMapper) {
+    public SqlSnippetService(SqlSnippetMapper sqlSnippetMapper, CurrentUserProvider currentUserProvider) {
         this.sqlSnippetMapper = sqlSnippetMapper;
+        this.currentUserProvider = currentUserProvider;
     }
 
     public List<SqlSnippetResponse> listSnippets() {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         return sqlSnippetMapper
-            .selectList(new LambdaQueryWrapper<SqlSnippetEntity>().orderByDesc(SqlSnippetEntity::getUpdatedAt))
+            .selectList(
+                new LambdaQueryWrapper<SqlSnippetEntity>()
+                    .eq(SqlSnippetEntity::getOwnerId, ownerId)
+                    .orderByDesc(SqlSnippetEntity::getUpdatedAt))
             .stream()
             .map(this::toResponse)
             .toList();
@@ -39,6 +45,7 @@ public class SqlSnippetService {
         validateRequest(request);
         Instant now = Instant.now();
         SqlSnippetEntity entity = new SqlSnippetEntity();
+        entity.setOwnerId(currentUserProvider.requireCurrentUserId());
         entity.setTitle(request.title().trim());
         entity.setDescription(normalizeText(request.description()));
         entity.setSqlText(request.sql().trim());
@@ -74,7 +81,12 @@ public class SqlSnippetService {
     }
 
     private SqlSnippetEntity requireSnippet(long id) {
-        SqlSnippetEntity entity = sqlSnippetMapper.selectById(id);
+        SqlSnippetEntity entity =
+            sqlSnippetMapper.selectOne(
+                new LambdaQueryWrapper<SqlSnippetEntity>()
+                    .eq(SqlSnippetEntity::getId, id)
+                    .eq(SqlSnippetEntity::getOwnerId, currentUserProvider.requireCurrentUserId())
+                    .last("limit 1"));
         if (entity == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "SQL snippet not found");
         }

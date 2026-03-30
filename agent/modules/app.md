@@ -19,9 +19,11 @@
 - `app.service.SqlSnippetService`
 - `app.service.DemoScenarioService`
 - `app.service.ExportTaskService`
+- `app.service.CurrentUserProvider`
 - `app.web.HealthController`
 - `app.web.OverviewController`
 - `app.web.QueryController`
+- `app.web.AuthController`
 - `app.web.WorkspaceController`
 - `app.web.WorkspaceDashboardController`
 - `app.web.SqlSnippetController`
@@ -97,6 +99,12 @@
   - 更新
   - 删除
   - 运行导出任务并生成 csv/json 文件
+- 当前 `app` 已开始补出最小用户边界：
+  - `app_user`
+  - `POST /api/auth/login`
+  - `GET /api/auth/me`
+  - `X-Rill-User-Id` 驱动的当前用户解析
+- 当前 `workspace_session / query_history / sql_snippet / demo_scenario / export_task` 已开始按 `owner_id` 做用户隔离，不再默认把所有工作台资产混在一个全局空间里
 - 当前 `data.sql` 已开始提供默认 snippet 和默认 demo scenario，方便本地和演示环境开箱即用
 - 当前 `RestExceptionHandler` 已开始把 `ResponseStatusException` 收口成统一 JSON 错误模型
 - 当前 `rill-app-web` 已支持两种发布形态，且两者都会通过 Maven 依赖携带 `rill-core`：
@@ -118,6 +126,10 @@
   - SQL 收藏 / 模板 / 历史
   - 演示场景
   - 导出任务 / 查询记录
+- 继续把当前“最小登录 + owner_id 隔离”升级成更正式的用户态后台：
+  - 用户 CRUD
+  - 登录态持久化
+  - 基于用户隔离工作台资产
 - 把当前已落地的 `workspace_session / query_history / sql_snippet / demo_scenario` 继续向前端工作台接通
 - 让 `export_task` 和 `workspace/dashboard` 也进入前端首页与资产管理视图
 - 把 Spring Boot 做成面试时可讲的“正式后台”，而不是只转发 SQL 的壳

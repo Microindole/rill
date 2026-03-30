@@ -12,6 +12,7 @@ public class ExportTaskEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
+    private Long ownerId;
     private String title;
     private String description;
     private String dbName;
@@ -35,6 +36,14 @@ public class ExportTaskEntity {
 
     public String getTitle() {
         return title;
+    }
+
+    public Long getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
     }
 
     public void setTitle(String title) {

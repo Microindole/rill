@@ -26,7 +26,10 @@ class DemoScenarioServiceTest {
     void createScenarioShouldPersistEntity() {
         DemoScenarioMapper demoScenarioMapper = Mockito.mock(DemoScenarioMapper.class);
         WorkspaceService workspaceService = Mockito.mock(WorkspaceService.class);
-        DemoScenarioService service = new DemoScenarioService(demoScenarioMapper, workspaceService);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        DemoScenarioService service =
+            new DemoScenarioService(demoScenarioMapper, workspaceService, currentUserProvider);
 
         var response =
             service.createScenario(
@@ -40,9 +43,12 @@ class DemoScenarioServiceTest {
     void runScenarioShouldExecuteEveryStatementInOrder() {
         DemoScenarioMapper demoScenarioMapper = Mockito.mock(DemoScenarioMapper.class);
         WorkspaceService workspaceService = Mockito.mock(WorkspaceService.class);
-        DemoScenarioService service = new DemoScenarioService(demoScenarioMapper, workspaceService);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        DemoScenarioService service =
+            new DemoScenarioService(demoScenarioMapper, workspaceService, currentUserProvider);
         DemoScenarioEntity entity = scenario(1L, "Bootstrap", "use demo; create table users (id int);");
-        when(demoScenarioMapper.selectById(1L)).thenReturn(entity);
+        when(demoScenarioMapper.selectOne(any())).thenReturn(entity);
         when(workspaceService.execute("session-1", "use demo;"))
             .thenReturn(response("trace-1", "demo", "use demo;"));
         when(workspaceService.execute("session-1", "create table users (id int);"))
@@ -70,7 +76,10 @@ class DemoScenarioServiceTest {
     void missingScenarioShouldReturnNotFound() {
         DemoScenarioMapper demoScenarioMapper = Mockito.mock(DemoScenarioMapper.class);
         WorkspaceService workspaceService = Mockito.mock(WorkspaceService.class);
-        DemoScenarioService service = new DemoScenarioService(demoScenarioMapper, workspaceService);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        DemoScenarioService service =
+            new DemoScenarioService(demoScenarioMapper, workspaceService, currentUserProvider);
 
         ResponseStatusException exception =
             assertThrows(ResponseStatusException.class, () -> service.getScenario(9L));
@@ -81,6 +90,7 @@ class DemoScenarioServiceTest {
     private DemoScenarioEntity scenario(Long id, String title, String sqlScript) {
         DemoScenarioEntity entity = new DemoScenarioEntity();
         entity.setId(id);
+        entity.setOwnerId(1L);
         entity.setTitle(title);
         entity.setDescription("demo");
         entity.setSqlScript(sqlScript);

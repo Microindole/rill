@@ -11,6 +11,7 @@ public class WorkspaceSessionEntity {
 
     @TableId(value = "session_id", type = IdType.INPUT)
     private String sessionId;
+    private Long ownerId;
     private String currentDatabase;
     private Instant createdAt;
     private Instant lastUsedAt;
@@ -25,6 +26,14 @@ public class WorkspaceSessionEntity {
 
     public String getCurrentDatabase() {
         return currentDatabase;
+    }
+
+    public Long getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
     }
 
     public void setCurrentDatabase(String currentDatabase) {

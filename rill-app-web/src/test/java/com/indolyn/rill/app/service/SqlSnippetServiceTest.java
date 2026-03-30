@@ -23,9 +23,11 @@ class SqlSnippetServiceTest {
     @Test
     void listSnippetsShouldReturnOrderedResponses() {
         SqlSnippetMapper sqlSnippetMapper = Mockito.mock(SqlSnippetMapper.class);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         SqlSnippetEntity entity = snippet(1L, "Users", "List users", "select * from users;");
         when(sqlSnippetMapper.selectList(any())).thenReturn(List.of(entity));
-        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper);
+        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper, currentUserProvider);
 
         List<SqlSnippetResponse> responses = service.listSnippets();
 
@@ -37,7 +39,9 @@ class SqlSnippetServiceTest {
     @Test
     void createSnippetShouldValidateAndInsert() {
         SqlSnippetMapper sqlSnippetMapper = Mockito.mock(SqlSnippetMapper.class);
-        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper, currentUserProvider);
 
         SqlSnippetResponse response =
             service.createSnippet(new SqlSnippetRequest("Users", "List users", "select * from users;"));
@@ -49,7 +53,9 @@ class SqlSnippetServiceTest {
     @Test
     void updateMissingSnippetShouldReturnNotFound() {
         SqlSnippetMapper sqlSnippetMapper = Mockito.mock(SqlSnippetMapper.class);
-        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper, currentUserProvider);
 
         ResponseStatusException exception =
             assertThrows(
@@ -62,6 +68,7 @@ class SqlSnippetServiceTest {
     private SqlSnippetEntity snippet(Long id, String title, String description, String sql) {
         SqlSnippetEntity entity = new SqlSnippetEntity();
         entity.setId(id);
+        entity.setOwnerId(1L);
         entity.setTitle(title);
         entity.setDescription(description);
         entity.setSqlText(sql);

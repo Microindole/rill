@@ -12,6 +12,7 @@ public class QueryHistoryEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
+    private Long ownerId;
     private String sessionId;
     private String traceId;
     private String dbName;
@@ -31,6 +32,14 @@ public class QueryHistoryEntity {
 
     public String getSessionId() {
         return sessionId;
+    }
+
+    public Long getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
     }
 
     public void setSessionId(String sessionId) {

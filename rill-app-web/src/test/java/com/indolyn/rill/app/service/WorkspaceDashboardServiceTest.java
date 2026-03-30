@@ -29,14 +29,21 @@ class WorkspaceDashboardServiceTest {
         SqlSnippetMapper sqlSnippetMapper = Mockito.mock(SqlSnippetMapper.class);
         DemoScenarioMapper demoScenarioMapper = Mockito.mock(DemoScenarioMapper.class);
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         when(workspaceSessionMapper.selectList(any())).thenReturn(List.of(session("session-1", "demo")));
         when(queryHistoryMapper.selectList(any())).thenReturn(List.of(history("session-1", "trace-1")));
-        when(sqlSnippetMapper.selectCount(null)).thenReturn(2L);
-        when(demoScenarioMapper.selectCount(null)).thenReturn(1L);
+        when(sqlSnippetMapper.selectCount(any())).thenReturn(2L);
+        when(demoScenarioMapper.selectCount(any())).thenReturn(1L);
         when(rillQueryService.getLoadedDatabases()).thenReturn(List.of("default", "demo"));
         WorkspaceDashboardService service =
             new WorkspaceDashboardService(
-                workspaceSessionMapper, queryHistoryMapper, sqlSnippetMapper, demoScenarioMapper, rillQueryService);
+                workspaceSessionMapper,
+                queryHistoryMapper,
+                sqlSnippetMapper,
+                demoScenarioMapper,
+                rillQueryService,
+                currentUserProvider);
 
         WorkspaceDashboardResponse dashboard = service.getDashboard();
 
@@ -51,6 +58,7 @@ class WorkspaceDashboardServiceTest {
     private WorkspaceSessionEntity session(String sessionId, String dbName) {
         WorkspaceSessionEntity entity = new WorkspaceSessionEntity();
         entity.setSessionId(sessionId);
+        entity.setOwnerId(1L);
         entity.setCurrentDatabase(dbName);
         entity.setCreatedAt(Instant.parse("2026-03-29T00:00:00Z"));
         entity.setLastUsedAt(Instant.parse("2026-03-29T00:05:00Z"));
@@ -59,6 +67,7 @@ class WorkspaceDashboardServiceTest {
 
     private QueryHistoryEntity history(String sessionId, String traceId) {
         QueryHistoryEntity entity = new QueryHistoryEntity();
+        entity.setOwnerId(1L);
         entity.setSessionId(sessionId);
         entity.setTraceId(traceId);
         entity.setDbName("demo");

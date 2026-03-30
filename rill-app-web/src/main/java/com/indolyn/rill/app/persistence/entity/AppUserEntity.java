@@ -1,22 +1,20 @@
 package com.indolyn.rill.app.persistence.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.time.Instant;
 
-@TableName("demo_scenario")
-public class DemoScenarioEntity {
+@TableName("app_user")
+public class AppUserEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long ownerId;
-    private String title;
-    private String description;
-    @TableField("sql_script")
-    private String sqlScript;
+    private String username;
+    private String displayName;
+    private String password;
+    private String role;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -28,36 +26,36 @@ public class DemoScenarioEntity {
         this.id = id;
     }
 
-    public String getTitle() {
-        return title;
+    public String getUsername() {
+        return username;
     }
 
-    public Long getOwnerId() {
-        return ownerId;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
-    public void setOwnerId(Long ownerId) {
-        this.ownerId = ownerId;
+    public String getDisplayName() {
+        return displayName;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
-    public String getDescription() {
-        return description;
+    public String getPassword() {
+        return password;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
-    public String getSqlScript() {
-        return sqlScript;
+    public String getRole() {
+        return role;
     }
 
-    public void setSqlScript(String sqlScript) {
-        this.sqlScript = sqlScript;
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public Instant getCreatedAt() {

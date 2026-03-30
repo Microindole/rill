@@ -12,6 +12,7 @@ public class SqlSnippetEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
+    private Long ownerId;
     private String title;
     private String description;
     @TableField("sql_text")
@@ -29,6 +30,14 @@ public class SqlSnippetEntity {
 
     public String getTitle() {
         return title;
+    }
+
+    public Long getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
     }
 
     public void setTitle(String title) {

@@ -26,19 +26,26 @@ public class ExportTaskService {
     private final ExportTaskMapper exportTaskMapper;
     private final QueryTraceService queryTraceService;
     private final Path exportDir;
+    private final CurrentUserProvider currentUserProvider;
 
     public ExportTaskService(
         ExportTaskMapper exportTaskMapper,
         QueryTraceService queryTraceService,
+        CurrentUserProvider currentUserProvider,
         @Value("${app.workspace.export-dir:target/exports}") String exportDir) {
         this.exportTaskMapper = exportTaskMapper;
         this.queryTraceService = queryTraceService;
+        this.currentUserProvider = currentUserProvider;
         this.exportDir = Path.of(exportDir);
     }
 
     public List<ExportTaskResponse> listTasks() {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         return exportTaskMapper
-            .selectList(new LambdaQueryWrapper<ExportTaskEntity>().orderByDesc(ExportTaskEntity::getUpdatedAt))
+            .selectList(
+                new LambdaQueryWrapper<ExportTaskEntity>()
+                    .eq(ExportTaskEntity::getOwnerId, ownerId)
+                    .orderByDesc(ExportTaskEntity::getUpdatedAt))
             .stream()
             .map(this::toResponse)
             .toList();
@@ -52,6 +59,7 @@ public class ExportTaskService {
         validateRequest(request);
         Instant now = Instant.now();
         ExportTaskEntity entity = new ExportTaskEntity();
+        entity.setOwnerId(currentUserProvider.requireCurrentUserId());
         entity.setTitle(request.title().trim());
         entity.setDescription(normalizeText(request.description()));
         entity.setDbName(normalizeDbName(request.dbName()));
@@ -131,7 +139,12 @@ public class ExportTaskService {
     }
 
     private ExportTaskEntity requireTask(long id) {
-        ExportTaskEntity entity = exportTaskMapper.selectById(id);
+        ExportTaskEntity entity =
+            exportTaskMapper.selectOne(
+                new LambdaQueryWrapper<ExportTaskEntity>()
+                    .eq(ExportTaskEntity::getId, id)
+                    .eq(ExportTaskEntity::getOwnerId, currentUserProvider.requireCurrentUserId())
+                    .last("limit 1"));
         if (entity == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Export task not found");
         }

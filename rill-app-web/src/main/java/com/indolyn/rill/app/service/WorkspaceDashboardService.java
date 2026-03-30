@@ -3,7 +3,9 @@ package com.indolyn.rill.app.service;
 import com.indolyn.rill.app.dto.QueryHistoryItemResponse;
 import com.indolyn.rill.app.dto.WorkspaceDashboardResponse;
 import com.indolyn.rill.app.dto.WorkspaceSessionSummaryResponse;
+import com.indolyn.rill.app.persistence.entity.DemoScenarioEntity;
 import com.indolyn.rill.app.persistence.entity.QueryHistoryEntity;
+import com.indolyn.rill.app.persistence.entity.SqlSnippetEntity;
 import com.indolyn.rill.app.persistence.entity.WorkspaceSessionEntity;
 import com.indolyn.rill.app.persistence.mapper.DemoScenarioMapper;
 import com.indolyn.rill.app.persistence.mapper.QueryHistoryMapper;
@@ -28,25 +30,31 @@ public class WorkspaceDashboardService {
     private final SqlSnippetMapper sqlSnippetMapper;
     private final DemoScenarioMapper demoScenarioMapper;
     private final RillQueryService rillQueryService;
+    private final CurrentUserProvider currentUserProvider;
 
     public WorkspaceDashboardService(
         WorkspaceSessionMapper workspaceSessionMapper,
         QueryHistoryMapper queryHistoryMapper,
         SqlSnippetMapper sqlSnippetMapper,
         DemoScenarioMapper demoScenarioMapper,
-        RillQueryService rillQueryService) {
+        RillQueryService rillQueryService,
+        CurrentUserProvider currentUserProvider) {
         this.workspaceSessionMapper = workspaceSessionMapper;
         this.queryHistoryMapper = queryHistoryMapper;
         this.sqlSnippetMapper = sqlSnippetMapper;
         this.demoScenarioMapper = demoScenarioMapper;
         this.rillQueryService = rillQueryService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     public WorkspaceDashboardResponse getDashboard() {
+        long ownerId = currentUserProvider.requireCurrentUserId();
         List<WorkspaceSessionEntity> sessions =
-            workspaceSessionMapper.selectList(new QueryWrapper<WorkspaceSessionEntity>().orderByDesc("last_used_at"));
+            workspaceSessionMapper.selectList(
+                new QueryWrapper<WorkspaceSessionEntity>().eq("owner_id", ownerId).orderByDesc("last_used_at"));
         List<QueryHistoryEntity> allHistory =
-            queryHistoryMapper.selectList(new QueryWrapper<QueryHistoryEntity>().orderByDesc("executed_at"));
+            queryHistoryMapper.selectList(
+                new QueryWrapper<QueryHistoryEntity>().eq("owner_id", ownerId).orderByDesc("executed_at"));
         Map<String, Long> historyCountBySession =
             allHistory.stream().collect(Collectors.groupingBy(QueryHistoryEntity::getSessionId, Collectors.counting()));
 
@@ -68,8 +76,10 @@ public class WorkspaceDashboardService {
         return new WorkspaceDashboardResponse(
             sessions.size(),
             allHistory.size(),
-            Math.toIntExact(sqlSnippetMapper.selectCount(null)),
-            Math.toIntExact(demoScenarioMapper.selectCount(null)),
+            Math.toIntExact(
+                sqlSnippetMapper.selectCount(new QueryWrapper<SqlSnippetEntity>().eq("owner_id", ownerId))),
+            Math.toIntExact(
+                demoScenarioMapper.selectCount(new QueryWrapper<DemoScenarioEntity>().eq("owner_id", ownerId))),
             rillQueryService.getLoadedDatabases(),
             sessionSummaries,
             recentQueries);
