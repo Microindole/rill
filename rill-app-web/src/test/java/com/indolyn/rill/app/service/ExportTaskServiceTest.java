@@ -12,6 +12,7 @@ import com.indolyn.rill.app.dto.ExportTaskResponse;
 import com.indolyn.rill.app.dto.QueryExecuteResponse;
 import com.indolyn.rill.app.persistence.entity.ExportTaskEntity;
 import com.indolyn.rill.app.persistence.mapper.ExportTaskMapper;
+import com.indolyn.rill.app.service.impl.ExportTaskServiceImpl;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,7 +36,7 @@ class ExportTaskServiceTest {
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         ExportTaskService service =
-            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
+            new ExportTaskServiceImpl(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
 
         ExportTaskResponse response =
             service.createTask(new ExportTaskRequest("Export users", "csv export", "demo", "select * from users;", "csv"));
@@ -52,7 +53,7 @@ class ExportTaskServiceTest {
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         ExportTaskService service =
-            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
+            new ExportTaskServiceImpl(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
         ExportTaskEntity entity = task(1L, "csv");
         when(exportTaskMapper.selectOne(any())).thenReturn(entity);
         when(queryTraceService.execute("demo", "select * from users;"))
@@ -83,7 +84,7 @@ class ExportTaskServiceTest {
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         ExportTaskService service =
-            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
+            new ExportTaskServiceImpl(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
         ExportTaskEntity entity = task(1L, "json");
         when(exportTaskMapper.selectOne(any())).thenReturn(entity);
         when(queryTraceService.execute("demo", "select * from users;"))
@@ -113,7 +114,7 @@ class ExportTaskServiceTest {
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         ExportTaskService service =
-            new ExportTaskService(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
+            new ExportTaskServiceImpl(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
 
         ResponseStatusException exception =
             assertThrows(

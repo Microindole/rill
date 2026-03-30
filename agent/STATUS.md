@@ -16,7 +16,8 @@
 - `rill-app-web` 已补出第二批业务对象 `demo_scenario`，开始把“业务 CRUD”与“调用自研内核执行场景脚本”真正串起来
 - `rill-app-web` 已补出 `workspace dashboard` 和默认种子数据，后台开始具备“总览 + 默认演示素材”能力
 - `rill-app-web` 已补出 `export_task`，开始把“执行 SQL”与“交付 csv/json 导出结果”连接起来
-- `rill-app-web` 已开始补出最小用户边界，新增 `app_user`、`/api/auth/login`、`/api/auth/me`，并把 `workspace_session / query_history / sql_snippet / demo_scenario / export_task` 接到 `owner_id` 隔离链路
+- `rill-app-web` 已开始补出最小用户边界，新增 `app_user`、`/api/auth/register`、`/api/auth/login`、`/api/auth/me`、`/api/auth/logout`，并把 `workspace_session / query_history / sql_snippet / demo_scenario / export_task` 接到 `owner_id` 隔离链路
+- `rill-app-web` 已把最小登录态升级到 JWT：新增 `app_jwt_session`、游客/用户/管理员三种数据库访问边界、注册自动分配个人内核数据库，并开始把前端重构成首页 / 登录页 / 控制台 / 项目介绍四页站点
 
 ## 当前阶段
 
@@ -272,7 +273,7 @@
 - 当前结果：`./mvnw.cmd -q -pl rill-core -am verify` 已通过，存储层第一批不变量开始有正式回归保护
 - 下一步建议：继续补“存储/事务”这一层的更细边界，优先是页替换策略、恢复明细场景，以及更接近真实索引分裂/合并的 B+Tree 回归
 - 补了 Web API 的第一批 controller 测试：新增 `QueryControllerTest` 与 `OverviewControllerTest`，开始覆盖 HTTP 输入校验、history/trace 查询与 overview 返回
-- 影响范围：`rill-app-web/src/test/java/com/indolyn/rill/app/web/**`
+- 影响范围：`rill-app-web/src/test/java/com/indolyn/rill/app/controller/**`
 - 当前结果：`./mvnw.cmd -q -pl rill-app-web -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtest=EmbeddedDatabaseServiceTest,RillQueryServiceTest,OverviewControllerTest,QueryControllerTest" test` 已通过；本地全模块 `clean verify` 未通过的原因是 `rill-app-web/target/*.jar` 被外部进程占用，不是 controller 用例失败
 - 下一步建议：继续补 `QueryTraceService` 和协议/网络层的测试，把“通信层”从 Web API 扩到真正的服务端访问边界
 - 补了 `QueryTraceService` 的成功/失败行为测试，开始锁住 Web 演示台最核心的 lexer/parser/runtime trace 拼装逻辑
@@ -398,29 +399,33 @@
 - 下一步建议：继续把 trace 做成完全动态，并补 `overview` / `query` controller 的单测，随后再评估是否引入更正式的 architecture / plan / catalog 专页
 
 - 完成了 Spring Boot 工作台后端第一轮补齐：新增 `WorkspaceService`、`WorkspaceController` 与 `RestExceptionHandler`，把 session、当前数据库、最近查询和统一错误模型从零散 controller 逻辑中抽出
-- 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,service,web}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,web}/**`、`agent/modules/app.md`
+- 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,service,controller}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,controller}/**`、`agent/modules/app.md`
 - 当前结果：`rill-app-web` 现在不再只是单次 query/trace 壳，而开始具备“有状态工作台后端”的正式应用层结构；`WorkspaceServiceTest` 与 `WorkspaceControllerTest` 已通过
 - 下一步建议：继续把前端逐步切到 workspace/session 接口，再补统一 API 响应模型、查询收藏/模板和可讲的鉴权边界
 
 - 完成了 Spring Boot 业务层第一轮真正落地：`rill-app-web` 已接入 PostgreSQL + MyBatis-Plus，新增 `workspace_session / query_history / sql_snippet` 三张业务表，并补出 `SqlSnippetService / SqlSnippetController`
-- 影响范围：`rill-app-web/pom.xml`、`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/main/resources/schema.sql`、`rill-app-web/src/main/java/com/indolyn/rill/app/{config,persistence,service,web,dto}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,web}/**`
+- 影响范围：`rill-app-web/pom.xml`、`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/main/resources/schema.sql`、`rill-app-web/src/main/java/com/indolyn/rill/app/{config,persistence,service,controller,dto}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,controller}/**`
 - 当前结果：工作台 session 已开始持久化，`query_history` 会随 session 执行落库，`SQL snippet` 已具备列表/详情/新建/更新/删除的第一批正式 CRUD，`rill-app-web` 相关 service/controller 测试已通过
 - 下一步建议：继续补 `demo_scenario / export_task` 等业务表，并让前端工作台开始切到 `workspace/snippets` 和持久化 session 接口
 
 - 完成了 Spring Boot 业务层第二轮落地：新增 `demo_scenario` 业务表、`DemoScenarioService` 与 `DemoScenarioController`，开始支持“配置演示场景 -> 在 workspace session 上执行脚本”这条产品链路
-- 影响范围：`rill-app-web/src/main/resources/schema.sql`、`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,persistence,service,web}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,web}/**`
+- 影响范围：`rill-app-web/src/main/resources/schema.sql`、`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,persistence,service,controller}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,controller}/**`
 - 当前结果：`demo scenario` 已具备列表/详情/新建/更新/删除/运行接口，能把业务表 CRUD 和 `rill-core` SQL 执行链路接起来，相关 service/controller 测试已通过
 - 下一步建议：继续补 `export_task`、用户/鉴权边界和前端工作台对 `snippets/scenarios` 的正式接入
 
 - 完成了 Spring Boot 业务层第三轮落地：新增 `WorkspaceDashboardService / WorkspaceDashboardController`，补出工作台后台总览；同时通过 `data.sql` 注入默认 snippet 和 demo scenario
-- 影响范围：`rill-app-web/src/main/resources/{schema.sql,data.sql}`、`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,service,web}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,web}/**`
+- 影响范围：`rill-app-web/src/main/resources/{schema.sql,data.sql}`、`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,service,controller}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,controller}/**`
 - 当前结果：Spring Boot 后端现在不仅有 CRUD 和场景执行，还能返回 session / history / snippet / scenario 的聚合视图，适合前端做正式工作台首页
 - 下一步建议：继续补 `export_task` 和用户/鉴权边界，再让前端切到 `workspace/dashboard`、`workspace/sessions`、`workspace/snippets`、`workspace/scenarios`
 
 - 完成了 Spring Boot 业务层第四轮落地：新增 `export_task` 业务表、`ExportTaskService / ExportTaskController`，支持把 SQL 查询结果导出为 csv/json 文件
-- 影响范围：`rill-app-web/src/main/resources/schema.sql`、`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,persistence,service,web}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,web}/**`
+- 影响范围：`rill-app-web/src/main/resources/schema.sql`、`rill-app-web/src/main/java/com/indolyn/rill/app/{dto,persistence,service,controller}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{service,controller}/**`
 - 当前结果：工作台后台已经具备 session、history、snippet、scenario、dashboard、export task 这一整批正式业务对象，导出任务运行时会实际生成文件并更新任务状态
 - 下一步建议：继续补用户/鉴权边界、基于 PostgreSQL 的用户态工作台数据隔离，以及前端对 dashboard/snippet/scenario/export task 的正式接入
+- 完成了 Spring Boot 认证与事务边界第一轮收口：新增 `AuthService`、`JwtAuthenticationFilter`、请求级用户上下文，并把 `CurrentUserProvider` 收口成只读当前用户；同时为 `AuthService / WorkspaceService / SqlSnippetService / DemoScenarioService / ExportTaskService` 补了 `@Transactional`
+- 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/{controller,security,service,service/impl}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{controller,security,service}/**`、`agent/modules/app.md`
+- 当前结果：JWT 解析已从业务 service 移到过滤器，主代码不再通过 `RequestContextHolder` 或请求头自行解析 token；`workspace_session` 继续保留为业务会话模型，不再与登录态混淆；`rill-app-web` 聚焦测试和打包已通过
+- 下一步建议：继续把密码存储升级到 `BCrypt`，再把管理员视图、游客/用户/管理员差异化前端界面和更细的权限策略继续补齐
 - 完成了数据库内核系统语句测试第一轮补齐：`ParserTest`、`PlannerTest`、`SemanticAnalyzerTest`、`QueryProcessorTest` 新增 `CREATE DATABASE / SHOW DATABASES / USE / DROP DATABASE` 回归，补上系统语句在 parser、planner、执行层的空白覆盖
 - 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/{sql,execution}/**`、`agent/modules/compiler.md`、`agent/STATUS.md`
 - 当前结果：重构后最容易漏掉的“能解析但没有计划 / 没有执行 / 没有行为断言”的系统语句路径已经开始被锁住

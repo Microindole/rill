@@ -10,6 +10,7 @@ import com.indolyn.rill.app.dto.SqlSnippetRequest;
 import com.indolyn.rill.app.dto.SqlSnippetResponse;
 import com.indolyn.rill.app.persistence.entity.SqlSnippetEntity;
 import com.indolyn.rill.app.persistence.mapper.SqlSnippetMapper;
+import com.indolyn.rill.app.service.impl.SqlSnippetServiceImpl;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,7 +28,7 @@ class SqlSnippetServiceTest {
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         SqlSnippetEntity entity = snippet(1L, "Users", "List users", "select * from users;");
         when(sqlSnippetMapper.selectList(any())).thenReturn(List.of(entity));
-        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper, currentUserProvider);
+        SqlSnippetService service = new SqlSnippetServiceImpl(sqlSnippetMapper, currentUserProvider);
 
         List<SqlSnippetResponse> responses = service.listSnippets();
 
@@ -41,7 +42,7 @@ class SqlSnippetServiceTest {
         SqlSnippetMapper sqlSnippetMapper = Mockito.mock(SqlSnippetMapper.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
-        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper, currentUserProvider);
+        SqlSnippetService service = new SqlSnippetServiceImpl(sqlSnippetMapper, currentUserProvider);
 
         SqlSnippetResponse response =
             service.createSnippet(new SqlSnippetRequest("Users", "List users", "select * from users;"));
@@ -55,7 +56,7 @@ class SqlSnippetServiceTest {
         SqlSnippetMapper sqlSnippetMapper = Mockito.mock(SqlSnippetMapper.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
-        SqlSnippetService service = new SqlSnippetService(sqlSnippetMapper, currentUserProvider);
+        SqlSnippetService service = new SqlSnippetServiceImpl(sqlSnippetMapper, currentUserProvider);
 
         ResponseStatusException exception =
             assertThrows(

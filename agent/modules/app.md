@@ -7,9 +7,6 @@
 ## 当前组件
 
 - `app.service.DatabaseService`
-- `app.service.EmbeddedDatabaseService`
-- `app.service.DatabaseExecution`
-- `app.boot.RillApplication`
 - `app.service.QueryProcessorRegistry`
 - `app.service.RillQueryService`
 - `app.service.QueryTraceService`
@@ -20,16 +17,25 @@
 - `app.service.DemoScenarioService`
 - `app.service.ExportTaskService`
 - `app.service.CurrentUserProvider`
-- `app.web.HealthController`
-- `app.web.OverviewController`
-- `app.web.QueryController`
-- `app.web.AuthController`
-- `app.web.WorkspaceController`
-- `app.web.WorkspaceDashboardController`
-- `app.web.SqlSnippetController`
-- `app.web.DemoScenarioController`
-- `app.web.ExportTaskController`
-- `app.web.RestExceptionHandler`
+- `app.service.JwtService`
+- `app.service.DatabaseAccessPolicyService`
+- `app.service.AuthService`
+- `app.service.AuthenticatedUser`
+- `app.service.JwtPrincipal`
+- `app.service.DatabaseExecution`
+- `app.boot.RillApplication`
+- `app.service.impl.*`
+- `app.security.*`
+- `app.controller.HealthController`
+- `app.controller.OverviewController`
+- `app.controller.QueryController`
+- `app.controller.AuthController`
+- `app.controller.WorkspaceController`
+- `app.controller.WorkspaceDashboardController`
+- `app.controller.SqlSnippetController`
+- `app.controller.DemoScenarioController`
+- `app.controller.ExportTaskController`
+- `app.controller.RestExceptionHandler`
 - `app.config.MybatisPlusConfig`
 - `app.persistence.entity.*`
 - `app.persistence.mapper.*`
@@ -99,12 +105,36 @@
   - 更新
   - 删除
   - 运行导出任务并生成 csv/json 文件
-- 当前 `app` 已开始补出最小用户边界：
+- 当前 `app` 已开始补出正式前后端分离认证边界：
   - `app_user`
+  - `app_jwt_session`
+  - `POST /api/auth/register`
   - `POST /api/auth/login`
   - `GET /api/auth/me`
-  - `X-Rill-User-Id` 驱动的当前用户解析
+  - `DELETE /api/auth/logout`
+  - `Authorization: Bearer <jwt>` 维持登录态
+- 当前用户模型已经开始和自研数据库内核的数据库资源绑定：
+  - 游客只允许访问共享 `default`
+  - 注册用户会自动分配一个同名内核数据库
+  - 管理员是唯一允许创建/删除内核数据库的角色
+- 当前 `app` 已开始承担“PostgreSQL 平台业务数据 + 自研数据库内核数据面”的双后端编排职责
 - 当前 `workspace_session / query_history / sql_snippet / demo_scenario / export_task` 已开始按 `owner_id` 做用户隔离，不再默认把所有工作台资产混在一个全局空间里
+- 当前包结构已开始按职责收口：
+  - `app.controller.*` 负责 HTTP 接口
+  - `app.service.*` 负责接口定义
+  - `app.service.impl.*` 负责实现
+  - `app.security.*` 负责 JWT 过滤和请求级用户上下文
+  - `app.persistence.*` 负责 PostgreSQL 持久化
+- 当前认证职责已继续收口：
+  - `AuthService` 负责登录 / 注册 / 注销
+  - `JwtAuthenticationFilter` 负责解析 `Authorization: Bearer <jwt>`
+  - `CurrentUserProvider` 只负责读取当前用户，不再自己从 request 抠 token
+- 当前应用层写路径已开始补事务边界：
+  - `AuthService`
+  - `WorkspaceService`
+  - `SqlSnippetService`
+  - `DemoScenarioService`
+  - `ExportTaskService`
 - 当前 `data.sql` 已开始提供默认 snippet 和默认 demo scenario，方便本地和演示环境开箱即用
 - 当前 `RestExceptionHandler` 已开始把 `ResponseStatusException` 收口成统一 JSON 错误模型
 - 当前 `rill-app-web` 已支持两种发布形态，且两者都会通过 Maven 依赖携带 `rill-core`：
@@ -116,7 +146,10 @@
 ## 后续重点
 
 - 增加更正式的 controller / service / dto / repository 结构
+- 保持 `service` 作为接口层，`service.impl` 作为实现层，避免接口和实现继续堆在同一目录
 - 避免 controller 直接操作 `core`
+- 避免主代码直接依赖 `*Impl`，统一通过接口注入
+- 保持认证过滤、JWT 解析和业务 service 解耦，避免业务层继续自己解析请求头
 - 建立统一的应用层错误处理与响应模型
 - 为 Web UI 提供 `query / trace / history / health` 等正式接口
 - 为 Web UI 提供 `overview` 这类非 SQL 摘要接口，让演示台不只依赖单次查询结果
@@ -126,10 +159,13 @@
   - SQL 收藏 / 模板 / 历史
   - 演示场景
   - 导出任务 / 查询记录
-- 继续把当前“最小登录 + owner_id 隔离”升级成更正式的用户态后台：
+- 继续把当前“JWT + owner_id 隔离”升级成更正式的用户态后台：
   - 用户 CRUD
-  - 登录态持久化
+  - 更安全的密码存储
+  - token 生命周期、刷新与撤销策略
   - 基于用户隔离工作台资产
+- 继续把“游客 / 用户 / 管理员”的数据库访问边界落实到前端控制台和后台管理界面
+- 继续把首页 / 登录页 / 控制台 / 项目介绍页收口成完整站点，而不是单页 SQL 控制台
 - 把当前已落地的 `workspace_session / query_history / sql_snippet / demo_scenario` 继续向前端工作台接通
 - 让 `export_task` 和 `workspace/dashboard` 也进入前端首页与资产管理视图
 - 把 Spring Boot 做成面试时可讲的“正式后台”，而不是只转发 SQL 的壳

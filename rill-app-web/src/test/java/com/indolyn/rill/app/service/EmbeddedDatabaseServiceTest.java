@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.indolyn.rill.app.service.impl.EmbeddedDatabaseServiceImpl;
 import com.indolyn.rill.core.execution.QueryProcessor;
 import com.indolyn.rill.core.execution.QueryResult;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ class EmbeddedDatabaseServiceTest {
         QueryProcessorRegistry registry = Mockito.mock(QueryProcessorRegistry.class);
         QueryProcessor processor = Mockito.mock(QueryProcessor.class);
         QueryResult queryResult = QueryResult.newSuccessResult("Query OK.");
-        EmbeddedDatabaseService service = new EmbeddedDatabaseService(registry);
+        EmbeddedDatabaseServiceImpl service = new EmbeddedDatabaseServiceImpl(registry);
 
         when(registry.getOrCreate("default")).thenReturn(processor);
         when(processor.executeStructured(eq("select 1"), any())).thenReturn(queryResult);
@@ -44,7 +45,7 @@ class EmbeddedDatabaseServiceTest {
         QueryProcessorRegistry registry = Mockito.mock(QueryProcessorRegistry.class);
         QueryProcessor processor = Mockito.mock(QueryProcessor.class);
         QueryResult queryResult = QueryResult.newSuccessResult("Database changed to 'demo'.");
-        EmbeddedDatabaseService service = new EmbeddedDatabaseService(registry);
+        EmbeddedDatabaseServiceImpl service = new EmbeddedDatabaseServiceImpl(registry);
 
         when(registry.getOrCreate("default")).thenReturn(processor);
         when(processor.executeStructured(eq("USE demo;"), any())).thenReturn(queryResult);

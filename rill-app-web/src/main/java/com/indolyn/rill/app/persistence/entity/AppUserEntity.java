@@ -15,6 +15,7 @@ public class AppUserEntity {
     private String displayName;
     private String password;
     private String role;
+    private String kernelDbName;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -56,6 +57,14 @@ public class AppUserEntity {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getKernelDbName() {
+        return kernelDbName;
+    }
+
+    public void setKernelDbName(String kernelDbName) {
+        this.kernelDbName = kernelDbName;
     }
 
     public Instant getCreatedAt() {

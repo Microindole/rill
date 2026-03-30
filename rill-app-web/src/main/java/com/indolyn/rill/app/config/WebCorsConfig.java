@@ -16,6 +16,8 @@ public class WebCorsConfig implements WebMvcConfigurer {
         registry
             .addMapping("/api/**")
             .allowedOrigins(allowedOrigins)
-            .allowedMethods("GET", "POST", "OPTIONS");
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedHeaders("Authorization", "Content-Type")
+            .exposedHeaders("Authorization");
     }
 }

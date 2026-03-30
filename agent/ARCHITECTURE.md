@@ -64,12 +64,19 @@
 
 - `app.service.QueryProcessorRegistry`
 - `app.service.RillQueryService`
-- `app.web.HealthController`
+- `app.controller.HealthController`
 - `app.service.QueryTraceService`
 - `app.service.WorkspaceService`
-- `app.web.QueryController`
-- `app.web.WorkspaceController`
-- `app.web.RestExceptionHandler`
+- `app.controller.QueryController`
+- `app.controller.WorkspaceController`
+- `app.controller.RestExceptionHandler`
+
+同时，`rill-app-web` 当前已经开始按职责收口包结构：
+
+- `app.controller.*` 负责 HTTP 接口
+- `app.service.*` 负责接口定义
+- `app.service.impl.*` 负责实现
+- `app.persistence.*` 负责 PostgreSQL 持久化
 
 这代表 Spring Boot 不再只是一个启动壳，而是开始成为正式的外层适配层与工作台后端。
 当前 `web/` 目录下也已经起出了第一版前端骨架，采用 `Vue 3 + TypeScript + Vite + Pinia + Vue Router + Element Plus + Tailwind CSS + Vue Flow`。

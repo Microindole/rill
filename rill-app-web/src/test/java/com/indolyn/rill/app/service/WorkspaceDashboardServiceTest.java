@@ -13,6 +13,7 @@ import com.indolyn.rill.app.persistence.mapper.DemoScenarioMapper;
 import com.indolyn.rill.app.persistence.mapper.QueryHistoryMapper;
 import com.indolyn.rill.app.persistence.mapper.SqlSnippetMapper;
 import com.indolyn.rill.app.persistence.mapper.WorkspaceSessionMapper;
+import com.indolyn.rill.app.service.impl.WorkspaceDashboardServiceImpl;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,20 +31,24 @@ class WorkspaceDashboardServiceTest {
         DemoScenarioMapper demoScenarioMapper = Mockito.mock(DemoScenarioMapper.class);
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        DatabaseAccessPolicyService databaseAccessPolicyService = Mockito.mock(DatabaseAccessPolicyService.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.requireCurrentUser()).thenReturn(user(1L, "demo", "Demo", "USER", "demo"));
         when(workspaceSessionMapper.selectList(any())).thenReturn(List.of(session("session-1", "demo")));
         when(queryHistoryMapper.selectList(any())).thenReturn(List.of(history("session-1", "trace-1")));
         when(sqlSnippetMapper.selectCount(any())).thenReturn(2L);
         when(demoScenarioMapper.selectCount(any())).thenReturn(1L);
         when(rillQueryService.getLoadedDatabases()).thenReturn(List.of("default", "demo"));
+        when(databaseAccessPolicyService.accessibleDatabases(any(), any())).thenReturn(List.of("default", "demo"));
         WorkspaceDashboardService service =
-            new WorkspaceDashboardService(
+            new WorkspaceDashboardServiceImpl(
                 workspaceSessionMapper,
                 queryHistoryMapper,
                 sqlSnippetMapper,
                 demoScenarioMapper,
                 rillQueryService,
-                currentUserProvider);
+                currentUserProvider,
+                databaseAccessPolicyService);
 
         WorkspaceDashboardResponse dashboard = service.getDashboard();
 
@@ -76,5 +81,16 @@ class WorkspaceDashboardServiceTest {
         entity.setElapsedMs(4L);
         entity.setExecutedAt(Instant.parse("2026-03-29T00:05:00Z"));
         return entity;
+    }
+
+    private com.indolyn.rill.app.persistence.entity.AppUserEntity user(
+        Long id, String username, String displayName, String role, String kernelDbName) {
+        var user = new com.indolyn.rill.app.persistence.entity.AppUserEntity();
+        user.setId(id);
+        user.setUsername(username);
+        user.setDisplayName(displayName);
+        user.setRole(role);
+        user.setKernelDbName(kernelDbName);
+        return user;
     }
 }

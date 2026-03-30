@@ -1,6 +1,10 @@
-insert into app_user (id, username, display_name, password, role, created_at, updated_at)
-select 1, 'demo', 'Demo Admin', 'demo123', 'ADMIN', current_timestamp, current_timestamp
+insert into app_user (id, username, display_name, password, role, kernel_db_name, created_at, updated_at)
+select 1, 'demo', 'Demo Admin', 'demo123', 'ADMIN', 'demo', current_timestamp, current_timestamp
 where not exists (select 1 from app_user where username = 'demo');
+
+insert into app_user (id, username, display_name, password, role, kernel_db_name, created_at, updated_at)
+select 2, 'guest', 'Guest', 'guest', 'GUEST', 'default', current_timestamp, current_timestamp
+where not exists (select 1 from app_user where username = 'guest');
 
 insert into sql_snippet (owner_id, title, description, sql_text, created_at, updated_at)
 select 1, '查看用户列表示例', '默认演示用 snippet', 'select * from users;', current_timestamp, current_timestamp

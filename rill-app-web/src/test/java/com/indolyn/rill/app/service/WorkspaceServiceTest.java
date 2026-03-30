@@ -14,6 +14,7 @@ import com.indolyn.rill.app.persistence.entity.QueryHistoryEntity;
 import com.indolyn.rill.app.persistence.entity.WorkspaceSessionEntity;
 import com.indolyn.rill.app.persistence.mapper.QueryHistoryMapper;
 import com.indolyn.rill.app.persistence.mapper.WorkspaceSessionMapper;
+import com.indolyn.rill.app.service.impl.WorkspaceServiceImpl;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,16 +32,25 @@ class WorkspaceServiceTest {
         WorkspaceSessionMapper workspaceSessionMapper = Mockito.mock(WorkspaceSessionMapper.class);
         QueryHistoryMapper queryHistoryMapper = Mockito.mock(QueryHistoryMapper.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        DatabaseAccessPolicyService databaseAccessPolicyService = Mockito.mock(DatabaseAccessPolicyService.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.requireCurrentUser()).thenReturn(user(1L, "demo", "Demo", "USER", "demo"));
         when(rillQueryService.getLoadedDatabases()).thenReturn(List.of("default", "demo"));
+        when(databaseAccessPolicyService.defaultDatabase(any())).thenReturn("demo");
+        when(databaseAccessPolicyService.accessibleDatabases(any(), any())).thenReturn(List.of("default", "demo"));
         when(queryHistoryMapper.selectList(any())).thenReturn(List.of());
         WorkspaceService workspaceService =
-            new WorkspaceService(
-                queryTraceService, rillQueryService, workspaceSessionMapper, queryHistoryMapper, currentUserProvider);
+            new WorkspaceServiceImpl(
+                queryTraceService,
+                rillQueryService,
+                workspaceSessionMapper,
+                queryHistoryMapper,
+                currentUserProvider,
+                databaseAccessPolicyService);
 
         WorkspaceSessionResponse response = workspaceService.createSession();
 
-        assertEquals("default", response.currentDatabase());
+        assertEquals("demo", response.currentDatabase());
         assertEquals(List.of("default", "demo"), response.loadedDatabases());
         assertTrue(response.recentQueries().isEmpty());
         verify(workspaceSessionMapper).insert(any(WorkspaceSessionEntity.class));
@@ -53,13 +63,22 @@ class WorkspaceServiceTest {
         WorkspaceSessionMapper workspaceSessionMapper = Mockito.mock(WorkspaceSessionMapper.class);
         QueryHistoryMapper queryHistoryMapper = Mockito.mock(QueryHistoryMapper.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        DatabaseAccessPolicyService databaseAccessPolicyService = Mockito.mock(DatabaseAccessPolicyService.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.requireCurrentUser()).thenReturn(user(1L, "demo", "Demo", "USER", "demo"));
         when(rillQueryService.getLoadedDatabases()).thenReturn(List.of("default", "demo"));
+        when(databaseAccessPolicyService.defaultDatabase(any())).thenReturn("demo");
+        when(databaseAccessPolicyService.accessibleDatabases(any(), any())).thenReturn(List.of("default", "demo"));
         when(queryHistoryMapper.selectList(any())).thenReturn(
             List.of(history("trace-1", "demo", "use demo;", true, 5L, Instant.parse("2026-03-29T00:00:00Z"))));
         WorkspaceService workspaceService =
-            new WorkspaceService(
-                queryTraceService, rillQueryService, workspaceSessionMapper, queryHistoryMapper, currentUserProvider);
+            new WorkspaceServiceImpl(
+                queryTraceService,
+                rillQueryService,
+                workspaceSessionMapper,
+                queryHistoryMapper,
+                currentUserProvider,
+                databaseAccessPolicyService);
         WorkspaceSessionResponse session = workspaceService.createSession();
         WorkspaceSessionEntity stored = new WorkspaceSessionEntity();
         stored.setSessionId(session.sessionId());
@@ -100,10 +119,17 @@ class WorkspaceServiceTest {
         WorkspaceSessionMapper workspaceSessionMapper = Mockito.mock(WorkspaceSessionMapper.class);
         QueryHistoryMapper queryHistoryMapper = Mockito.mock(QueryHistoryMapper.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        DatabaseAccessPolicyService databaseAccessPolicyService = Mockito.mock(DatabaseAccessPolicyService.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.requireCurrentUser()).thenReturn(user(1L, "demo", "Demo", "USER", "demo"));
         WorkspaceService workspaceService =
-            new WorkspaceService(
-                queryTraceService, rillQueryService, workspaceSessionMapper, queryHistoryMapper, currentUserProvider);
+            new WorkspaceServiceImpl(
+                queryTraceService,
+                rillQueryService,
+                workspaceSessionMapper,
+                queryHistoryMapper,
+                currentUserProvider,
+                databaseAccessPolicyService);
 
         ResponseStatusException exception =
             assertThrows(ResponseStatusException.class, () -> workspaceService.getSession("missing"));
@@ -119,10 +145,18 @@ class WorkspaceServiceTest {
         WorkspaceSessionMapper workspaceSessionMapper = Mockito.mock(WorkspaceSessionMapper.class);
         QueryHistoryMapper queryHistoryMapper = Mockito.mock(QueryHistoryMapper.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        DatabaseAccessPolicyService databaseAccessPolicyService = Mockito.mock(DatabaseAccessPolicyService.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.requireCurrentUser()).thenReturn(user(1L, "demo", "Demo", "USER", "demo"));
+        when(queryHistoryMapper.selectCount(any())).thenReturn(3L);
         WorkspaceService workspaceService =
-            new WorkspaceService(
-                queryTraceService, rillQueryService, workspaceSessionMapper, queryHistoryMapper, currentUserProvider);
+            new WorkspaceServiceImpl(
+                queryTraceService,
+                rillQueryService,
+                workspaceSessionMapper,
+                queryHistoryMapper,
+                currentUserProvider,
+                databaseAccessPolicyService);
         WorkspaceSessionEntity session = new WorkspaceSessionEntity();
         session.setSessionId("session-1");
         session.setOwnerId(1L);
@@ -130,8 +164,6 @@ class WorkspaceServiceTest {
         session.setCreatedAt(Instant.parse("2026-03-29T00:00:00Z"));
         session.setLastUsedAt(Instant.parse("2026-03-29T00:05:00Z"));
         when(workspaceSessionMapper.selectList(any())).thenReturn(List.of(session));
-        when(queryHistoryMapper.selectCount(any())).thenReturn(3L);
-
         List<WorkspaceSessionSummaryResponse> summaries = workspaceService.listSessions();
 
         assertEquals(1, summaries.size());
@@ -150,5 +182,16 @@ class WorkspaceServiceTest {
         entity.setElapsedMs(elapsedMs);
         entity.setExecutedAt(executedAt);
         return entity;
+    }
+
+    private com.indolyn.rill.app.persistence.entity.AppUserEntity user(
+        Long id, String username, String displayName, String role, String kernelDbName) {
+        var user = new com.indolyn.rill.app.persistence.entity.AppUserEntity();
+        user.setId(id);
+        user.setUsername(username);
+        user.setDisplayName(displayName);
+        user.setRole(role);
+        user.setKernelDbName(kernelDbName);
+        return user;
     }
 }

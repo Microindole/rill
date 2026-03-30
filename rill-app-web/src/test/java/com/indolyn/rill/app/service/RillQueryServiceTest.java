@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.indolyn.rill.app.service.impl.RillQueryServiceImpl;
 import com.indolyn.rill.core.execution.QueryResult;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,7 @@ class RillQueryServiceTest {
     @Test
     void executeDelegatesToDatabaseService() {
         DatabaseService databaseService = Mockito.mock(DatabaseService.class);
-        RillQueryService service = new RillQueryService(databaseService);
+        RillQueryService service = new RillQueryServiceImpl(databaseService);
         DatabaseExecution execution =
             new DatabaseExecution("default", "select 1", QueryResult.newSuccessResult("OK"), "OK");
 
@@ -30,7 +31,7 @@ class RillQueryServiceTest {
     @Test
     void getLoadedDatabasesDelegatesToDatabaseService() {
         DatabaseService databaseService = Mockito.mock(DatabaseService.class);
-        RillQueryService service = new RillQueryService(databaseService);
+        RillQueryService service = new RillQueryServiceImpl(databaseService);
         List<String> expected = List.of("default", "analytics");
 
         when(databaseService.getLoadedDatabases()).thenReturn(expected);

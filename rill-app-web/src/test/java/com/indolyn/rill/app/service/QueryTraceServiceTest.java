@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 
 import com.indolyn.rill.app.dto.QueryExecuteResponse;
 import com.indolyn.rill.app.dto.QueryHistoryItemResponse;
+import com.indolyn.rill.app.service.impl.QueryTraceServiceImpl;
 import com.indolyn.rill.core.execution.QueryResult;
 import com.indolyn.rill.core.execution.trace.TraceCollector;
 import com.indolyn.rill.core.model.Column;
@@ -27,7 +28,7 @@ class QueryTraceServiceTest {
     @Test
     void executeShouldBuildLexerParserAndRuntimeTraceForSuccessfulQuery() {
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
-        QueryTraceService service = new QueryTraceService(rillQueryService);
+        QueryTraceService service = new QueryTraceServiceImpl(rillQueryService);
         Schema schema = new Schema(List.of(new Column("id", DataType.INT), new Column("name", DataType.VARCHAR)));
         QueryResult queryResult =
             QueryResult.newSelectResult(schema, List.of(new Tuple(List.of(new Value(1), new Value("alice")))));
@@ -71,7 +72,7 @@ class QueryTraceServiceTest {
     @Test
     void executeShouldRecordFailureTraceWhenExecutionThrows() {
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
-        QueryTraceService service = new QueryTraceService(rillQueryService);
+        QueryTraceService service = new QueryTraceServiceImpl(rillQueryService);
 
         doThrow(new IllegalStateException("boom"))
             .when(rillQueryService)
@@ -91,7 +92,7 @@ class QueryTraceServiceTest {
     @Test
     void historyShouldBeTrimmedToConfiguredMaximumSize() {
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
-        QueryTraceService service = new QueryTraceService(rillQueryService);
+        QueryTraceService service = new QueryTraceServiceImpl(rillQueryService);
         QueryResult queryResult = QueryResult.newSuccessResult("OK");
 
         doAnswer(

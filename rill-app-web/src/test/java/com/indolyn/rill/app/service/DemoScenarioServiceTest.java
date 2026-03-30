@@ -12,6 +12,7 @@ import com.indolyn.rill.app.dto.QueryExecuteResponse;
 import com.indolyn.rill.app.dto.WorkspaceSessionResponse;
 import com.indolyn.rill.app.persistence.entity.DemoScenarioEntity;
 import com.indolyn.rill.app.persistence.mapper.DemoScenarioMapper;
+import com.indolyn.rill.app.service.impl.DemoScenarioServiceImpl;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,7 +30,7 @@ class DemoScenarioServiceTest {
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         DemoScenarioService service =
-            new DemoScenarioService(demoScenarioMapper, workspaceService, currentUserProvider);
+            new DemoScenarioServiceImpl(demoScenarioMapper, workspaceService, currentUserProvider);
 
         var response =
             service.createScenario(
@@ -46,7 +47,7 @@ class DemoScenarioServiceTest {
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         DemoScenarioService service =
-            new DemoScenarioService(demoScenarioMapper, workspaceService, currentUserProvider);
+            new DemoScenarioServiceImpl(demoScenarioMapper, workspaceService, currentUserProvider);
         DemoScenarioEntity entity = scenario(1L, "Bootstrap", "use demo; create table users (id int);");
         when(demoScenarioMapper.selectOne(any())).thenReturn(entity);
         when(workspaceService.execute("session-1", "use demo;"))
@@ -79,7 +80,7 @@ class DemoScenarioServiceTest {
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
         DemoScenarioService service =
-            new DemoScenarioService(demoScenarioMapper, workspaceService, currentUserProvider);
+            new DemoScenarioServiceImpl(demoScenarioMapper, workspaceService, currentUserProvider);
 
         ResponseStatusException exception =
             assertThrows(ResponseStatusException.class, () -> service.getScenario(9L));
