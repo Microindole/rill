@@ -31,7 +31,6 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthServiceImpl implements AuthService {
 
     private static final String GUEST_USERNAME = "guest";
-    private static final long TOKEN_TTL_DAYS = 7;
 
     private final AppUserMapper appUserMapper;
     private final AppJwtSessionMapper appJwtSessionMapper;
@@ -41,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final CaptchaVerificationService captchaVerificationService;
     private final VerificationTokenService verificationTokenService;
     private final MailService mailService;
+    private final long tokenTtlDays;
     private final String frontendBaseUrl;
 
     public AuthServiceImpl(
@@ -52,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
         CaptchaVerificationService captchaVerificationService,
         VerificationTokenService verificationTokenService,
         MailService mailService,
+        @Value("${app.auth.jwt-ttl-days:7}") long tokenTtlDays,
         @Value("${app.auth.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
         this.appUserMapper = appUserMapper;
         this.appJwtSessionMapper = appJwtSessionMapper;
@@ -61,6 +62,7 @@ public class AuthServiceImpl implements AuthService {
         this.captchaVerificationService = captchaVerificationService;
         this.verificationTokenService = verificationTokenService;
         this.mailService = mailService;
+        this.tokenTtlDays = tokenTtlDays;
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
@@ -205,7 +207,7 @@ public class AuthServiceImpl implements AuthService {
         AppJwtSessionEntity jwtSession = new AppJwtSessionEntity();
         jwtSession.setUserId(user.getId());
         jwtSession.setJwtId(jwtId);
-        jwtSession.setExpiresAt(now.plus(TOKEN_TTL_DAYS, ChronoUnit.DAYS));
+        jwtSession.setExpiresAt(now.plus(tokenTtlDays, ChronoUnit.DAYS));
         jwtSession.setRevoked(false);
         jwtSession.setCreatedAt(now);
         jwtSession.setUpdatedAt(now);

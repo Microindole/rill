@@ -153,6 +153,7 @@ class AuthServiceTest {
             new CaptchaVerificationServiceImpl(false, "turnstile", "", new ObjectMapper()),
             new VerificationTokenServiceImpl(tokenMapper),
             new MailServiceImpl(false, "noreply@example.com", Mockito.mock(JavaMailSender.class)),
+            7,
             "http://localhost:5173");
     }
 

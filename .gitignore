@@ -45,4 +45,3 @@ exports/
 *.data
 node_modules/
 web/dist/
-config/rill-app-secrets.properties
