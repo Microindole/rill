@@ -4,6 +4,9 @@ import type {
     AuthConfig,
     LoginPayload,
     LoginResponse,
+    PasswordChangeRequestPayload,
+    PasswordResetConfirmPayload,
+    PasswordResetRequestPayload,
     RegisterPayload,
     AuthUser
 } from "@/types/auth";
@@ -55,6 +58,12 @@ export interface SqlSnippet {
     updatedAt: string;
 }
 
+export interface SqlSnippetRequestPayload {
+    title: string;
+    description?: string | null;
+    sql: string;
+}
+
 export interface DemoScenario {
     id: number;
     title: string;
@@ -62,6 +71,20 @@ export interface DemoScenario {
     sqlScript: string;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface DemoScenarioRequestPayload {
+    title: string;
+    description?: string | null;
+    sqlScript: string;
+}
+
+export interface DemoScenarioRunResponse {
+    scenarioId: number;
+    sessionId: string;
+    statementsExecuted: number;
+    finalDatabase: string;
+    executions: QueryExecutionResult[];
 }
 
 export interface ExportTask {
@@ -77,6 +100,14 @@ export interface ExportTask {
     createdAt: string;
     updatedAt: string;
     completedAt: string | null;
+}
+
+export interface ExportTaskRequestPayload {
+    title: string;
+    description?: string | null;
+    dbName?: string;
+    sql: string;
+    exportFormat: "csv" | "json";
 }
 
 export interface AdminUser {
@@ -147,6 +178,29 @@ export function login(payload: LoginPayload): Promise<LoginResponse> {
     return request<LoginResponse>("/api/auth/login", "POST", undefined, payload);
 }
 
+export function confirmRegister(token: string): Promise<LoginResponse> {
+    return request<LoginResponse>("/api/auth/register/confirm", "POST", undefined, { token });
+}
+
+export function requestPasswordReset(payload: PasswordResetRequestPayload): Promise<ActionMessageResponse> {
+    return request<ActionMessageResponse>("/api/auth/password/reset/request", "POST", undefined, payload);
+}
+
+export function confirmPasswordReset(payload: PasswordResetConfirmPayload): Promise<ActionMessageResponse> {
+    return request<ActionMessageResponse>("/api/auth/password/reset/confirm", "POST", undefined, payload);
+}
+
+export function requestPasswordChange(
+    token: string | undefined,
+    payload: PasswordChangeRequestPayload
+): Promise<ActionMessageResponse> {
+    return request<ActionMessageResponse>("/api/auth/password/change/request", "POST", token, payload);
+}
+
+export function confirmPasswordChange(payload: PasswordResetConfirmPayload): Promise<ActionMessageResponse> {
+    return request<ActionMessageResponse>("/api/auth/password/change/confirm", "POST", undefined, payload);
+}
+
 export function currentUser(token?: string): Promise<AuthUser> {
     return request<AuthUser>("/api/auth/me", "GET", token);
 }
@@ -175,6 +229,10 @@ export function getWorkspaceSession(token: string | undefined, sessionId: string
     return request<WorkspaceSession>(`/api/workspace/sessions/${sessionId}`, "GET", token);
 }
 
+export function deleteWorkspaceSession(token: string | undefined, sessionId: string): Promise<void> {
+    return request<void>(`/api/workspace/sessions/${sessionId}`, "DELETE", token);
+}
+
 export function executeQuery(
     token: string | undefined,
     sessionId: string,
@@ -192,12 +250,57 @@ export function listSnippets(token?: string): Promise<SqlSnippet[]> {
     return request<SqlSnippet[]>("/api/workspace/snippets", "GET", token);
 }
 
+export function createSqlSnippet(
+    token: string | undefined,
+    payload: SqlSnippetRequestPayload
+): Promise<SqlSnippet> {
+    return request<SqlSnippet>("/api/workspace/snippets", "POST", token, payload);
+}
+
+export function deleteSqlSnippet(token: string | undefined, id: number): Promise<void> {
+    return request<void>(`/api/workspace/snippets/${id}`, "DELETE", token);
+}
+
 export function listScenarios(token?: string): Promise<DemoScenario[]> {
     return request<DemoScenario[]>("/api/workspace/scenarios", "GET", token);
 }
 
+export function createScenario(
+    token: string | undefined,
+    payload: DemoScenarioRequestPayload
+): Promise<DemoScenario> {
+    return request<DemoScenario>("/api/workspace/scenarios", "POST", token, payload);
+}
+
+export function deleteScenario(token: string | undefined, id: number): Promise<void> {
+    return request<void>(`/api/workspace/scenarios/${id}`, "DELETE", token);
+}
+
+export function runScenario(
+    token: string | undefined,
+    id: number,
+    sessionId: string
+): Promise<DemoScenarioRunResponse> {
+    return request<DemoScenarioRunResponse>(`/api/workspace/scenarios/${id}/run/${sessionId}`, "POST", token);
+}
+
 export function listExportTasks(token?: string): Promise<ExportTask[]> {
     return request<ExportTask[]>("/api/workspace/export-tasks", "GET", token);
+}
+
+export function createExportTask(
+    token: string | undefined,
+    payload: ExportTaskRequestPayload
+): Promise<ExportTask> {
+    return request<ExportTask>("/api/workspace/export-tasks", "POST", token, payload);
+}
+
+export function runExportTask(token: string | undefined, id: number): Promise<ExportTask> {
+    return request<ExportTask>(`/api/workspace/export-tasks/${id}/run`, "POST", token);
+}
+
+export function deleteExportTask(token: string | undefined, id: number): Promise<void> {
+    return request<void>(`/api/workspace/export-tasks/${id}`, "DELETE", token);
 }
 
 export function listAdminUsers(token?: string): Promise<AdminUser[]> {

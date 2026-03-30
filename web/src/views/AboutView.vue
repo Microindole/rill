@@ -1,47 +1,122 @@
 <template>
     <div class="page-shell">
         <section class="about-hero">
-            <p class="hero-eyebrow">Project Story</p>
-            <h1>项目介绍</h1>
-            <p>
-                这一页负责把 Rill 讲成一个完整工程：为什么要拆模块，为什么 Spring Boot 和自研内核要双轨并存，以及这个项目未来如何继续延展到网络编程、Redis 和更复杂的系统层。
-            </p>
+            <div class="about-hero-copy">
+                <p class="hero-eyebrow">项目说明</p>
+                <h1>{{ platform.overview.appName }} 的工程边界</h1>
+                <p>
+                    这一页把模块拆分、能力构成和下一阶段路线放在同一条叙事里，说明它为什么不是单纯的“数据库控制台截图”，而是一套可扩展的系统作品集。
+                </p>
+            </div>
+            <div class="about-hero-note">
+                <span>阶段</span>
+                <strong>{{ platform.overview.stage }}</strong>
+                <p>{{ platform.overview.positioning }}</p>
+            </div>
         </section>
 
-        <section class="about-grid">
-            <article class="feature-panel">
-                <h2>模块分工</h2>
-                <ul class="feature-list">
-                    <li><strong>rill-core</strong>：数据库内核，承担 SQL 编译、执行、事务、恢复、索引。</li>
-                    <li><strong>rill-app-web</strong>：正式后台，承担用户、工作台、资产和演示 API。</li>
-                    <li><strong>web</strong>：完整前端站点，承载首页、登录页、控制台和项目介绍。</li>
-                </ul>
+        <section class="about-layout">
+            <article class="showcase-panel">
+                <div class="showcase-header">
+                    <div>
+                        <p class="section-kicker">发布边界</p>
+                        <h2>模块与发布边界</h2>
+                    </div>
+                </div>
+                <div class="module-list">
+                    <div v-for="module in platform.overview.modules" :key="module.name" class="module-item">
+                        <strong>{{ module.name }}</strong>
+                        <span>{{ module.role }}</span>
+                        <p>{{ module.details }}</p>
+                        <small>{{ module.releaseBoundary }}</small>
+                    </div>
+                </div>
             </article>
-            <article class="feature-panel accent">
-                <h2>为什么不是传统管理系统</h2>
-                <p>
-                    这里的业务不是订单和审批，而是围绕数据库工作台展开：session、snippet、scenario、export task、query history、dashboard。
-                </p>
+
+            <article class="showcase-panel accent">
+                <div class="showcase-header">
+                    <div>
+                        <p class="section-kicker">当前亮点</p>
+                        <h2>当前系统亮点</h2>
+                    </div>
+                </div>
+                <div class="capability-list">
+                    <div v-for="item in platform.overview.highlights" :key="item.label" class="capability-item">
+                        <span>{{ item.label }}</span>
+                        <strong>{{ item.value }}</strong>
+                        <p>{{ item.detail }}</p>
+                    </div>
+                </div>
             </article>
-            <article class="feature-panel">
-                <h2>身份与数据库边界</h2>
-                <ul class="feature-list">
-                    <li>PostgreSQL 保存用户、JWT 会话、工作台资产和平台业务表。</li>
-                    <li>自研数据库内核保存真正被 SQL 操作的数据。</li>
-                    <li>游客只能访问 <strong>default</strong>；注册用户自动分配一个个人数据库；管理员管理库生命周期。</li>
-                </ul>
+        </section>
+
+        <section class="showcase-grid">
+            <article class="showcase-panel wide">
+                <div class="showcase-header">
+                    <div>
+                        <p class="section-kicker">架构取舍</p>
+                        <h2>为什么 Spring Boot 和自研内核要双轨并存</h2>
+                    </div>
+                </div>
+                <div class="showcase-columns">
+                    <div>
+                        <h3>平台业务数据</h3>
+                        <p>用户、JWT 会话、工作台资产、验证码与邮件链路这类平台业务，交给 PostgreSQL 与 Spring Boot 管理，更适合做站点级产品能力。</p>
+                    </div>
+                    <div>
+                        <h3>真实 SQL 数据面</h3>
+                        <p>真正被 SQL 操作的数据保留在自研内核里，这样项目的重点仍然落在编译、执行、索引、事务和恢复，而不是把内核替换成现成数据库。</p>
+                    </div>
+                </div>
             </article>
-            <article class="feature-panel">
-                <h2>下一阶段</h2>
-                <ul class="feature-list">
-                    <li>前端继续把 snippet、scenario、export task 做成真正可用的资产区。</li>
-                    <li>后端补密码加密、刷新 token、用户 CRUD 和管理员操作台。</li>
-                    <li>再往后才是 Redis、网络编程、更多分布式预留。</li>
-                </ul>
+        </section>
+
+        <section class="showcase-grid">
+            <article class="showcase-panel">
+                <div class="showcase-header">
+                    <div>
+                        <p class="section-kicker">能力清单</p>
+                        <h2>能力清单</h2>
+                    </div>
+                </div>
+                <div class="capability-list">
+                    <div v-for="item in platform.overview.capabilities" :key="item.title" class="capability-item">
+                        <span>{{ item.category }}</span>
+                        <strong>{{ item.title }}</strong>
+                        <p>{{ item.details }}</p>
+                    </div>
+                </div>
+            </article>
+
+            <article class="showcase-panel">
+                <div class="showcase-header">
+                    <div>
+                        <p class="section-kicker">后续扩展</p>
+                        <h2>下一阶段扩展</h2>
+                    </div>
+                </div>
+                <div class="expansion-list">
+                    <div v-for="item in platform.overview.expansions" :key="item.area" class="expansion-item">
+                        <strong>{{ item.area }}</strong>
+                        <span>{{ item.targetModule }}</span>
+                        <p>{{ item.approach }}</p>
+                        <small>{{ item.why }}</small>
+                    </div>
+                </div>
             </article>
         </section>
     </div>
 </template>
 
 <script setup lang="ts">
+import { onMounted } from "vue";
+import { usePlatformStore } from "@/stores/platform";
+
+const platform = usePlatformStore();
+
+onMounted(async () => {
+    if (platform.overviewUsingMock || platform.overview.appName === "Rill") {
+        await platform.loadOverview();
+    }
+});
 </script>

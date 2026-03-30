@@ -1,7 +1,26 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
-import { currentUser, getAuthConfig, login, logout, register } from "@/services/api";
-import type { AuthConfig, AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
+import {
+    confirmPasswordChange,
+    confirmPasswordReset,
+    confirmRegister,
+    currentUser,
+    getAuthConfig,
+    login,
+    logout,
+    register,
+    requestPasswordChange,
+    requestPasswordReset
+} from "@/services/api";
+import type {
+    AuthConfig,
+    AuthUser,
+    LoginPayload,
+    PasswordChangeRequestPayload,
+    PasswordResetConfirmPayload,
+    PasswordResetRequestPayload,
+    RegisterPayload
+} from "@/types/auth";
 
 const TOKEN_KEY = "rill.web.token";
 
@@ -49,16 +68,7 @@ export const useAuthStore = defineStore("auth", () => {
         error.value = "";
         try {
             const response = await login(payload);
-            setToken(response.token);
-            user.value = {
-                userId: response.userId,
-                username: response.username,
-                email: response.email,
-                emailVerified: response.emailVerified,
-                displayName: response.displayName,
-                role: response.role,
-                kernelDbName: response.kernelDbName
-            };
+            applyAuthenticatedUser(response);
         } catch (err) {
             error.value = err instanceof Error ? err.message : "登录失败";
             throw err;
@@ -74,6 +84,73 @@ export const useAuthStore = defineStore("auth", () => {
             await register(payload);
         } catch (err) {
             error.value = err instanceof Error ? err.message : "注册失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function confirmRegisterToken(tokenValue: string) {
+        loading.value = true;
+        error.value = "";
+        try {
+            const response = await confirmRegister(tokenValue);
+            applyAuthenticatedUser(response);
+            return response;
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "邮箱验证失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function requestPasswordResetEmail(payload: PasswordResetRequestPayload) {
+        loading.value = true;
+        error.value = "";
+        try {
+            return await requestPasswordReset(payload);
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "忘记密码请求失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function confirmPasswordResetToken(payload: PasswordResetConfirmPayload) {
+        loading.value = true;
+        error.value = "";
+        try {
+            return await confirmPasswordReset(payload);
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "重置密码失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function requestPasswordChangeEmail(payload: PasswordChangeRequestPayload) {
+        loading.value = true;
+        error.value = "";
+        try {
+            return await requestPasswordChange(token.value || undefined, payload);
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "改密请求失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function confirmPasswordChangeToken(payload: PasswordResetConfirmPayload) {
+        loading.value = true;
+        error.value = "";
+        try {
+            return await confirmPasswordChange(payload);
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "改密确认失败";
             throw err;
         } finally {
             loading.value = false;
@@ -108,6 +185,28 @@ export const useAuthStore = defineStore("auth", () => {
         };
     }
 
+    function applyAuthenticatedUser(response: {
+        token: string;
+        userId: number;
+        username: string;
+        email: string;
+        emailVerified: boolean;
+        displayName: string;
+        role: string;
+        kernelDbName: string;
+    }) {
+        setToken(response.token);
+        user.value = {
+            userId: response.userId,
+            username: response.username,
+            email: response.email,
+            emailVerified: response.emailVerified,
+            displayName: response.displayName,
+            role: response.role,
+            kernelDbName: response.kernelDbName
+        };
+    }
+
     return {
         token,
         user,
@@ -120,6 +219,11 @@ export const useAuthStore = defineStore("auth", () => {
         hydrateUser,
         loginWithPassword,
         registerAccount,
+        confirmRegisterToken,
+        requestPasswordResetEmail,
+        confirmPasswordResetToken,
+        requestPasswordChangeEmail,
+        confirmPasswordChangeToken,
         logoutCurrentUser
     };
 });

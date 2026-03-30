@@ -11,6 +11,20 @@ export interface RegisterPayload {
     password: string;
 }
 
+export interface PasswordResetRequestPayload {
+    email: string;
+}
+
+export interface PasswordResetConfirmPayload {
+    token: string;
+    newPassword: string;
+}
+
+export interface PasswordChangeRequestPayload {
+    currentPassword: string;
+    newPassword: string;
+}
+
 export interface AuthUser {
     userId: number;
     username: string;

@@ -9,11 +9,6 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@element-plus/icons-vue": "^2.3.1",
-        "@vue-flow/core": "^1.39.5",
-        "@vue-flow/controls": "^1.1.2",
-        "@vue-flow/minimap": "^1.5.3",
-        "element-plus": "^2.11.5",
         "pinia": "^3.0.3",
         "vue": "^3.5.13",
         "vue-router": "^4.5.1"

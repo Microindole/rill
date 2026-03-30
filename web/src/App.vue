@@ -1,7 +1,10 @@
 <template>
     <div class="site-shell">
         <header class="site-header">
-            <RouterLink class="brand-link" to="/">Rill</RouterLink>
+            <div class="brand-block">
+                <RouterLink class="brand-link" to="/">Rill</RouterLink>
+                <span class="brand-subtitle">Database Studio</span>
+            </div>
             <nav class="site-nav">
                 <RouterLink to="/">首页</RouterLink>
                 <RouterLink to="/console">控制台</RouterLink>
