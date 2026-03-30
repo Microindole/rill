@@ -21,6 +21,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 class AuthServiceTest {
 
@@ -35,8 +36,13 @@ class AuthServiceTest {
         AppJwtSessionMapper appJwtSessionMapper = Mockito.mock(AppJwtSessionMapper.class);
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
         AuthService service =
-            new AuthServiceImpl(appUserMapper, appJwtSessionMapper, new JwtServiceImpl("test-secret"), rillQueryService);
-        AppUserEntity user = user(1L, "demo", "Demo Admin", "demo123", "ADMIN", "demo");
+            new AuthServiceImpl(
+                appUserMapper,
+                appJwtSessionMapper,
+                new JwtServiceImpl("test-secret"),
+                rillQueryService,
+                new BCryptPasswordEncoder());
+        AppUserEntity user = user(1L, "demo", "Demo Admin", new BCryptPasswordEncoder().encode("demo123"), "ADMIN", "demo");
         when(appUserMapper.selectOne(any())).thenReturn(user);
 
         AuthenticatedUser authenticatedUser = service.login("demo", "demo123");
@@ -52,7 +58,12 @@ class AuthServiceTest {
         AppJwtSessionMapper appJwtSessionMapper = Mockito.mock(AppJwtSessionMapper.class);
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
         AuthService service =
-            new AuthServiceImpl(appUserMapper, appJwtSessionMapper, new JwtServiceImpl("test-secret"), rillQueryService);
+            new AuthServiceImpl(
+                appUserMapper,
+                appJwtSessionMapper,
+                new JwtServiceImpl("test-secret"),
+                rillQueryService,
+                new BCryptPasswordEncoder());
         when(appUserMapper.selectOne(any())).thenReturn(null);
         Mockito.doAnswer(
                 invocation -> {
@@ -80,9 +91,15 @@ class AuthServiceTest {
         AppJwtSessionMapper appJwtSessionMapper = Mockito.mock(AppJwtSessionMapper.class);
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
         AuthService service =
-            new AuthServiceImpl(appUserMapper, appJwtSessionMapper, new JwtServiceImpl("test-secret"), rillQueryService);
+            new AuthServiceImpl(
+                appUserMapper,
+                appJwtSessionMapper,
+                new JwtServiceImpl("test-secret"),
+                rillQueryService,
+                new BCryptPasswordEncoder());
         AppJwtSessionEntity jwtSession = session(9L, 1L, "jti-1", false);
-        RequestUserContextHolder.set(new RequestUserContext(user(1L, "demo", "Demo Admin", "demo123", "ADMIN", "demo"), "token-demo", "jti-1"));
+        RequestUserContextHolder.set(
+            new RequestUserContext(user(1L, "demo", "Demo Admin", "encoded", "ADMIN", "demo"), "token-demo", "jti-1"));
         when(appJwtSessionMapper.selectOne(any())).thenReturn(jwtSession);
 
         service.logout();
@@ -97,7 +114,12 @@ class AuthServiceTest {
         AppJwtSessionMapper appJwtSessionMapper = Mockito.mock(AppJwtSessionMapper.class);
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
         AuthService service =
-            new AuthServiceImpl(appUserMapper, appJwtSessionMapper, new JwtServiceImpl("test-secret"), rillQueryService);
+            new AuthServiceImpl(
+                appUserMapper,
+                appJwtSessionMapper,
+                new JwtServiceImpl("test-secret"),
+                rillQueryService,
+                new BCryptPasswordEncoder());
 
         assertDoesNotThrow(service::logout);
     }

@@ -135,6 +135,10 @@
   - `SqlSnippetService`
   - `DemoScenarioService`
   - `ExportTaskService`
+- 当前密码存储已切到 `BCryptPasswordEncoder`：
+  - 注册时写入 bcrypt 哈希
+  - 登录时用 `PasswordEncoder.matches(...)` 校验
+  - 默认 `demo / guest` 用户改成启动期自动补种和自动迁移旧明文
 - 当前 `data.sql` 已开始提供默认 snippet 和默认 demo scenario，方便本地和演示环境开箱即用
 - 当前 `RestExceptionHandler` 已开始把 `ResponseStatusException` 收口成统一 JSON 错误模型
 - 当前 `rill-app-web` 已支持两种发布形态，且两者都会通过 Maven 依赖携带 `rill-core`：

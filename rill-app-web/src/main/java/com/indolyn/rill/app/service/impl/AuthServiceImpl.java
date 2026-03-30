@@ -17,6 +17,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -31,16 +32,19 @@ public class AuthServiceImpl implements AuthService {
     private final AppJwtSessionMapper appJwtSessionMapper;
     private final JwtService jwtService;
     private final RillQueryService rillQueryService;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthServiceImpl(
         AppUserMapper appUserMapper,
         AppJwtSessionMapper appJwtSessionMapper,
         JwtService jwtService,
-        RillQueryService rillQueryService) {
+        RillQueryService rillQueryService,
+        PasswordEncoder passwordEncoder) {
         this.appUserMapper = appUserMapper;
         this.appJwtSessionMapper = appJwtSessionMapper;
         this.jwtService = jwtService;
         this.rillQueryService = rillQueryService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -59,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
         AppUserEntity user = new AppUserEntity();
         user.setUsername(normalizedUsername);
         user.setDisplayName(normalizedDisplayName);
-        user.setPassword(normalizedPassword);
+        user.setPassword(passwordEncoder.encode(normalizedPassword));
         user.setRole("USER");
         user.setKernelDbName(allocateKernelDatabaseName(normalizedUsername));
         user.setCreatedAt(now);
@@ -77,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
         AppUserEntity user =
             appUserMapper.selectOne(
                 new QueryWrapper<AppUserEntity>().eq("username", normalizedUsername).last("limit 1"));
-        if (user == null || !user.getPassword().equals(normalizedPassword)) {
+        if (user == null || user.getPassword() == null || !passwordEncoder.matches(normalizedPassword, user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
         }
         return issueToken(user);

@@ -426,6 +426,10 @@
 - 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/{controller,security,service,service/impl}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{controller,security,service}/**`、`agent/modules/app.md`
 - 当前结果：JWT 解析已从业务 service 移到过滤器，主代码不再通过 `RequestContextHolder` 或请求头自行解析 token；`workspace_session` 继续保留为业务会话模型，不再与登录态混淆；`rill-app-web` 聚焦测试和打包已通过
 - 下一步建议：继续把密码存储升级到 `BCrypt`，再把管理员视图、游客/用户/管理员差异化前端界面和更细的权限策略继续补齐
+- 完成了 Spring Boot 密码存储第一轮收口：`rill-app-web` 已接入 `spring-security-crypto`，注册和登录改为通过 `BCryptPasswordEncoder` 处理密码；默认 `demo / guest` 用户及默认演示资产改为启动期补种，避免继续在 `data.sql` 中保留明文密码或写死 owner id
+- 影响范围：`rill-app-web/pom.xml`、`rill-app-web/src/main/java/com/indolyn/rill/app/{boot,config,service/impl}/**`、`rill-app-web/src/main/resources/data.sql`、`rill-app-web/src/test/java/com/indolyn/rill/app/service/AuthServiceTest.java`、`agent/modules/app.md`
+- 当前结果：密码现在不会再以明文写入 PostgreSQL，历史明文默认用户在启动时也会被自动迁移成 bcrypt；`rill-app-web` 认证相关 53 个聚焦测试已通过，`package` 也已恢复通过
+- 下一步建议：继续给管理员视图、用户管理接口和更细粒度的角色权限做正式后台收口，同时把前端登录/控制台界面完全接到这套新认证链路上
 - 完成了数据库内核系统语句测试第一轮补齐：`ParserTest`、`PlannerTest`、`SemanticAnalyzerTest`、`QueryProcessorTest` 新增 `CREATE DATABASE / SHOW DATABASES / USE / DROP DATABASE` 回归，补上系统语句在 parser、planner、执行层的空白覆盖
 - 影响范围：`rill-core/src/test/java/com/indolyn/rill/core/{sql,execution}/**`、`agent/modules/compiler.md`、`agent/STATUS.md`
 - 当前结果：重构后最容易漏掉的“能解析但没有计划 / 没有执行 / 没有行为断言”的系统语句路径已经开始被锁住
