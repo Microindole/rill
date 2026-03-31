@@ -1,133 +1,125 @@
 <template>
-    <div class="auth-page">
-        <section class="auth-stage">
-            <div class="auth-copy-panel">
-                <p class="hero-eyebrow">账号中心</p>
-                <h1>{{ panelTitle }}</h1>
-                <p>{{ panelDescription }}</p>
-                <div class="auth-copy-summary">
-                    <div>
-                        <span>认证模式</span>
-                        <strong>{{ modeLabel }}</strong>
-                    </div>
-                    <div>
-                        <span>登录态</span>
-                        <strong>{{ auth.isAuthenticated ? "已登录" : "未登录" }}</strong>
-                    </div>
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,460px)]">
+        <section class="mica-panel p-6 sm:p-8">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">账号中心</p>
+            <h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{{ panelTitle }}</h1>
+            <p class="mt-4 text-sm leading-7 text-slate-600">{{ panelDescription }}</p>
+
+            <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                <div class="acrylic-panel p-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">认证模式</p>
+                    <p class="mt-2 font-semibold text-slate-900">{{ modeLabel }}</p>
                 </div>
-                <div class="auth-copy-points">
-                    <div>
-                        <strong>个人数据库</strong>
-                        <span>注册后自动分配独立数据库与工作台资产。</span>
-                    </div>
-                    <div>
-                        <strong>邮件确认</strong>
-                        <span>注册、改密、忘记密码统一走邮件 token 确认链路。</span>
-                    </div>
-                    <div>
-                        <strong>游客模式</strong>
-                        <span>不登录也能进入共享数据库快速体验主要功能。</span>
-                    </div>
+                <div class="acrylic-panel p-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">登录态</p>
+                    <p class="mt-2 font-semibold text-slate-900">{{ auth.isAuthenticated ? "已登录" : "未登录" }}</p>
                 </div>
             </div>
-            <div class="auth-form-panel">
-                <div class="auth-panel-header">
-                    <p class="auth-panel-kicker">{{ mode === "login" ? "账号登录" : submitLabel }}</p>
-                    <h2>{{ formTitle }}</h2>
-                    <p class="auth-panel-subtitle">{{ formDescription }}</p>
-                </div>
-                <div v-if="isPrimaryMode" class="auth-tabs">
-                    <button :class="{ active: mode === 'login' }" @click="switchMode('login')">登录</button>
-                    <button :class="{ active: mode === 'register' }" @click="switchMode('register')">注册</button>
-                </div>
-                <AppNotice v-if="auth.error" tone="error" :description="auth.error" class="auth-alert" />
-                <AppNotice v-if="successMessage" tone="success" :description="successMessage" class="auth-alert" />
+        </section>
 
-                <template v-if="mode === 'verify'">
-                    <div class="auth-result-card">
-                        <span class="auth-result-badge" :class="{ success: tokenActionDone, pending: auth.loading }">
-                            {{ tokenActionDone ? "验证完成" : auth.loading ? "处理中" : "链接异常" }}
-                        </span>
-                        <h3>{{ tokenActionDone ? "邮箱验证完成" : auth.loading ? "正在验证邮箱" : "等待验证" }}</h3>
-                        <p>{{ verifySubtitle }}</p>
-                        <div class="auth-result-actions">
-                            <AppButton v-if="tokenActionDone" variant="primary" @click="goConsole">进入工作台</AppButton>
-                            <AppButton v-else @click="switchMode('login')">返回登录</AppButton>
-                        </div>
+        <section class="mica-panel p-5 sm:p-6">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ mode === "login" ? "账号登录" : submitLabel }}</p>
+            <h2 class="mt-2 text-xl font-semibold text-slate-900">{{ formTitle }}</h2>
+            <p class="mt-2 text-sm text-slate-500">{{ formDescription }}</p>
+
+            <div v-if="isPrimaryMode" class="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/70 bg-white/60 p-1">
+                <button
+                    class="rounded-lg py-2 text-sm font-semibold transition"
+                    :class="mode === 'login' ? 'bg-white text-slate-900' : 'text-slate-600 hover:bg-white/70'"
+                    @click="switchMode('login')"
+                >
+                    登录
+                </button>
+                <button
+                    class="rounded-lg py-2 text-sm font-semibold transition"
+                    :class="mode === 'register' ? 'bg-white text-slate-900' : 'text-slate-600 hover:bg-white/70'"
+                    @click="switchMode('register')"
+                >
+                    注册
+                </button>
+            </div>
+
+            <AppNotice v-if="auth.error" tone="error" :description="auth.error" class="mt-4" />
+            <AppNotice v-if="successMessage" tone="success" :description="successMessage" class="mt-4" />
+
+            <template v-if="mode === 'verify'">
+                <div class="mt-5 space-y-4 rounded-xl border border-white/80 bg-white/70 p-4">
+                    <span class="chip">{{ tokenActionDone ? "验证完成" : auth.loading ? "处理中" : "链接异常" }}</span>
+                    <h3 class="text-lg font-semibold text-slate-900">{{ tokenActionDone ? "邮箱验证完成" : auth.loading ? "正在验证邮箱" : "等待验证" }}</h3>
+                    <p class="text-sm text-slate-600">{{ verifySubtitle }}</p>
+                    <div class="flex gap-2">
+                        <AppButton v-if="tokenActionDone" variant="primary" @click="goConsole">进入工作台</AppButton>
+                        <AppButton v-else @click="switchMode('login')">返回登录</AppButton>
                     </div>
-                </template>
+                </div>
+            </template>
 
-                <template v-else>
-                    <form class="auth-form" @submit.prevent>
-                        <label v-if="mode === 'forgot-password'" class="field-block">
-                            <span class="field-label">邮箱</span>
-                            <input v-model="email" class="app-input is-large" type="email" placeholder="demo@example.com" />
+            <template v-else>
+                <form class="mt-5 space-y-3" @submit.prevent>
+                    <label v-if="mode === 'forgot-password'" class="block space-y-1">
+                        <span class="text-sm font-semibold text-slate-700">邮箱</span>
+                        <input v-model="email" class="app-input" type="email" placeholder="demo@example.com" />
+                    </label>
+
+                    <template v-else-if="mode === 'reset-password' || mode === 'change-password'">
+                        <label class="block space-y-1">
+                            <span class="text-sm font-semibold text-slate-700">新密码</span>
+                            <input v-model="password" class="app-input" type="password" />
                         </label>
+                        <label class="block space-y-1">
+                            <span class="text-sm font-semibold text-slate-700">确认新密码</span>
+                            <input v-model="confirmPassword" class="app-input" type="password" />
+                        </label>
+                    </template>
 
-                        <template v-else-if="mode === 'reset-password' || mode === 'change-password'">
-                            <label class="field-block">
-                                <span class="field-label">新密码</span>
-                                <input v-model="password" class="app-input is-large" type="password" />
-                            </label>
-                            <label class="field-block">
-                                <span class="field-label">确认新密码</span>
-                                <input v-model="confirmPassword" class="app-input is-large" type="password" />
-                            </label>
-                        </template>
-
-                        <template v-else>
-                            <label class="field-block">
-                                <span class="field-label">用户名</span>
-                                <input v-model="username" class="app-input is-large" type="text" placeholder="demo" />
-                            </label>
-                            <label v-if="mode === 'register'" class="field-block">
-                                <span class="field-label">邮箱</span>
-                                <input v-model="email" class="app-input is-large" type="email" placeholder="demo@example.com" />
-                            </label>
-                            <label v-if="mode === 'register'" class="field-block">
-                                <span class="field-label">展示名</span>
-                                <input v-model="displayName" class="app-input is-large" type="text" placeholder="示例用户" />
-                            </label>
-                            <label class="field-block">
-                                <span class="field-label">密码</span>
-                                <input v-model="password" class="app-input is-large" type="password" />
-                            </label>
-                            <div
-                                v-if="mode === 'login' && auth.authConfig.captchaEnabled && auth.authConfig.captchaProvider === 'turnstile'"
-                                class="field-block"
-                            >
-                                <span class="field-label">登录验证</span>
+                    <template v-else>
+                        <label class="block space-y-1">
+                            <span class="text-sm font-semibold text-slate-700">用户名</span>
+                            <input v-model="username" class="app-input" type="text" placeholder="demo" />
+                        </label>
+                        <label v-if="mode === 'register'" class="block space-y-1">
+                            <span class="text-sm font-semibold text-slate-700">邮箱</span>
+                            <input v-model="email" class="app-input" type="email" placeholder="demo@example.com" />
+                        </label>
+                        <label v-if="mode === 'register'" class="block space-y-1">
+                            <span class="text-sm font-semibold text-slate-700">展示名</span>
+                            <input v-model="displayName" class="app-input" type="text" placeholder="示例用户" />
+                        </label>
+                        <label class="block space-y-1">
+                            <span class="text-sm font-semibold text-slate-700">密码</span>
+                            <input v-model="password" class="app-input" type="password" />
+                        </label>
+                        <div
+                            v-if="mode === 'login' && auth.authConfig.captchaEnabled && auth.authConfig.captchaProvider === 'turnstile'"
+                            class="space-y-1"
+                        >
+                            <span class="text-sm font-semibold text-slate-700">登录验证</span>
+                            <div class="rounded-xl border border-white/80 bg-white/70 p-3">
                                 <TurnstileWidget
                                     :enabled="auth.authConfig.captchaEnabled"
                                     :site-key="auth.authConfig.captchaSiteKey"
                                     @token="(value) => (captchaToken = value)"
                                 />
                             </div>
-                        </template>
-
-                        <div class="auth-form-actions">
-                            <AppButton variant="primary" size="lg" :loading="auth.loading" block class="auth-submit primary" @click="submit">
-                                {{ submitLabel }}
-                            </AppButton>
-                            <AppButton v-if="mode === 'login'" size="lg" subtle block class="auth-submit secondary" @click="continueAsGuest">
-                                以游客身份进入共享数据库
-                            </AppButton>
-                            <AppButton v-if="!isPrimaryMode" size="lg" subtle block class="auth-submit secondary" @click="switchMode('login')">
-                                返回登录
-                            </AppButton>
                         </div>
-                    </form>
-                </template>
+                    </template>
 
-                <div v-if="mode === 'login'" class="auth-links">
-                    <button class="link-button" @click="switchMode('forgot-password')">忘记密码</button>
-                </div>
-                <div class="auth-tip-box" v-if="mode === 'login' || mode === 'register'">
-                    <p class="auth-tip-title">演示账号</p>
-                    <p class="auth-tip">
-                        默认演示账号：<strong>demo</strong> / <strong>demo123</strong>
-                    </p>
-                </div>
+                    <div class="space-y-2 pt-1">
+                        <AppButton variant="primary" size="lg" :loading="auth.loading" block @click="submit">
+                            {{ submitLabel }}
+                        </AppButton>
+                        <AppButton v-if="mode === 'login'" size="lg" subtle block @click="continueAsGuest">
+                            以游客身份进入
+                        </AppButton>
+                        <AppButton v-if="!isPrimaryMode" size="lg" subtle block @click="switchMode('login')">
+                            返回登录
+                        </AppButton>
+                    </div>
+                </form>
+            </template>
+
+            <div v-if="mode === 'login'" class="mt-3 flex justify-end">
+                <button class="text-sm font-semibold text-teal-700" @click="switchMode('forgot-password')">忘记密码</button>
             </div>
         </section>
     </div>
@@ -199,7 +191,7 @@ const panelDescription = computed(() => {
         case "register":
             return "注册完成后会发送验证邮件，确认后自动签发 token 并进入个人工作台。";
         case "forgot-password":
-            return "输入注册邮箱后，系统会发送密码重置链接到你的邮箱。";
+            return "输入注册邮箱后，系统会发送密码重置链接。";
         case "reset-password":
             return "这个页面由邮件中的重置密码链接落地而来，提交后可直接返回登录。";
         case "change-password":
@@ -207,7 +199,7 @@ const panelDescription = computed(() => {
         case "verify":
             return "邮箱验证链接落地后会自动向后端确认 token，并在成功后跳转到工作台。";
         default:
-            return "前后端分离场景使用 token 跟踪登录状态，前端只保存 token，不再依赖服务端 session cookie。";
+            return "前后端分离场景使用 token 跟踪登录状态，前端只保存 token。";
     }
 });
 
@@ -412,8 +404,8 @@ function switchMode(nextMode: AuthMode) {
                 ? { redirect: route.query.redirect }
                 : {}
             : nextMode === "register" || nextMode === "forgot-password"
-                ? { mode: nextMode }
-                : {};
+              ? { mode: nextMode }
+              : {};
     void router.replace({ path: "/login", query });
 }
 

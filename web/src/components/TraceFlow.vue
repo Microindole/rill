@@ -1,21 +1,19 @@
 <template>
-    <div class="trace-panel">
-        <div class="trace-rail">
-            <div v-for="(step, index) in steps" :key="step.id" class="trace-step-card" :class="`is-${step.status}`">
-                <div class="trace-step-head">
-                    <span class="trace-step-index">{{ String(index + 1).padStart(2, "0") }}</span>
-                    <span class="trace-step-stage">{{ step.stage }}</span>
-                </div>
-                <strong class="trace-step-title">{{ step.title }}</strong>
-                <p class="trace-step-component">{{ step.component }}</p>
-                <div class="trace-step-meta">
-                    <span>{{ step.durationMs }} ms</span>
-                    <span>{{ step.sourceMethod }}</span>
-                </div>
-                <p class="trace-step-detail">{{ step.detail }}</p>
-                <div v-if="index < steps.length - 1" class="trace-step-connector" aria-hidden="true"></div>
+    <div class="space-y-2">
+        <article
+            v-for="(step, index) in steps"
+            :key="step.id"
+            class="rounded-xl border bg-white/70 p-3"
+            :class="statusClass(step.status)"
+        >
+            <div class="mb-2 flex items-center justify-between text-xs text-slate-500">
+                <span>{{ String(index + 1).padStart(2, "0") }} · {{ step.stage }}</span>
+                <span>{{ step.durationMs }} ms</span>
             </div>
-        </div>
+            <h3 class="text-sm font-semibold text-slate-900">{{ step.title }}</h3>
+            <p class="mt-1 text-xs text-slate-500">{{ step.component }} · {{ step.sourceMethod }}</p>
+            <p class="mt-2 text-sm text-slate-600">{{ step.detail }}</p>
+        </article>
     </div>
 </template>
 
@@ -25,4 +23,14 @@ import type { TraceStep } from "@/types/trace";
 defineProps<{
     steps: TraceStep[];
 }>();
+
+function statusClass(status: TraceStep["status"]) {
+    if (status === "completed") {
+        return "border-emerald-100";
+    }
+    if (status === "running") {
+        return "border-amber-100";
+    }
+    return "border-white/80";
+}
 </script>
