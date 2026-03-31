@@ -45,6 +45,7 @@ exports/
 *.data
 node_modules/
 web/dist/
+**/dependency-reduced-pom.xml
 
 
 ## CLI ##
