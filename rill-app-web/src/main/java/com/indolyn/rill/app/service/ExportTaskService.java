@@ -3,6 +3,7 @@ package com.indolyn.rill.app.service;
 import com.indolyn.rill.app.dto.ExportTaskRequest;
 import com.indolyn.rill.app.dto.ExportTaskResponse;
 
+import java.nio.file.Path;
 import java.util.List;
 
 public interface ExportTaskService {
@@ -18,4 +19,6 @@ public interface ExportTaskService {
     void deleteTask(long id);
 
     ExportTaskResponse runTask(long id);
+
+    Path resolveDownloadPath(long id);
 }

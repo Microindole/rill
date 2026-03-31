@@ -6,6 +6,7 @@ import {
     createScenario,
     createWorkspaceSession,
     createExportTask,
+    downloadExportTaskFile,
     deleteScenario,
     deleteSqlSnippet,
     deleteExportTask,
@@ -375,6 +376,26 @@ export const usePlatformStore = defineStore("platform", () => {
         }
     }
 
+    async function downloadExportTask(taskId: number) {
+        dataError.value = "";
+        try {
+            const { blob, filename } = await downloadExportTaskFile(auth.token || undefined, taskId);
+            if (typeof window === "undefined") {
+                return;
+            }
+            const objectUrl = window.URL.createObjectURL(blob);
+            const anchor = window.document.createElement("a");
+            anchor.href = objectUrl;
+            anchor.download = filename;
+            window.document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            window.URL.revokeObjectURL(objectUrl);
+        } catch (err) {
+            dataError.value = err instanceof Error ? err.message : "下载导出文件失败";
+        }
+    }
+
     async function provisionUserDatabase(userId: number) {
         await provisionAdminUserDatabase(auth.token || undefined, userId);
         await refreshSummaries();
@@ -439,6 +460,7 @@ export const usePlatformStore = defineStore("platform", () => {
         removeScenario,
         createTaskFromCurrentSql,
         triggerExportTask,
+        downloadExportTask,
         removeExportTask,
         provisionUserDatabase,
         dropUserDatabase,

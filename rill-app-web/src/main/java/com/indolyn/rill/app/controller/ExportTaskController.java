@@ -4,9 +4,15 @@ import com.indolyn.rill.app.dto.ExportTaskRequest;
 import com.indolyn.rill.app.dto.ExportTaskResponse;
 import com.indolyn.rill.app.service.ExportTaskService;
 
+import java.nio.file.Path;
 import java.util.List;
 
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,5 +63,19 @@ public class ExportTaskController {
     @PostMapping("/{id}/run")
     public ExportTaskResponse runTask(@PathVariable long id) {
         return exportTaskService.runTask(id);
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Resource> downloadTask(@PathVariable long id) {
+        Path outputPath = exportTaskService.resolveDownloadPath(id);
+        Resource resource = new FileSystemResource(outputPath);
+        String fileName = outputPath.getFileName().toString();
+        MediaType mediaType = fileName.endsWith(".json")
+            ? MediaType.APPLICATION_JSON
+            : MediaType.parseMediaType("text/csv");
+        return ResponseEntity.ok()
+            .contentType(mediaType)
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+            .body(resource);
     }
 }

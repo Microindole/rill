@@ -303,6 +303,36 @@ export function deleteExportTask(token: string | undefined, id: number): Promise
     return request<void>(`/api/workspace/export-tasks/${id}`, "DELETE", token);
 }
 
+export async function downloadExportTaskFile(
+    token: string | undefined,
+    id: number
+): Promise<{ blob: Blob; filename: string }> {
+    const response = await fetch(`${apiBaseUrl}/api/workspace/export-tasks/${id}/download`, {
+        method: "GET",
+        headers: {
+            ...authHeaders(token)
+        }
+    });
+    if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try {
+            const data = (await response.json()) as { message?: string };
+            if (data.message) {
+                message = data.message;
+            }
+        } catch {
+            // ignore non-json response
+        }
+        throw new Error(message);
+    }
+    const disposition = response.headers.get("content-disposition") ?? "";
+    const matched = disposition.match(/filename="?([^"]+)"?/i);
+    return {
+        blob: await response.blob(),
+        filename: matched?.[1] ?? `export-task-${id}`
+    };
+}
+
 export function listAdminUsers(token?: string): Promise<AdminUser[]> {
     return request<AdminUser[]>("/api/admin/users", "GET", token);
 }

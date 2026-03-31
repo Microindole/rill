@@ -126,7 +126,7 @@ public class ExportTaskServiceImpl implements ExportTaskService {
             Files.writeString(outputPath, content, StandardCharsets.UTF_8);
             Instant completedAt = Instant.now();
             entity.setStatus("COMPLETED");
-            entity.setOutputPath(outputPath.toString());
+            entity.setOutputPath(outputPath.toAbsolutePath().normalize().toString());
             entity.setCompletedAt(completedAt);
             entity.setUpdatedAt(completedAt);
             exportTaskMapper.updateById(entity);
@@ -138,6 +138,27 @@ public class ExportTaskServiceImpl implements ExportTaskService {
             exportTaskMapper.updateById(entity);
             return toResponse(entity);
         }
+    }
+
+    @Override
+    public Path resolveDownloadPath(long id) {
+        ExportTaskEntity entity = requireTask(id);
+        if (!"COMPLETED".equalsIgnoreCase(entity.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Export task is not completed");
+        }
+        if (entity.getOutputPath() == null || entity.getOutputPath().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Export file not found");
+        }
+
+        Path basePath = exportDir.toAbsolutePath().normalize();
+        Path outputPath = Path.of(entity.getOutputPath()).toAbsolutePath().normalize();
+        if (!outputPath.startsWith(basePath)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid export file path");
+        }
+        if (!Files.exists(outputPath) || !Files.isRegularFile(outputPath)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Export file not found");
+        }
+        return outputPath;
     }
 
     private void validateRequest(ExportTaskRequest request) {

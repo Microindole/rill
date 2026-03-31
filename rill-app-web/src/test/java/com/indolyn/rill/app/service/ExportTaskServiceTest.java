@@ -124,6 +124,30 @@ class ExportTaskServiceTest {
         assertEquals(400, exception.getStatusCode().value());
     }
 
+    @Test
+    void resolveDownloadPathShouldReturnExistingCompletedExportFile() {
+        ExportTaskMapper exportTaskMapper = Mockito.mock(ExportTaskMapper.class);
+        QueryTraceService queryTraceService = Mockito.mock(QueryTraceService.class);
+        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        when(currentUserProvider.requireCurrentUserId()).thenReturn(1L);
+        ExportTaskService service =
+            new ExportTaskServiceImpl(exportTaskMapper, queryTraceService, currentUserProvider, tempDir.toString());
+
+        Path filePath = tempDir.resolve("export-task-1.csv");
+        try {
+            Files.writeString(filePath, "id,name\n1,alice\n");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        ExportTaskEntity entity = task(1L, "csv");
+        entity.setStatus("COMPLETED");
+        entity.setOutputPath(filePath.toAbsolutePath().toString());
+        when(exportTaskMapper.selectOne(any())).thenReturn(entity);
+
+        Path resolved = service.resolveDownloadPath(1L);
+        assertEquals(filePath.toAbsolutePath().normalize(), resolved);
+    }
+
     private ExportTaskEntity task(Long id, String format) {
         ExportTaskEntity entity = new ExportTaskEntity();
         entity.setId(id);

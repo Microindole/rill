@@ -107,7 +107,7 @@
                         <AppEmpty v-else description="当前会话暂无查询历史" />
                     </article>
 
-                    <component :is="WorkspaceAssetsPanelAsync" :snippets="platform.snippets" :scenarios="platform.scenarios" :export-tasks="platform.exportTasks" @apply-sql="fillSql" @delete-snippet="platform.removeSnippet" @run-scenario="platform.triggerScenario" @delete-scenario="platform.removeScenario" @run-task="platform.triggerExportTask" @delete-task="platform.removeExportTask" />
+                    <component :is="WorkspaceAssetsPanelAsync" :snippets="platform.snippets" :scenarios="platform.scenarios" :export-tasks="platform.exportTasks" @apply-sql="fillSql" @delete-snippet="platform.removeSnippet" @run-scenario="platform.triggerScenario" @delete-scenario="platform.removeScenario" @run-task="platform.triggerExportTask" @download-task="platform.downloadExportTask" @delete-task="platform.removeExportTask" />
                 </section>
             </main>
         </section>

@@ -24,15 +24,19 @@ public class DatabaseAccessPolicyServiceImpl implements DatabaseAccessPolicyServ
 
     @Override
     public List<String> accessibleDatabases(AppUserEntity user, List<String> loadedDatabases) {
+        Set<String> normalizedLoaded = normalizeLoadedDatabases(loadedDatabases);
+        normalizedLoaded.add("default");
+
         if (isAdmin(user)) {
-            return loadedDatabases;
+            return new ArrayList<>(normalizedLoaded);
         }
-        Set<String> databases = new LinkedHashSet<>();
-        databases.add("default");
-        if (!isGuest(user) && user.getKernelDbName() != null && !user.getKernelDbName().isBlank()) {
-            databases.add(user.getKernelDbName());
+
+        // Guest keeps default-only boundary; authenticated users can inspect/use all loaded DBs.
+        if (isGuest(user)) {
+            return List.of("default");
         }
-        return new ArrayList<>(databases);
+
+        return new ArrayList<>(normalizedLoaded);
     }
 
     @Override
@@ -89,5 +93,19 @@ public class DatabaseAccessPolicyServiceImpl implements DatabaseAccessPolicyServ
             return "default";
         }
         return dbName.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private Set<String> normalizeLoadedDatabases(List<String> loadedDatabases) {
+        Set<String> normalized = new LinkedHashSet<>();
+        if (loadedDatabases == null) {
+            return normalized;
+        }
+        for (String db : loadedDatabases) {
+            if (db == null || db.isBlank()) {
+                continue;
+            }
+            normalized.add(normalizeDbName(db));
+        }
+        return normalized;
     }
 }

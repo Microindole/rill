@@ -73,6 +73,14 @@
                             <AppButton size="sm" :disabled="task.status === 'RUNNING'" @click="$emit('run-task', task.id)">
                                 {{ task.status === "COMPLETED" ? "重跑" : "执行" }}
                             </AppButton>
+                            <AppButton
+                                v-if="task.status === 'COMPLETED'"
+                                size="sm"
+                                subtle
+                                @click="$emit('download-task', task.id)"
+                            >
+                                下载
+                            </AppButton>
                             <AppButton size="sm" variant="danger" subtle @click="$emit('delete-task', task.id)">删除</AppButton>
                         </div>
                     </article>
@@ -95,6 +103,7 @@ defineEmits<{
     "run-scenario": [scenarioId: number];
     "delete-scenario": [scenarioId: number];
     "run-task": [taskId: number];
+    "download-task": [taskId: number];
     "delete-task": [taskId: number];
 }>();
 
