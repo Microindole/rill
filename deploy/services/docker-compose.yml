@@ -1,0 +1,44 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: rill-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.2
+    container_name: rill-rocketmq-namesrv
+    restart: unless-stopped
+    ports:
+      - "9876:9876"
+    environment:
+      JAVA_OPT_EXT: "-server -Xms256m -Xmx256m -Xmn128m"
+    command: sh mqnamesrv
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.2
+    container_name: rill-rocketmq-broker
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+      - "8081:8081"
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+      JAVA_OPT_EXT: "-server -Xms512m -Xmx512m -Xmn256m"
+    volumes:
+      - ./rocketmq/broker.conf:/home/rocketmq/rocketmq-5.3.2/conf/broker.conf
+      - rocketmq-logs:/home/rocketmq/logs
+      - rocketmq-store:/home/rocketmq/store
+    command: sh mqbroker -c /home/rocketmq/rocketmq-5.3.2/conf/broker.conf --enable-proxy
+
+volumes:
+  redis-data:
+  rocketmq-logs:
+  rocketmq-store:
