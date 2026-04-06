@@ -6,6 +6,9 @@ import com.indolyn.rill.app.dto.CurrentUserResponse;
 import com.indolyn.rill.app.dto.EmailVerificationConfirmRequest;
 import com.indolyn.rill.app.dto.LoginRequest;
 import com.indolyn.rill.app.dto.LoginResponse;
+import com.indolyn.rill.app.dto.OauthBindAccountRequest;
+import com.indolyn.rill.app.dto.OauthCreateAccountRequest;
+import com.indolyn.rill.app.dto.OauthPendingStateResponse;
 import com.indolyn.rill.app.dto.PasswordChangeRequest;
 import com.indolyn.rill.app.dto.PasswordResetConfirmRequest;
 import com.indolyn.rill.app.dto.PasswordResetRequest;
@@ -13,9 +16,11 @@ import com.indolyn.rill.app.dto.RegisterRequest;
 import com.indolyn.rill.app.service.AuthService;
 import com.indolyn.rill.app.service.AuthenticatedUser;
 import com.indolyn.rill.app.service.CurrentUserProvider;
+import com.indolyn.rill.app.service.OauthLoginService;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,26 +35,32 @@ public class AuthController {
 
     private final AuthService authService;
     private final CurrentUserProvider currentUserProvider;
+    private final OauthLoginService oauthLoginService;
     private final boolean captchaEnabled;
     private final String captchaProvider;
     private final String captchaSiteKey;
+    private final boolean githubLoginEnabled;
 
     public AuthController(
         AuthService authService,
         CurrentUserProvider currentUserProvider,
+        OauthLoginService oauthLoginService,
         @Value("${app.auth.captcha.enabled:false}") boolean captchaEnabled,
         @Value("${app.auth.captcha.provider:turnstile}") String captchaProvider,
-        @Value("${app.auth.captcha.turnstile.site-key:}") String captchaSiteKey) {
+        @Value("${app.auth.captcha.turnstile.site-key:}") String captchaSiteKey,
+        @Value("${app.auth.oauth2.github.enabled:false}") boolean githubLoginEnabled) {
         this.authService = authService;
         this.currentUserProvider = currentUserProvider;
+        this.oauthLoginService = oauthLoginService;
         this.captchaEnabled = captchaEnabled;
         this.captchaProvider = captchaProvider;
         this.captchaSiteKey = captchaSiteKey;
+        this.githubLoginEnabled = githubLoginEnabled;
     }
 
     @GetMapping("/config")
     public AuthConfigResponse config() {
-        return new AuthConfigResponse(captchaEnabled, captchaProvider, captchaSiteKey);
+        return new AuthConfigResponse(captchaEnabled, captchaProvider, captchaSiteKey, githubLoginEnabled);
     }
 
     @PostMapping("/register")
@@ -78,6 +89,45 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password cannot be empty");
         }
         return toLoginResponse(authService.login(request.username().trim(), request.password(), request.captchaToken()));
+    }
+
+    @GetMapping("/oauth2/pending/{state}")
+    public OauthPendingStateResponse getOauthPendingState(@PathVariable String state) {
+        var pendingState = oauthLoginService.requirePendingState(state);
+        return new OauthPendingStateResponse(
+            pendingState.state(),
+            pendingState.provider(),
+            pendingState.providerLogin(),
+            pendingState.providerEmail(),
+            pendingState.providerDisplayName(),
+            pendingState.providerLogin());
+    }
+
+    @PostMapping("/oauth2/create")
+    public LoginResponse createOauthAccount(@RequestBody OauthCreateAccountRequest request) {
+        if (request == null || request.state() == null || request.state().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OAuth2 state cannot be empty");
+        }
+        return toLoginResponse(
+            oauthLoginService.createAccountFromGithub(request.state().trim(), request.username(), request.displayName()));
+    }
+
+    @PostMapping("/oauth2/bind")
+    public LoginResponse bindOauthAccount(@RequestBody OauthBindAccountRequest request) {
+        if (request == null || request.state() == null || request.state().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OAuth2 state cannot be empty");
+        }
+        if (request.username() == null || request.username().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be empty");
+        }
+        if (request.password() == null || request.password().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password cannot be empty");
+        }
+        return toLoginResponse(
+            oauthLoginService.bindGithubToExistingAccount(
+                request.state().trim(),
+                request.username().trim(),
+                request.password()));
     }
 
     @GetMapping("/me")

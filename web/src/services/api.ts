@@ -4,6 +4,9 @@ import type {
     AuthConfig,
     LoginPayload,
     LoginResponse,
+    OauthBindAccountPayload,
+    OauthCreateAccountPayload,
+    OauthPendingState,
     PasswordChangeRequestPayload,
     PasswordResetConfirmPayload,
     PasswordResetRequestPayload,
@@ -176,6 +179,18 @@ export function register(payload: RegisterPayload): Promise<ActionMessageRespons
 
 export function login(payload: LoginPayload): Promise<LoginResponse> {
     return request<LoginResponse>("/api/auth/login", "POST", undefined, payload);
+}
+
+export function getOauthPendingState(state: string): Promise<OauthPendingState> {
+    return request<OauthPendingState>(`/api/auth/oauth2/pending/${state}`, "GET");
+}
+
+export function createOauthAccount(payload: OauthCreateAccountPayload): Promise<LoginResponse> {
+    return request<LoginResponse>("/api/auth/oauth2/create", "POST", undefined, payload);
+}
+
+export function bindOauthAccount(payload: OauthBindAccountPayload): Promise<LoginResponse> {
+    return request<LoginResponse>("/api/auth/oauth2/bind", "POST", undefined, payload);
 }
 
 export function confirmRegister(token: string): Promise<LoginResponse> {

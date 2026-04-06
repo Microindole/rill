@@ -18,11 +18,16 @@
         </section>
 
         <section class="mica-panel p-5 sm:p-6">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ mode === "login" ? "账号登录" : submitLabel }}</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {{ mode === "login" ? "账号登录" : submitLabel }}
+            </p>
             <h2 class="mt-2 text-xl font-semibold text-slate-900">{{ formTitle }}</h2>
             <p class="mt-2 text-sm text-slate-500">{{ formDescription }}</p>
 
-            <div v-if="isPrimaryMode" class="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/70 bg-white/60 p-1">
+            <div
+                v-if="isPrimaryMode"
+                class="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/70 bg-white/60 p-1"
+            >
                 <button
                     class="rounded-lg py-2 text-sm font-semibold transition"
                     :class="mode === 'login' ? 'bg-white text-slate-900' : 'text-slate-600 hover:bg-white/70'"
@@ -45,11 +50,61 @@
             <template v-if="mode === 'verify'">
                 <div class="mt-5 space-y-4 rounded-xl border border-white/80 bg-white/70 p-4">
                     <span class="chip">{{ tokenActionDone ? "验证完成" : auth.loading ? "处理中" : "链接异常" }}</span>
-                    <h3 class="text-lg font-semibold text-slate-900">{{ tokenActionDone ? "邮箱验证完成" : auth.loading ? "正在验证邮箱" : "等待验证" }}</h3>
+                    <h3 class="text-lg font-semibold text-slate-900">
+                        {{ tokenActionDone ? "邮箱验证完成" : auth.loading ? "正在验证邮箱" : "等待验证" }}
+                    </h3>
                     <p class="text-sm text-slate-600">{{ verifySubtitle }}</p>
                     <div class="flex gap-2">
                         <AppButton v-if="tokenActionDone" variant="primary" @click="goConsole">进入工作台</AppButton>
                         <AppButton v-else @click="switchMode('login')">返回登录</AppButton>
+                    </div>
+                </div>
+            </template>
+
+            <template v-else-if="mode === 'oauth2-link' && auth.oauthPendingState">
+                <div class="mt-5 space-y-4 rounded-xl border border-white/80 bg-white/70 p-4">
+                    <span class="chip">GitHub 账号未绑定</span>
+                    <h3 class="text-lg font-semibold text-slate-900">选择创建新账号或绑定已有账号</h3>
+                    <p class="text-sm text-slate-600">
+                        GitHub 账号 <strong>{{ auth.oauthPendingState.providerLogin }}</strong>
+                        <span v-if="auth.oauthPendingState.providerEmail">
+                            （{{ auth.oauthPendingState.providerEmail }}）
+                        </span>
+                        尚未绑定到当前系统账号。
+                    </p>
+
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        <div class="rounded-xl border border-slate-200 bg-white p-4">
+                            <p class="text-sm font-semibold text-slate-900">创建新账号</p>
+                            <p class="mt-1 text-xs text-slate-500">使用当前 GitHub 身份创建一个新的本地账号并直接登录。</p>
+                            <label class="mt-3 block space-y-1">
+                                <span class="text-sm font-semibold text-slate-700">用户名</span>
+                                <input v-model="username" class="app-input" type="text" />
+                            </label>
+                            <label class="mt-3 block space-y-1">
+                                <span class="text-sm font-semibold text-slate-700">展示名</span>
+                                <input v-model="displayName" class="app-input" type="text" />
+                            </label>
+                            <AppButton class="mt-3" variant="primary" block :loading="auth.loading" @click="completeOauthCreate">
+                                创建并登录
+                            </AppButton>
+                        </div>
+
+                        <div class="rounded-xl border border-slate-200 bg-white p-4">
+                            <p class="text-sm font-semibold text-slate-900">绑定已有账号</p>
+                            <p class="mt-1 text-xs text-slate-500">输入本地账号密码，把当前 GitHub 身份绑定到已有账号。</p>
+                            <label class="mt-3 block space-y-1">
+                                <span class="text-sm font-semibold text-slate-700">用户名</span>
+                                <input v-model="bindUsername" class="app-input" type="text" />
+                            </label>
+                            <label class="mt-3 block space-y-1">
+                                <span class="text-sm font-semibold text-slate-700">密码</span>
+                                <input v-model="bindPassword" class="app-input" type="password" />
+                            </label>
+                            <AppButton class="mt-3" block :loading="auth.loading" @click="completeOauthBind">
+                                绑定并登录
+                            </AppButton>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -108,6 +163,15 @@
                         <AppButton variant="primary" size="lg" :loading="auth.loading" block @click="submit">
                             {{ submitLabel }}
                         </AppButton>
+                        <AppButton
+                            v-if="mode === 'login' && auth.authConfig.githubLoginEnabled"
+                            size="lg"
+                            subtle
+                            block
+                            @click="startGithubLogin"
+                        >
+                            使用 GitHub 登录
+                        </AppButton>
                         <AppButton v-if="mode === 'login'" size="lg" subtle block @click="continueAsGuest">
                             以游客身份进入
                         </AppButton>
@@ -132,8 +196,16 @@ import { useAuthStore } from "@/stores/auth";
 import TurnstileWidget from "@/components/TurnstileWidget.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppNotice from "@/components/ui/AppNotice.vue";
+import { apiBaseUrl } from "@/config/env";
 
-type AuthMode = "login" | "register" | "forgot-password" | "reset-password" | "change-password" | "verify";
+type AuthMode =
+    | "login"
+    | "register"
+    | "forgot-password"
+    | "reset-password"
+    | "change-password"
+    | "verify"
+    | "oauth2-link";
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -145,6 +217,8 @@ const email = ref("demo@example.com");
 const displayName = ref("Demo User");
 const password = ref("demo123");
 const confirmPassword = ref("");
+const bindUsername = ref("");
+const bindPassword = ref("");
 const successMessage = ref("");
 const tokenActionDone = ref(false);
 const token = ref("");
@@ -164,6 +238,8 @@ const modeLabel = computed(() => {
             return "修改密码";
         case "verify":
             return "邮箱验证";
+        case "oauth2-link":
+            return "GitHub 绑定";
         default:
             return "登录";
     }
@@ -181,6 +257,8 @@ const panelTitle = computed(() => {
             return "确认密码修改";
         case "verify":
             return "确认邮箱验证链接";
+        case "oauth2-link":
+            return "GitHub 登录需要绑定本地账号";
         default:
             return "登录后进入你的工作台";
     }
@@ -198,6 +276,8 @@ const panelDescription = computed(() => {
             return "这个页面用于确认你发起的改密请求，设置新密码后重新登录即可。";
         case "verify":
             return "邮箱验证链接落地后会自动向后端确认 token，并在成功后跳转到工作台。";
+        case "oauth2-link":
+            return "GitHub 已完成认证，但系统还需要知道这个身份对应哪个本地账号。";
         default:
             return "前后端分离场景使用 token 跟踪登录状态，前端只保存 token。";
     }
@@ -223,6 +303,8 @@ const submitLabel = computed(() => {
             return "确认重置密码";
         case "change-password":
             return "确认修改密码";
+        case "oauth2-link":
+            return "完成 GitHub 绑定";
         default:
             return "登录";
     }
@@ -240,6 +322,8 @@ const formTitle = computed(() => {
             return "确认你的密码修改请求";
         case "verify":
             return "确认邮箱验证";
+        case "oauth2-link":
+            return "完成 GitHub 账号绑定";
         default:
             return "输入账号密码进入工作台";
     }
@@ -257,6 +341,8 @@ const formDescription = computed(() => {
             return "这是邮件确认落地页，提交后会正式替换原有登录密码。";
         case "verify":
             return "邮箱验证成功后会自动建立登录态，并可直接进入工作台。";
+        case "oauth2-link":
+            return "你可以为这个 GitHub 身份创建一个新账号，或者绑定到现有本地账号。";
         default:
             return "登录后可进入个人工作台；也可以先用游客模式体验共享数据库。";
     }
@@ -268,7 +354,7 @@ onMounted(async () => {
 });
 
 watch(
-    () => route.query,
+    () => route.fullPath,
     async () => {
         await syncModeFromRoute();
     }
@@ -276,7 +362,36 @@ watch(
 
 async function syncModeFromRoute() {
     const routeMode = typeof route.query.mode === "string" ? route.query.mode : "";
+    const oauthState = typeof route.query.state === "string" ? route.query.state : "";
     token.value = typeof route.query.token === "string" ? route.query.token : "";
+
+    if (route.path === "/login/oauth2/success" && token.value) {
+        await auth.acceptOauthToken(token.value);
+        await router.replace("/console");
+        return;
+    }
+
+    if (route.path === "/login/oauth2/error") {
+        mode.value = "login";
+        auth.error = typeof route.query.message === "string" ? route.query.message : "GitHub 登录失败";
+        return;
+    }
+
+    if (routeMode === "oauth2-link") {
+        mode.value = "oauth2-link";
+        successMessage.value = "";
+        tokenActionDone.value = false;
+        if (!oauthState) {
+            auth.error = "缺少 OAuth2 登录状态";
+            return;
+        }
+        await auth.loadOauthPendingState(oauthState);
+        username.value = auth.oauthPendingState?.suggestedUsername ?? "";
+        displayName.value = auth.oauthPendingState?.providerDisplayName ?? auth.oauthPendingState?.providerLogin ?? "";
+        bindUsername.value = "";
+        bindPassword.value = "";
+        return;
+    }
 
     if (routeMode === "verify" || routeMode === "reset-password" || routeMode === "change-password") {
         mode.value = routeMode;
@@ -311,7 +426,6 @@ async function runVerifyTokenFlow() {
         successMessage.value = "邮箱验证成功，正在进入工作台。";
     } catch {
         tokenActionDone.value = false;
-        return;
     }
 }
 
@@ -407,6 +521,36 @@ function switchMode(nextMode: AuthMode) {
               ? { mode: nextMode }
               : {};
     void router.replace({ path: "/login", query });
+}
+
+function startGithubLogin() {
+    window.location.href = `${apiBaseUrl}/oauth2/authorization/github`;
+}
+
+async function completeOauthCreate() {
+    if (!auth.oauthPendingState) {
+        auth.error = "缺少 OAuth2 登录状态";
+        return;
+    }
+    await auth.createOauthLinkedAccount({
+        state: auth.oauthPendingState.state,
+        username: username.value,
+        displayName: displayName.value
+    });
+    await router.push("/console");
+}
+
+async function completeOauthBind() {
+    if (!auth.oauthPendingState) {
+        auth.error = "缺少 OAuth2 登录状态";
+        return;
+    }
+    await auth.bindOauthLinkedAccount({
+        state: auth.oauthPendingState.state,
+        username: bindUsername.value,
+        password: bindPassword.value
+    });
+    await router.push("/console");
 }
 
 async function continueAsGuest() {

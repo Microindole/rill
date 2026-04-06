@@ -15,6 +15,16 @@ const router = createRouter({
             component: () => import("@/views/LoginView.vue")
         },
         {
+            path: "/login/oauth2/success",
+            name: "login-oauth2-success",
+            component: () => import("@/views/LoginView.vue")
+        },
+        {
+            path: "/login/oauth2/error",
+            name: "login-oauth2-error",
+            component: () => import("@/views/LoginView.vue")
+        },
+        {
             path: "/console",
             name: "console",
             component: () => import("@/views/ConsoleView.vue")
@@ -38,10 +48,10 @@ router.beforeEach(async (to) => {
         await auth.hydrateUser();
     }
     const hasAuthAction =
-        to.name === "login"
+        (to.name === "login" || to.name === "login-oauth2-success" || to.name === "login-oauth2-error")
         && typeof to.query.mode === "string"
-        && ["verify", "reset-password", "change-password"].includes(to.query.mode);
-    if (to.name === "login" && auth.isAuthenticated && !hasAuthAction) {
+        && ["verify", "reset-password", "change-password", "oauth2-link"].includes(to.query.mode);
+    if ((to.name === "login" || to.name === "login-oauth2-success" || to.name === "login-oauth2-error") && auth.isAuthenticated && !hasAuthAction) {
         return { name: "console" };
     }
     return true;
