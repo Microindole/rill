@@ -151,7 +151,7 @@ class AuthServiceTest {
             rillQueryService,
             new BCryptPasswordEncoder(),
             new CaptchaVerificationServiceImpl(false, "turnstile", "", new ObjectMapper()),
-            new VerificationTokenServiceImpl(tokenMapper),
+            new VerificationTokenServiceImpl(tokenMapper, new ObjectMapper(), "database", 30, "test:rill:auth:verification:", null),
             new MailServiceImpl(false, "noreply@example.com", Mockito.mock(JavaMailSender.class)),
             7,
             "http://localhost:5173");

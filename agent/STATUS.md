@@ -465,6 +465,15 @@
 - 当前结果
 - 下一步建议
 
+- 完成了 Spring Boot 认证短期状态第一轮 Redis 化：`rill-app-web` 已接入 Redis starter，并把邮箱验证 / 改密确认 / 找回密码 token 收口为 `database / redis` 可切换存储；Cloudflare Turnstile 登录人机校验继续保留，不与内部验证 token 混用
+- 影响范围：`rill-app-web/pom.xml`、`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/test/resources/application.properties`、`rill-app-web/src/main/java/com/indolyn/rill/app/service/impl/VerificationTokenServiceImpl.java`、`rill-app-web/src/test/java/com/indolyn/rill/app/service/{AuthServiceTest,VerificationTokenServiceImplTest}.java`、`agent/modules/app.md`、`agent/STATUS.md`
+- 当前结果：认证链路已能通过配置切换到 Redis 存储短期验证 token，而不需要继续把这类 30 分钟状态全部压在 PostgreSQL；`./mvnw.cmd -q -pl rill-app-web -Dtest="AuthServiceTest,AuthControllerTest,VerificationTokenServiceImplTest" test` 已通过
+- 下一步建议：继续把 RocketMQ 接到 `export_task` 异步执行链路，再评估把 JWT session / 登录失败计数 / OAuth2 授权态中的短期状态逐步迁到 Redis
+- 完成了 Spring Boot 异步导出第一轮 RocketMQ 接口化：`rill-app-web` 已接入 RocketMQ starter，并把 `export_task` 收口为“业务 service 置为 `QUEUED` 并发布任务 + 独立执行处理器真正跑 SQL 和写文件”的结构；默认保留 `local` 传输，切到 `rocketmq` 后可走 MQ producer / consumer
+- 影响范围：`rill-app-web/pom.xml`、`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/test/resources/application.properties`、`rill-app-web/src/main/java/com/indolyn/rill/app/{messaging,service}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/service/{ExportTaskServiceTest,ExportTaskExecutionProcessorTest}.java`、`agent/modules/app.md`、`agent/STATUS.md`
+- 当前结果：导出任务不再把“排队/调度”和“执行/写文件”混在一个 service 中，后续接真实 RocketMQ、任务重试和进度通知的改动面已经明显缩小；`./mvnw.cmd -q -pl rill-app-web -Dtest="AuthServiceTest,AuthControllerTest,VerificationTokenServiceImplTest,ExportTaskServiceTest,ExportTaskExecutionProcessorTest,ExportTaskControllerTest" test` 已通过
+- 下一步建议：继续补 RocketMQ 实际配置样例、失败重试/死信策略，以及前端对 `QUEUED / RUNNING / COMPLETED / FAILED` 状态的正式展示；随后再推进 OAuth2 第三方登录接入
+
 - 完成运行与构建结构第六轮收口：仓库已切到父 `pom` 聚合的多模块结构，形成 `rill-core / rill-server / rill-client / rill-app-web / rill-launcher`
 - 影响范围：根 `pom.xml`、各子模块 `pom.xml`、源码与测试目录、`scripts/rill.*`、README 与运行/架构文档
 - 当前结果：`./mvnw.cmd -q -DskipTests compile`、`./mvnw.cmd -q -pl rill-core,rill-server -am -Dsurefire.failIfNoSpecifiedTests=false "-Dtest=ParserTest,PlannerTest,SemanticAnalyzerTest,DataTypeTest,MysqlProtocolHandlerTest" test`、`./mvnw.cmd -q -DskipTests package` 已通过；服务端、客户端、Spring Boot Web 壳已开始分别产出模块化工件
