@@ -3,15 +3,12 @@ package com.indolyn.rill.app.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.indolyn.rill.app.dto.ExportTaskRequest;
 import com.indolyn.rill.app.dto.ExportTaskResponse;
-import com.indolyn.rill.app.dto.QueryExecuteResponse;
 import com.indolyn.rill.app.persistence.entity.ExportTaskEntity;
 import com.indolyn.rill.app.persistence.mapper.ExportTaskMapper;
 import com.indolyn.rill.app.service.CurrentUserProvider;
+import com.indolyn.rill.app.service.ExportTaskJobPublisher;
 import com.indolyn.rill.app.service.ExportTaskService;
-import com.indolyn.rill.app.service.QueryTraceService;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -27,18 +24,18 @@ import org.springframework.web.server.ResponseStatusException;
 public class ExportTaskServiceImpl implements ExportTaskService {
 
     private final ExportTaskMapper exportTaskMapper;
-    private final QueryTraceService queryTraceService;
     private final Path exportDir;
     private final CurrentUserProvider currentUserProvider;
+    private final ExportTaskJobPublisher exportTaskJobPublisher;
 
     public ExportTaskServiceImpl(
         ExportTaskMapper exportTaskMapper,
-        QueryTraceService queryTraceService,
         CurrentUserProvider currentUserProvider,
+        ExportTaskJobPublisher exportTaskJobPublisher,
         @Value("${app.workspace.export-dir:target/exports}") String exportDir) {
         this.exportTaskMapper = exportTaskMapper;
-        this.queryTraceService = queryTraceService;
         this.currentUserProvider = currentUserProvider;
+        this.exportTaskJobPublisher = exportTaskJobPublisher;
         this.exportDir = Path.of(exportDir);
     }
 
@@ -102,42 +99,17 @@ public class ExportTaskServiceImpl implements ExportTaskService {
     }
 
     @Override
+    @Transactional
     public ExportTaskResponse runTask(long id) {
         ExportTaskEntity entity = requireTask(id);
-        entity.setStatus("RUNNING");
+        entity.setStatus("QUEUED");
+        entity.setOutputPath(null);
         entity.setLastError(null);
+        entity.setCompletedAt(null);
         entity.setUpdatedAt(Instant.now());
         exportTaskMapper.updateById(entity);
-
-        QueryExecuteResponse execution = queryTraceService.execute(entity.getDbName(), entity.getSqlText());
-        if (!execution.success()) {
-            entity.setStatus("FAILED");
-            entity.setLastError(execution.rawResult());
-            entity.setUpdatedAt(Instant.now());
-            exportTaskMapper.updateById(entity);
-            return toResponse(entity);
-        }
-
-        try {
-            Files.createDirectories(exportDir);
-            String extension = "csv".equalsIgnoreCase(entity.getExportFormat()) ? "csv" : "json";
-            Path outputPath = exportDir.resolve("export-task-" + entity.getId() + "." + extension);
-            String content = "csv".equalsIgnoreCase(entity.getExportFormat()) ? toCsv(execution) : toJson(execution);
-            Files.writeString(outputPath, content, StandardCharsets.UTF_8);
-            Instant completedAt = Instant.now();
-            entity.setStatus("COMPLETED");
-            entity.setOutputPath(outputPath.toAbsolutePath().normalize().toString());
-            entity.setCompletedAt(completedAt);
-            entity.setUpdatedAt(completedAt);
-            exportTaskMapper.updateById(entity);
-            return toResponse(entity);
-        } catch (IOException e) {
-            entity.setStatus("FAILED");
-            entity.setLastError(e.getMessage());
-            entity.setUpdatedAt(Instant.now());
-            exportTaskMapper.updateById(entity);
-            return toResponse(entity);
-        }
+        exportTaskJobPublisher.publish(entity.getId());
+        return toResponse(requireTask(id));
     }
 
     @Override
@@ -206,47 +178,6 @@ public class ExportTaskServiceImpl implements ExportTaskService {
             return null;
         }
         return value.trim();
-    }
-
-    private String toCsv(QueryExecuteResponse execution) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(String.join(",", execution.columns())).append(System.lineSeparator());
-        for (List<String> row : execution.rows()) {
-            builder.append(String.join(",", row)).append(System.lineSeparator());
-        }
-        return builder.toString();
-    }
-
-    private String toJson(QueryExecuteResponse execution) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("{\"columns\":[");
-        for (int i = 0; i < execution.columns().size(); i++) {
-            if (i > 0) {
-                builder.append(',');
-            }
-            builder.append('"').append(escape(execution.columns().get(i))).append('"');
-        }
-        builder.append("],\"rows\":[");
-        for (int i = 0; i < execution.rows().size(); i++) {
-            if (i > 0) {
-                builder.append(',');
-            }
-            builder.append('[');
-            List<String> row = execution.rows().get(i);
-            for (int j = 0; j < row.size(); j++) {
-                if (j > 0) {
-                    builder.append(',');
-                }
-                builder.append('"').append(escape(row.get(j))).append('"');
-            }
-            builder.append(']');
-        }
-        builder.append("]}");
-        return builder.toString();
-    }
-
-    private String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private ExportTaskResponse toResponse(ExportTaskEntity entity) {

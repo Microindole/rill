@@ -105,6 +105,7 @@
   - 更新
   - 删除
   - 运行导出任务并生成 csv/json 文件
+  - 导出任务当前已拆成“业务 service 入队 + 独立处理器执行”结构，可通过 `local / rocketmq` 两种传输模式驱动
 - 当前 `app` 已开始补出正式前后端分离认证边界：
   - `app_user`
   - `app_jwt_session`
@@ -144,8 +145,14 @@
   - 注册不再直接发登录态，而是发送带时效性的邮箱验证链接
   - 修改密码需要先验证当前密码，再发送邮箱确认链接
   - 忘记密码通过注册邮箱发送带时效性的重置链接
+  - Cloudflare Turnstile 当前仍作为登录人机校验保留，不替代系统内部短期验证 token
+  - 邮箱验证 / 改密确认 / 找回密码 token 已开始具备 `database / redis` 可切换存储能力，后续可继续把高频认证短状态迁到 Redis
   - 管理员接口已开始独立到 `app.controller.AdminUserController`
   - Spring Boot 已开始通过 `config/rill-app-secrets.properties` 外部化敏感配置
+- 当前异步任务链路也已开始起步：
+  - `export_task` 已新增消息发布边界与独立执行处理器
+  - 默认 `local` 传输仍可在单机开发环境直接运行
+  - 配置切到 `rocketmq` 后可通过 RocketMQ producer / consumer 驱动异步导出
 - 当前 `data.sql` 已开始提供默认 snippet 和默认 demo scenario，方便本地和演示环境开箱即用
 - 当前 `RestExceptionHandler` 已开始把 `ResponseStatusException` 收口成统一 JSON 错误模型
 - 当前 `rill-app-web` 已支持两种发布形态，且两者都会通过 Maven 依赖携带 `rill-core`：
