@@ -44,8 +44,30 @@ export interface AuthConfig {
     captchaEnabled: boolean;
     captchaProvider: string;
     captchaSiteKey: string;
+    githubLoginEnabled: boolean;
 }
 
 export interface ActionMessageResponse {
     message: string;
+}
+
+export interface OauthPendingState {
+    state: string;
+    provider: string;
+    providerLogin: string;
+    providerEmail: string;
+    providerDisplayName: string;
+    suggestedUsername: string;
+}
+
+export interface OauthCreateAccountPayload {
+    state: string;
+    username: string;
+    displayName: string;
+}
+
+export interface OauthBindAccountPayload {
+    state: string;
+    username: string;
+    password: string;
 }

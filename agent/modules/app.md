@@ -147,6 +147,9 @@
   - 忘记密码通过注册邮箱发送带时效性的重置链接
   - Cloudflare Turnstile 当前仍作为登录人机校验保留，不替代系统内部短期验证 token
   - 邮箱验证 / 改密确认 / 找回密码 token 已开始具备 `database / redis` 可切换存储能力，后续可继续把高频认证短状态迁到 Redis
+  - GitHub OAuth2 登录已开始接入，当前采用“GitHub 完成认证 -> 本地 `app_oauth_account` 绑定/建号 -> 签发现有 JWT”模式，而不是用 Spring Session 直接替代业务登录态
+  - 当 GitHub 身份尚未绑定时，后端会生成短期 OAuth2 pending state，由前端登录页引导用户选择“创建新账号”或“绑定已有账号”
+  - GitHub `client-id / client-secret` 延续现有敏感配置约定，通过 `config/rill-app-secrets.properties` 注入
   - 管理员接口已开始独立到 `app.controller.AdminUserController`
   - Spring Boot 已开始通过 `config/rill-app-secrets.properties` 外部化敏感配置
 - 当前异步任务链路也已开始起步：

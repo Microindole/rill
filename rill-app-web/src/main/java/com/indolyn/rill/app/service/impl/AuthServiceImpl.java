@@ -12,13 +12,12 @@ import com.indolyn.rill.app.service.AuthService;
 import com.indolyn.rill.app.service.AuthenticatedUser;
 import com.indolyn.rill.app.service.CaptchaVerificationService;
 import com.indolyn.rill.app.service.JwtService;
+import com.indolyn.rill.app.service.LoginSessionService;
 import com.indolyn.rill.app.service.MailService;
 import com.indolyn.rill.app.service.RillQueryService;
 import com.indolyn.rill.app.service.VerificationTokenService;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final CaptchaVerificationService captchaVerificationService;
     private final VerificationTokenService verificationTokenService;
     private final MailService mailService;
-    private final long tokenTtlDays;
+    private final LoginSessionService loginSessionService;
     private final String frontendBaseUrl;
 
     public AuthServiceImpl(
@@ -52,7 +51,7 @@ public class AuthServiceImpl implements AuthService {
         CaptchaVerificationService captchaVerificationService,
         VerificationTokenService verificationTokenService,
         MailService mailService,
-        @Value("${app.auth.jwt-ttl-days:7}") long tokenTtlDays,
+        LoginSessionService loginSessionService,
         @Value("${app.auth.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
         this.appUserMapper = appUserMapper;
         this.appJwtSessionMapper = appJwtSessionMapper;
@@ -62,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
         this.captchaVerificationService = captchaVerificationService;
         this.verificationTokenService = verificationTokenService;
         this.mailService = mailService;
-        this.tokenTtlDays = tokenTtlDays;
+        this.loginSessionService = loginSessionService;
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
@@ -116,7 +115,7 @@ public class AuthServiceImpl implements AuthService {
         user.setUpdatedAt(Instant.now());
         appUserMapper.updateById(user);
         verificationTokenService.markUsed(verificationToken);
-        return issueToken(user);
+        return loginSessionService.issueToken(user);
     }
 
     @Override
@@ -134,7 +133,7 @@ public class AuthServiceImpl implements AuthService {
         if (!user.isEmailVerified() && !GUEST_USERNAME.equalsIgnoreCase(user.getUsername())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Email verification required");
         }
-        return issueToken(user);
+        return loginSessionService.issueToken(user);
     }
 
     @Override
@@ -199,20 +198,6 @@ public class AuthServiceImpl implements AuthService {
         jwtSession.setRevoked(true);
         jwtSession.setUpdatedAt(Instant.now());
         appJwtSessionMapper.updateById(jwtSession);
-    }
-
-    private AuthenticatedUser issueToken(AppUserEntity user) {
-        Instant now = Instant.now();
-        String jwtId = UUID.randomUUID().toString().replace("-", "");
-        AppJwtSessionEntity jwtSession = new AppJwtSessionEntity();
-        jwtSession.setUserId(user.getId());
-        jwtSession.setJwtId(jwtId);
-        jwtSession.setExpiresAt(now.plus(tokenTtlDays, ChronoUnit.DAYS));
-        jwtSession.setRevoked(false);
-        jwtSession.setCreatedAt(now);
-        jwtSession.setUpdatedAt(now);
-        appJwtSessionMapper.insert(jwtSession);
-        return new AuthenticatedUser(user, jwtService.issueToken(user, jwtId, jwtSession.getExpiresAt()));
     }
 
     private void updatePassword(AppVerificationTokenEntity verificationToken, String newPassword) {

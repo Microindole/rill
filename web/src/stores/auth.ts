@@ -1,10 +1,13 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import {
+    bindOauthAccount,
+    createOauthAccount,
     confirmPasswordChange,
     confirmPasswordReset,
     confirmRegister,
     currentUser,
+    getOauthPendingState,
     getAuthConfig,
     login,
     logout,
@@ -16,6 +19,7 @@ import type {
     AuthConfig,
     AuthUser,
     LoginPayload,
+    OauthPendingState,
     PasswordChangeRequestPayload,
     PasswordResetConfirmPayload,
     PasswordResetRequestPayload,
@@ -38,8 +42,10 @@ export const useAuthStore = defineStore("auth", () => {
     const authConfig = ref<AuthConfig>({
         captchaEnabled: false,
         captchaProvider: "turnstile",
-        captchaSiteKey: ""
+        captchaSiteKey: "",
+        githubLoginEnabled: false
     });
+    const oauthPendingState = ref<OauthPendingState | null>(null);
     const loading = ref(false);
     const error = ref("");
 
@@ -161,6 +167,53 @@ export const useAuthStore = defineStore("auth", () => {
         authConfig.value = await getAuthConfig();
     }
 
+    async function loadOauthPendingState(state: string) {
+        loading.value = true;
+        error.value = "";
+        try {
+            oauthPendingState.value = await getOauthPendingState(state);
+            return oauthPendingState.value;
+        } catch (err) {
+            oauthPendingState.value = null;
+            error.value = err instanceof Error ? err.message : "OAuth2 登录状态加载失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function createOauthLinkedAccount(payload: { state: string; username: string; displayName: string }) {
+        loading.value = true;
+        error.value = "";
+        try {
+            const response = await createOauthAccount(payload);
+            applyAuthenticatedUser(response);
+            oauthPendingState.value = null;
+            return response;
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "OAuth2 创建账号失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function bindOauthLinkedAccount(payload: { state: string; username: string; password: string }) {
+        loading.value = true;
+        error.value = "";
+        try {
+            const response = await bindOauthAccount(payload);
+            applyAuthenticatedUser(response);
+            oauthPendingState.value = null;
+            return response;
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "OAuth2 绑定账号失败";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function logoutCurrentUser() {
         if (token.value) {
             try {
@@ -207,19 +260,29 @@ export const useAuthStore = defineStore("auth", () => {
         };
     }
 
+    async function acceptOauthToken(nextToken: string) {
+        setToken(nextToken);
+        await hydrateUser();
+    }
+
     return {
         token,
         user,
         loading,
         error,
         authConfig,
+        oauthPendingState,
         isAuthenticated,
         isGuest,
         loadAuthConfig,
+        loadOauthPendingState,
         hydrateUser,
         loginWithPassword,
+        createOauthLinkedAccount,
+        bindOauthLinkedAccount,
         registerAccount,
         confirmRegisterToken,
+        acceptOauthToken,
         requestPasswordResetEmail,
         confirmPasswordResetToken,
         requestPasswordChangeEmail,

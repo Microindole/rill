@@ -473,6 +473,14 @@
 - 影响范围：`rill-app-web/pom.xml`、`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/test/resources/application.properties`、`rill-app-web/src/main/java/com/indolyn/rill/app/{messaging,service}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/service/{ExportTaskServiceTest,ExportTaskExecutionProcessorTest}.java`、`agent/modules/app.md`、`agent/STATUS.md`
 - 当前结果：导出任务不再把“排队/调度”和“执行/写文件”混在一个 service 中，后续接真实 RocketMQ、任务重试和进度通知的改动面已经明显缩小；`./mvnw.cmd -q -pl rill-app-web -Dtest="AuthServiceTest,AuthControllerTest,VerificationTokenServiceImplTest,ExportTaskServiceTest,ExportTaskExecutionProcessorTest,ExportTaskControllerTest" test` 已通过
 - 下一步建议：继续补 RocketMQ 实际配置样例、失败重试/死信策略，以及前端对 `QUEUED / RUNNING / COMPLETED / FAILED` 状态的正式展示；随后再推进 OAuth2 第三方登录接入
+- 完成了 Spring Boot GitHub OAuth2 第一轮接入：`rill-app-web` 已接入 `spring-boot-starter-oauth2-client`，新增 `app_oauth_account` 绑定表、GitHub 登录成功处理器与本地 JWT 会话签发服务，当前采用“GitHub 认证 -> 本地用户绑定/自动建号 -> 签发现有 JWT -> 回跳前端”模式
+- 影响范围：`rill-app-web/pom.xml`、`rill-app-web/src/main/resources/{application.properties,schema.sql}`、`rill-app-web/src/main/java/com/indolyn/rill/app/{config,controller,dto,persistence,security,service}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{controller,service}/**`、`agent/modules/app.md`、`agent/STATUS.md`
+- 当前结果：项目认证体系已从“账号密码 + Turnstile + 邮件验证”扩展到“账号密码 / GitHub OAuth2 并存”，且 GitHub 登录不会绕开现有 JWT/owner_id 隔离链路；`./mvnw.cmd -q -pl rill-app-web -Dtest="AuthServiceTest,AuthControllerTest,OauthLoginServiceTest" test` 已通过
+- 下一步建议：继续补前端 GitHub 登录按钮、OAuth2 回跳页和用户绑定提示，同时把 GitHub `client-id / client-secret` 示例同步到 `config/rill-app-secrets.example.properties` 并评估是否需要补账号解绑/多 provider 扩展
+- 完成了 GitHub OAuth2 第二轮绑定流补齐：当 GitHub 身份未绑定本地账号时，后端现在会生成短期 pending state，前端登录页可调用新接口选择“创建新账号”或“绑定已有账号”；成功后仍统一签发现有 JWT
+- 影响范围：`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/main/java/com/indolyn/rill/app/{controller,dto,security,service}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{controller,service}/**`、`web/src/{router,services,stores,types,views}/**`、`agent/modules/app.md`、`agent/STATUS.md`
+- 当前结果：GitHub OAuth2 已从“后端可接回调”推进到“前后端完整可选择创建/绑定账号”的状态，前端 `npm run build` 与后端认证/导出聚焦测试均已通过
+- 下一步建议：继续补 OAuth2 绑定/创建接口的 controller 单测、前端成功提示与异常态细化，并把生产与本地的 GitHub OAuth 配置说明写入 `config/rill-app-secrets.example.properties` 和部署文档
 
 - 完成运行与构建结构第六轮收口：仓库已切到父 `pom` 聚合的多模块结构，形成 `rill-core / rill-server / rill-client / rill-app-web / rill-launcher`
 - 影响范围：根 `pom.xml`、各子模块 `pom.xml`、源码与测试目录、`scripts/rill.*`、README 与运行/架构文档

@@ -20,6 +20,7 @@ import com.indolyn.rill.app.security.RequestUserContextHolder;
 import com.indolyn.rill.app.service.impl.AuthServiceImpl;
 import com.indolyn.rill.app.service.impl.CaptchaVerificationServiceImpl;
 import com.indolyn.rill.app.service.impl.JwtServiceImpl;
+import com.indolyn.rill.app.service.impl.LoginSessionServiceImpl;
 import com.indolyn.rill.app.service.impl.MailServiceImpl;
 import com.indolyn.rill.app.service.impl.VerificationTokenServiceImpl;
 
@@ -153,7 +154,7 @@ class AuthServiceTest {
             new CaptchaVerificationServiceImpl(false, "turnstile", "", new ObjectMapper()),
             new VerificationTokenServiceImpl(tokenMapper, new ObjectMapper(), "database", 30, "test:rill:auth:verification:", null),
             new MailServiceImpl(false, "noreply@example.com", Mockito.mock(JavaMailSender.class)),
-            7,
+            new LoginSessionServiceImpl(appJwtSessionMapper, new JwtServiceImpl("test-secret"), 7),
             "http://localhost:5173");
     }
 

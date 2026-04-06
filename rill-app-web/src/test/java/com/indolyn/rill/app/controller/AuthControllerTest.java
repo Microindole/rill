@@ -19,6 +19,7 @@ import com.indolyn.rill.app.persistence.entity.AppUserEntity;
 import com.indolyn.rill.app.service.AuthService;
 import com.indolyn.rill.app.service.AuthenticatedUser;
 import com.indolyn.rill.app.service.CurrentUserProvider;
+import com.indolyn.rill.app.service.OauthLoginService;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -174,7 +175,9 @@ class AuthControllerTest {
         AuthService authService = Mockito.mock(AuthService.class);
         CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         MockMvc mockMvc =
-            MockMvcBuilders.standaloneSetup(new AuthController(authService, currentUserProvider, true, "turnstile", "site-key"), new RestExceptionHandler())
+            MockMvcBuilders.standaloneSetup(
+                    new AuthController(authService, currentUserProvider, Mockito.mock(OauthLoginService.class), true, "turnstile", "site-key", true),
+                    new RestExceptionHandler())
                 .build();
 
         mockMvc
@@ -182,7 +185,8 @@ class AuthControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.captchaEnabled").value(true))
             .andExpect(jsonPath("$.captchaProvider").value("turnstile"))
-            .andExpect(jsonPath("$.captchaSiteKey").value("site-key"));
+            .andExpect(jsonPath("$.captchaSiteKey").value("site-key"))
+            .andExpect(jsonPath("$.githubLoginEnabled").value(true));
     }
 
     @Test
@@ -195,7 +199,9 @@ class AuthControllerTest {
     }
 
     private MockMvc mockMvc(AuthService authService, CurrentUserProvider currentUserProvider) {
-        return MockMvcBuilders.standaloneSetup(new AuthController(authService, currentUserProvider, false, "turnstile", ""), new RestExceptionHandler())
+        return MockMvcBuilders.standaloneSetup(
+                new AuthController(authService, currentUserProvider, Mockito.mock(OauthLoginService.class), false, "turnstile", "", false),
+                new RestExceptionHandler())
             .build();
     }
 
