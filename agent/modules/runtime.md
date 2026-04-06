@@ -202,6 +202,7 @@ export JAVA21_HOME=/path/to/jdk-21
 ## 当前发布与安装约定
 
 - 数据库主体发布物不包含 Spring Boot / Web UI；但 `rill-app-web` 单独发布时内部仍依赖并携带 `rill-core`
+- `rill-app-web` 当前还依赖外部 PostgreSQL，并已开始接入 Redis 与 RocketMQ 这类中间件；本地和 Debian 的推荐启动方式见 `docs/middleware-setup.md`
 - tag 发布时当前会生成：
   - Windows/Linux/macOS 的 `core-cli / desktop / mysql-compat` edition 产物
   - Windows 组件式安装器

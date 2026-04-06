@@ -481,6 +481,10 @@
 - 影响范围：`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/main/java/com/indolyn/rill/app/{controller,dto,security,service}/**`、`rill-app-web/src/test/java/com/indolyn/rill/app/{controller,service}/**`、`web/src/{router,services,stores,types,views}/**`、`agent/modules/app.md`、`agent/STATUS.md`
 - 当前结果：GitHub OAuth2 已从“后端可接回调”推进到“前后端完整可选择创建/绑定账号”的状态，前端 `npm run build` 与后端认证/导出聚焦测试均已通过
 - 下一步建议：继续补 OAuth2 绑定/创建接口的 controller 单测、前端成功提示与异常态细化，并把生产与本地的 GitHub OAuth 配置说明写入 `config/rill-app-secrets.example.properties` 和部署文档
+- 完成了中间件启动与默认配置收口：`rill-app-web` 的 RocketMQ name server 默认已回退到 `127.0.0.1:9876`，不再因为空配置直接启动失败；同时新增 Redis/RocketMQ 的 Docker Compose 与 Win11 / Debian 部署文档
+- 影响范围：`rill-app-web/src/main/resources/application.properties`、`rill-app-web/src/test/resources/application.properties`、`deploy/services/**`、`docs/middleware-setup.md`、`README.md`、`agent/modules/runtime.md`、`agent/STATUS.md`
+- 当前结果：本地和 Debian 服务器都已有明确的 Redis / RocketMQ 启动路径，`APP_EXPORT_TASK_TRANSPORT=local` 时应用不再因 RocketMQ 空配置而直接报 `[rocketmq.name-server] must not be null`
+- 下一步建议：把你本地和线上 `config/rill-app-secrets.properties` 按实际域名与中间件地址补齐，再决定生产环境是否真的启用 RocketMQ；对于 `2 核 2G` 机器，建议先把 RocketMQ 视为演示能力而不是高负载生产依赖
 
 - 完成运行与构建结构第六轮收口：仓库已切到父 `pom` 聚合的多模块结构，形成 `rill-core / rill-server / rill-client / rill-app-web / rill-launcher`
 - 影响范围：根 `pom.xml`、各子模块 `pom.xml`、源码与测试目录、`scripts/rill.*`、README 与运行/架构文档

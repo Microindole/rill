@@ -51,3 +51,4 @@ Rill 是一个基于 Java 21 的数据库实验项目，当前仓库包含数据
 
 更多运行、架构、权限、部署细节见 [文档导航](./docs/README.md)。
 常用命令和产物路径见 [构建产物与常用命令](./docs/build-and-run.md)。
+Redis / RocketMQ 本地与 Debian 启动方式见 [中间件启动说明](./docs/middleware-setup.md)。
