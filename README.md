@@ -34,14 +34,17 @@ Rill 是一个基于 Java 21 的数据库实验项目，当前仓库包含数据
 
 ## 快速开始
 
-1. 复制并填写配置文件：`config/rill-app-secrets.properties`（参考 `config/rill-app-secrets.example.properties`）
-2. 在仓库根目录打包：
+1. 复制并填写配置文件：`config/rill-app-secrets.properties`，参考 `config/rill-app-secrets.example.properties`
+2. 启动 Redis / RocketMQ：
+   - `cd deploy/services`
+   - `docker compose up -d`
+3. 在仓库根目录打包：
    - Windows: `scripts\build.cmd`
    - macOS / Linux: `./scripts/build.sh`
-3. 启动 Web 后端：
+4. 启动 Web 后端：
    - Windows: `scripts\rill.cmd web`
    - macOS / Linux: `./scripts/rill.sh web`
-4. 启动前端：
+5. 启动前端：
    - `cd web && npm install && npm run dev`
 
 默认联调地址：

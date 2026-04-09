@@ -50,3 +50,53 @@ scripts\rill.cmd web
 - `web`: Spring Boot Web 后端
 - `log / data`: `rill-launcher` 工具模式
 
+## 启动顺序
+
+### 1. 准备配置
+
+复制 `config/rill-app-secrets.example.properties` 为 `config/rill-app-secrets.properties`，并填写真实值。
+
+至少需要确认这些项：
+
+- `APP_DB_URL`
+- `APP_DB_USERNAME`
+- `APP_DB_PASSWORD`
+- `APP_AUTH_JWT_SECRET`
+- `APP_WEB_CORS_ALLOWED_ORIGINS`
+- `APP_AUTH_FRONTEND_BASE_URL`
+- `APP_REDIS_PASSWORD`
+- `APP_ROCKETMQ_NAME_SERVER`
+
+### 2. 启动中间件
+
+先启动 Redis 和 RocketMQ：
+
+```sh
+cd deploy/services
+docker compose up -d
+```
+
+### 3. 启动后端
+
+```powershell
+scripts/rill.cmd web
+```
+
+或在 macOS / Linux：
+
+```sh
+./scripts/rill.sh web
+```
+
+### 4. 启动前端
+
+```sh
+cd web
+npm install
+npm run dev
+```
+
+### 5. 验证
+
+- 健康检查：`http://127.0.0.1:8080/api/health`
+- 前端地址：`http://localhost:5173`

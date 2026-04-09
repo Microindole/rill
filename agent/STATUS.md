@@ -486,6 +486,11 @@
 - 当前结果：本地和 Debian 服务器都已有明确的 Redis / RocketMQ 启动路径，`APP_EXPORT_TASK_TRANSPORT=local` 时应用不再因 RocketMQ 空配置而直接报 `[rocketmq.name-server] must not be null`
 - 下一步建议：把你本地和线上 `config/rill-app-secrets.properties` 按实际域名与中间件地址补齐，再决定生产环境是否真的启用 RocketMQ；对于 `2 核 2G` 机器，建议先把 RocketMQ 视为演示能力而不是高负载生产依赖
 
+- 完成了核心权限语义修正：`rill-core` 现在把 `default` 和当前用户自己的数据库视为完全权限边界，普通用户不再被默认锁死到 `root`；同时保留 `CREATE/DROP DATABASE` 的更严格边界，`DROP DATABASE` 仍仅对 `root` 开放
+- 影响范围：`rill-core/src/main/java/com/indolyn/rill/core/sql/semantic/**`、`rill-app-web/src/main/java/com/indolyn/rill/app/service/impl/DatabaseAccessPolicyServiceImpl.java`、`rill-core/src/test/java/com/indolyn/rill/core/sql/semantic/DatabasePrivilegeRulesTest.java`、`rill-app-web/src/test/java/com/indolyn/rill/app/service/DatabaseAccessPolicyServiceImplTest.java`
+- 当前结果：`demo` 这类非 root 用户在自己的库和 `default` 库里可以正常做表级 DDL/DML，core 语义测试和 app 侧权限测试都已通过
+- 下一步建议：如果你还要放宽“非 root 创建数据库”的策略，需要再单独定义 app 层创建来源和数据库命名规则，不然容易把用户库边界打散
+
 - 完成运行与构建结构第六轮收口：仓库已切到父 `pom` 聚合的多模块结构，形成 `rill-core / rill-server / rill-client / rill-app-web / rill-launcher`
 - 影响范围：根 `pom.xml`、各子模块 `pom.xml`、源码与测试目录、`scripts/rill.*`、README 与运行/架构文档
 - 当前结果：`./mvnw.cmd -q -DskipTests compile`、`./mvnw.cmd -q -pl rill-core,rill-server -am -Dsurefire.failIfNoSpecifiedTests=false "-Dtest=ParserTest,PlannerTest,SemanticAnalyzerTest,DataTypeTest,MysqlProtocolHandlerTest" test`、`./mvnw.cmd -q -DskipTests package` 已通过；服务端、客户端、Spring Boot Web 壳已开始分别产出模块化工件

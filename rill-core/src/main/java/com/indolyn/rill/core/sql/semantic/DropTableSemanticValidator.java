@@ -16,7 +16,8 @@ class DropTableSemanticValidator {
     }
 
     void analyze(DropTableStatementNode node, Session session) {
-        definitionValidationSupport.requireRoot(session, "DROP TABLE");
+        definitionValidationSupport.requireDatabaseOwnerOrRoot(
+            session, session.getCurrentDatabase(), "DROP TABLE");
         semanticValidationSupport.getTableOrThrow(node.tableName().getName());
     }
 }

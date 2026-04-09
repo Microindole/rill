@@ -5,7 +5,9 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    env_file:
+      - ../../config/rill-app-secrets.properties
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$APP_REDIS_PASSWORD\""]
     volumes:
       - redis-data:/data
 

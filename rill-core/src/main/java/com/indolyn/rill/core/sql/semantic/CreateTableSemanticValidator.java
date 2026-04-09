@@ -17,7 +17,8 @@ class CreateTableSemanticValidator {
     }
 
     void analyze(CreateTableStatementNode node, Session session) {
-        definitionValidationSupport.requireRoot(session, "CREATE TABLE");
+        definitionValidationSupport.requireDatabaseOwnerOrRoot(
+            session, session.getCurrentDatabase(), "CREATE TABLE");
 
         String tableName = node.tableName().getName();
         if (catalog.getTable(tableName) != null) {

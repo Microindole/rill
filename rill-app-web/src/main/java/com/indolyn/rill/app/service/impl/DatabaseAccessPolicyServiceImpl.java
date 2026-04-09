@@ -67,9 +67,16 @@ public class DatabaseAccessPolicyServiceImpl implements DatabaseAccessPolicyServ
             return;
         }
         StatementNode statement = new Parser(new Lexer(sql.trim()).tokenize()).parse();
-        if (statement instanceof CreateDatabaseStatementNode || statement instanceof DropDatabaseStatementNode) {
-            if (!isAdmin(user)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can create or drop databases");
+        if (statement instanceof CreateDatabaseStatementNode createDatabaseStatementNode) {
+            if (!canCreateDatabase(user, createDatabaseStatementNode.databaseName().getName())) {
+                throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Current user can only create own database");
+            }
+            return;
+        }
+        if (statement instanceof DropDatabaseStatementNode dropDatabaseStatementNode) {
+            if (!canDropDatabase(user, dropDatabaseStatementNode.databaseName().getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only root can drop databases");
             }
             return;
         }
@@ -86,6 +93,23 @@ public class DatabaseAccessPolicyServiceImpl implements DatabaseAccessPolicyServ
     @Override
     public boolean isGuest(AppUserEntity user) {
         return user != null && "GUEST".equalsIgnoreCase(user.getRole());
+    }
+
+    private boolean canCreateDatabase(AppUserEntity user, String databaseName) {
+        if (user == null) {
+            return false;
+        }
+        if (isAdmin(user)) {
+            return true;
+        }
+        String normalized = normalizeDbName(databaseName);
+        return normalized.equals(normalizeDbName(user.getUsername()))
+            || normalized.equals(normalizeDbName(user.getKernelDbName()));
+    }
+
+    private boolean canDropDatabase(AppUserEntity user, String databaseName) {
+        return "root".equalsIgnoreCase(user == null ? null : user.getUsername())
+            && normalizeDbName(databaseName).equals(normalizeDbName(user.getKernelDbName()));
     }
 
     private String normalizeDbName(String dbName) {

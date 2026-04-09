@@ -16,6 +16,7 @@ import java.time.format.DateTimeParseException;
 class DefinitionValidationSupport {
 
     private final SqlTypeResolver sqlTypeResolver;
+    private static final String DEFAULT_DATABASE = "default";
 
     DefinitionValidationSupport(SqlTypeResolver sqlTypeResolver) {
         this.sqlTypeResolver = sqlTypeResolver;
@@ -30,6 +31,53 @@ class DefinitionValidationSupport {
                     + privilege
                     + " privilege required.");
         }
+    }
+
+    void requireDatabaseOwnerOrRoot(Session session, String databaseName, String privilege) {
+        if (isRoot(session) || isDefaultDatabase(databaseName) || isOwnedDatabase(session, databaseName)) {
+            return;
+        }
+        throw new SemanticException(
+            "Access denied for user '"
+                + session.getUsername()
+                + "'. "
+                + privilege
+                + " privilege required.");
+    }
+
+    void requireDatabaseCreatePermission(Session session, String databaseName) {
+        if (isRoot(session) || isOwnedDatabase(session, databaseName)) {
+            return;
+        }
+        throw new SemanticException(
+            "Access denied for user '"
+                + session.getUsername()
+                + "'. CREATE DATABASE privilege required.");
+    }
+
+    void requireDatabaseDropPermission(Session session, String databaseName) {
+        if (isRoot(session)) {
+            return;
+        }
+        throw new SemanticException(
+            "Access denied for user '"
+                + session.getUsername()
+                + "'. DROP DATABASE privilege required.");
+    }
+
+    private boolean isRoot(Session session) {
+        return session != null && "root".equalsIgnoreCase(session.getUsername());
+    }
+
+    private boolean isDefaultDatabase(String databaseName) {
+        return databaseName != null && DEFAULT_DATABASE.equalsIgnoreCase(databaseName);
+    }
+
+    private boolean isOwnedDatabase(Session session, String databaseName) {
+        return session != null
+            && session.getUsername() != null
+            && databaseName != null
+            && session.getUsername().equalsIgnoreCase(databaseName);
     }
 
     void validateDataType(ColumnDefinitionNode columnDefinition) {
