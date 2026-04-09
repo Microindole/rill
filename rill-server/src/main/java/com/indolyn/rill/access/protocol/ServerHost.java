@@ -69,6 +69,7 @@ public class ServerHost {
                         }
                         Session session =
                             Session.createAuthenticatedSession(clientSocket.hashCode(), username.trim());
+                        session.setCurrentDatabase(currentDbName);
                         out.println(
                             "Login successful as "
                                 + session.getUsername()
@@ -89,6 +90,7 @@ public class ServerHost {
                                     currentQueryProcessor =
                                         queryProcessorMap.computeIfAbsent(dbName, k -> new QueryProcessor(k));
                                     currentDbName = dbName;
+                                    session.setCurrentDatabase(dbName);
                                     out.println("Database changed to " + dbName);
                                 } catch (Exception e) {
                                     out.println("ERROR: " + e.getMessage());
@@ -172,4 +174,3 @@ public class ServerHost {
         return defaultPort;
     }
 }
-
