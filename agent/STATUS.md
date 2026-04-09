@@ -491,6 +491,11 @@
 - 当前结果：`demo` 这类非 root 用户在自己的库和 `default` 库里可以正常做表级 DDL/DML，core 语义测试和 app 侧权限测试都已通过
 - 下一步建议：如果你还要放宽“非 root 创建数据库”的策略，需要再单独定义 app 层创建来源和数据库命名规则，不然容易把用户库边界打散
 
+- 完成了协议层会话状态同步修正：`ServerHost` 和 `MysqlProtocolHandler` 现在会在切库/登录时把 `currentDatabase` 写回 `Session`，避免 core 语义层误以为当前库为空而把 `CREATE TABLE` 拦掉
+- 影响范围：`rill-server/src/main/java/com/indolyn/rill/access/protocol/{ServerHost.java,MysqlProtocolHandler.java}`、`agent/STATUS.md`
+- 当前结果：通过 Navicat / 原生协议 / CLI 这类协议入口执行 `create table` 时，当前库边界能正确传入 core；`rill-server` 编译和 `rill-core` 权限测试已通过
+- 下一步建议：继续观察各入口对 `currentDatabase` 的一致性，后续再评估是否把 session 默认库初始化逻辑集中到统一 helper，减少协议层重复修补
+
 - 完成运行与构建结构第六轮收口：仓库已切到父 `pom` 聚合的多模块结构，形成 `rill-core / rill-server / rill-client / rill-app-web / rill-launcher`
 - 影响范围：根 `pom.xml`、各子模块 `pom.xml`、源码与测试目录、`scripts/rill.*`、README 与运行/架构文档
 - 当前结果：`./mvnw.cmd -q -DskipTests compile`、`./mvnw.cmd -q -pl rill-core,rill-server -am -Dsurefire.failIfNoSpecifiedTests=false "-Dtest=ParserTest,PlannerTest,SemanticAnalyzerTest,DataTypeTest,MysqlProtocolHandlerTest" test`、`./mvnw.cmd -q -DskipTests package` 已通过；服务端、客户端、Spring Boot Web 壳已开始分别产出模块化工件

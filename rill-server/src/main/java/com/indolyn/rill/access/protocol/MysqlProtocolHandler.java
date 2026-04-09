@@ -83,6 +83,7 @@ public class MysqlProtocolHandler implements Runnable {
         queryProcessor = new QueryProcessor(dbName);
         catalog = queryProcessor.getCatalog(); // 更新 catalog 引用
         currentDb = dbName;
+        session.setCurrentDatabase(dbName);
     }
 
     @Override
@@ -176,6 +177,7 @@ public class MysqlProtocolHandler implements Runnable {
 
         if (storedPasswordHash != null) {
             this.session = Session.createAuthenticatedSession(this.connectionId, username);
+            this.session.setCurrentDatabase(currentDb);
             System.out.println("Simplified authentication successful for user: '" + username + "'");
             return true;
         } else {
