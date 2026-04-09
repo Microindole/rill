@@ -56,17 +56,40 @@ class DatabaseAccessPolicyServiceImplTest {
     }
 
     @Test
-    void nonAdminShouldNotCreateOrDropDatabase() {
+    void nonAdminShouldOnlyCreateOwnDatabase() {
+        service.assertCanExecute(
+            user("alice", "USER", "alice"),
+            "alice",
+            "create database alice;",
+            List.of("default", "alice", "bill"));
+    }
+
+    @Test
+    void nonAdminShouldNotCreateForeignDatabase() {
         ResponseStatusException exception = assertThrows(
             ResponseStatusException.class,
             () -> service.assertCanExecute(
                 user("alice", "USER", "alice"),
                 "alice",
-                "create database x;",
+                "create database bill;",
                 List.of("default", "alice", "bill")));
 
         assertEquals(403, exception.getStatusCode().value());
-        assertTrue(exception.getReason().contains("Only admin can create or drop databases"));
+        assertTrue(exception.getReason().contains("only create own database"));
+    }
+
+    @Test
+    void nonRootShouldNotDropDatabase() {
+        ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> service.assertCanExecute(
+                user("alice", "USER", "alice"),
+                "alice",
+                "drop database alice;",
+                List.of("default", "alice", "bill")));
+
+        assertEquals(403, exception.getStatusCode().value());
+        assertTrue(exception.getReason().contains("Only root can drop databases"));
     }
 
     private AppUserEntity user(String username, String role, String kernelDbName) {
@@ -77,4 +100,3 @@ class DatabaseAccessPolicyServiceImplTest {
         return user;
     }
 }
-

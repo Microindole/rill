@@ -19,6 +19,7 @@ import java.time.format.DateTimeParseException;
 
 class SemanticValidationSupport {
 
+    private static final String DEFAULT_DATABASE = "default";
     private final Catalog catalog;
 
     SemanticValidationSupport(Catalog catalog) {
@@ -26,6 +27,9 @@ class SemanticValidationSupport {
     }
 
     void requireTablePermission(Session session, String tableName, String privilege) {
+        if (isPrivilegedDatabase(session)) {
+            return;
+        }
         if (!catalog.hasPermission(session.getUsername(), tableName, privilege)) {
             throw new SemanticException(
                 "Access denied for user '"
@@ -36,6 +40,20 @@ class SemanticValidationSupport {
                     + tableName
                     + "'.");
         }
+    }
+
+    private boolean isPrivilegedDatabase(Session session) {
+        if (session == null) {
+            return false;
+        }
+        String username = session.getUsername();
+        String currentDatabase = session.getCurrentDatabase();
+        if (username == null || currentDatabase == null) {
+            return false;
+        }
+        return DEFAULT_DATABASE.equalsIgnoreCase(currentDatabase)
+            || username.equalsIgnoreCase(currentDatabase)
+            || "root".equalsIgnoreCase(username);
     }
 
     TableInfo getTableOrThrow(String tableName) {

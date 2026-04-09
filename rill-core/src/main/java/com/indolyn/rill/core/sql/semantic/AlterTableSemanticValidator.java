@@ -18,7 +18,8 @@ class AlterTableSemanticValidator {
     }
 
     void analyze(AlterTableStatementNode node, Session session) {
-        definitionValidationSupport.requireRoot(session, "ALTER TABLE");
+        definitionValidationSupport.requireDatabaseOwnerOrRoot(
+            session, session.getCurrentDatabase(), "ALTER TABLE");
 
         String tableName = node.tableName().getName();
         TableInfo tableInfo = semanticValidationSupport.getTableOrThrow(tableName);
