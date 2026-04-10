@@ -28,15 +28,27 @@ public class DatabaseAccessPolicyServiceImpl implements DatabaseAccessPolicyServ
         normalizedLoaded.add("default");
 
         if (isAdmin(user)) {
+            if (user != null && user.getKernelDbName() != null && !user.getKernelDbName().isBlank()) {
+                normalizedLoaded.add(normalizeDbName(user.getKernelDbName()));
+            }
             return new ArrayList<>(normalizedLoaded);
         }
 
-        // Guest keeps default-only boundary; authenticated users can inspect/use all loaded DBs.
         if (isGuest(user)) {
             return List.of("default");
         }
 
-        return new ArrayList<>(normalizedLoaded);
+        LinkedHashSet<String> accessible = new LinkedHashSet<>();
+        accessible.add("default");
+        if (user != null) {
+            if (user.getKernelDbName() != null && !user.getKernelDbName().isBlank()) {
+                accessible.add(normalizeDbName(user.getKernelDbName()));
+            }
+            if (user.getUsername() != null && !user.getUsername().isBlank()) {
+                accessible.add(normalizeDbName(user.getUsername()));
+            }
+        }
+        return new ArrayList<>(accessible);
     }
 
     @Override
@@ -99,7 +111,7 @@ public class DatabaseAccessPolicyServiceImpl implements DatabaseAccessPolicyServ
         if (user == null) {
             return false;
         }
-        if (isAdmin(user)) {
+        if ("root".equalsIgnoreCase(user.getUsername())) {
             return true;
         }
         String normalized = normalizeDbName(databaseName);
@@ -108,8 +120,7 @@ public class DatabaseAccessPolicyServiceImpl implements DatabaseAccessPolicyServ
     }
 
     private boolean canDropDatabase(AppUserEntity user, String databaseName) {
-        return "root".equalsIgnoreCase(user == null ? null : user.getUsername())
-            && normalizeDbName(databaseName).equals(normalizeDbName(user.getKernelDbName()));
+        return "root".equalsIgnoreCase(user == null ? null : user.getUsername());
     }
 
     private String normalizeDbName(String dbName) {

@@ -77,7 +77,7 @@ final class DefinitionStatementParsers {
         if (parser.peek().type() == TokenType.TABLES) {
             parser.consume(TokenType.TABLES, "Expected 'TABLES' after 'SHOW'");
             if (parser.match(TokenType.FROM)) {
-                parser.consume(TokenType.IDENTIFIER, "Expected database name after 'FROM'");
+                consumeDatabaseNameToken("database name after 'FROM'");
             }
             if (parser.match(TokenType.WHERE)) {
                 while (parser.peek().type() != TokenType.SEMICOLON
@@ -98,8 +98,7 @@ final class DefinitionStatementParsers {
     }
 
     StatementNode parseUseDatabaseStatement() {
-        IdentifierNode dbName =
-            new IdentifierNode(parser.consume(TokenType.IDENTIFIER, "database name").lexeme());
+        IdentifierNode dbName = new IdentifierNode(consumeDatabaseNameToken("database name").lexeme());
         return new UseDatabaseStatementNode(dbName);
     }
 
@@ -144,14 +143,13 @@ final class DefinitionStatementParsers {
 
     private StatementNode parseDropDatabaseStatement() {
         parser.consume(TokenType.DATABASE, "Expected 'DATABASE' after 'DROP'");
-        IdentifierNode dbName =
-            new IdentifierNode(parser.consume(TokenType.IDENTIFIER, "database name").lexeme());
+        IdentifierNode dbName = new IdentifierNode(consumeDatabaseNameToken("database name").lexeme());
         return new DropDatabaseStatementNode(dbName);
     }
 
     private StatementNode parseCreateDatabaseStatement() {
         parser.consume(TokenType.DATABASE, "Expected 'DATABASE' after 'CREATE'");
-        Token dbNameToken = parser.consume(TokenType.IDENTIFIER, "database name");
+        Token dbNameToken = consumeDatabaseNameToken("database name");
         return new CreateDatabaseStatementNode(new IdentifierNode(dbNameToken.lexeme()));
     }
 
@@ -215,5 +213,14 @@ final class DefinitionStatementParsers {
         }
         parser.consume(TokenType.RPAREN, "')' after column name(s)");
         return new CreateIndexStatementNode(indexName, tableName, columns);
+    }
+
+    private Token consumeDatabaseNameToken(String expectation) {
+        Token token = parser.peek();
+        if (token.type() == TokenType.IDENTIFIER || token.type() == TokenType.DEFAULT) {
+            parser.advance();
+            return token;
+        }
+        throw new ParseException(token, expectation);
     }
 }

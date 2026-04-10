@@ -496,6 +496,11 @@
 - 当前结果：通过 Navicat / 原生协议 / CLI 这类协议入口执行 `create table` 时，当前库边界能正确传入 core；`rill-server` 编译和 `rill-core` 权限测试已通过
 - 下一步建议：继续观察各入口对 `currentDatabase` 的一致性，后续再评估是否把 session 默认库初始化逻辑集中到统一 helper，减少协议层重复修补
 
+- 完成了应用层用户与数据库边界收口：内置管理员已从 `demo` 调整为 `root`，`demo` 回归普通用户；同时 app 层数据库访问策略已改为“游客仅 `default`，普通用户仅 `default + 自己的库`，`root` 可见已加载库并可执行管理员级数据库动作”
+- 影响范围：`rill-app-web/src/main/java/com/indolyn/rill/app/boot/AppUserBootstrap.java`、`rill-app-web/src/main/java/com/indolyn/rill/app/service/impl/DatabaseAccessPolicyServiceImpl.java`、`rill-app-web/src/test/java/com/indolyn/rill/app/service/{DatabaseAccessPolicyServiceImplTest,AdminUserServiceTest,AuthServiceTest}.java`
+- 当前结果：部署后启动补种会自动补出 `root` 管理员，并把已有 `demo` 账号收口为普通用户；`demo` 执行 `show tables;` 这类语句时不会再因为 app 层前置检查而被错误拦成“不能访问 demo 数据库”
+- 下一步建议：部署后优先重新登录 `root` 和 `demo` 各测一次，确认旧 token 已失效、用户角色已刷新，再决定是否同步更新前端默认登录提示文案
+
 - 完成运行与构建结构第六轮收口：仓库已切到父 `pom` 聚合的多模块结构，形成 `rill-core / rill-server / rill-client / rill-app-web / rill-launcher`
 - 影响范围：根 `pom.xml`、各子模块 `pom.xml`、源码与测试目录、`scripts/rill.*`、README 与运行/架构文档
 - 当前结果：`./mvnw.cmd -q -DskipTests compile`、`./mvnw.cmd -q -pl rill-core,rill-server -am -Dsurefire.failIfNoSpecifiedTests=false "-Dtest=ParserTest,PlannerTest,SemanticAnalyzerTest,DataTypeTest,MysqlProtocolHandlerTest" test`、`./mvnw.cmd -q -DskipTests package` 已通过；服务端、客户端、Spring Boot Web 壳已开始分别产出模块化工件

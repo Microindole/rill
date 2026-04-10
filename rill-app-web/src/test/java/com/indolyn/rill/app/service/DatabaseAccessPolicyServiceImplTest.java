@@ -31,15 +31,29 @@ class DatabaseAccessPolicyServiceImplTest {
             user("alice", "USER", "alice"),
             List.of("default", "alice", "bill"));
 
-        assertEquals(List.of("default", "alice", "bill"), databases);
+        assertEquals(List.of("default", "alice"), databases);
     }
 
     @Test
-    void authenticatedUserShouldBeAbleToUseOtherUserDatabase() {
-        service.assertCanUseDatabase(
+    void authenticatedUserShouldSeeOwnDatabaseEvenWhenNotLoaded() {
+        List<String> databases = service.accessibleDatabases(
             user("alice", "USER", "alice"),
-            "bill",
-            List.of("default", "alice", "bill"));
+            List.of("default"));
+
+        assertEquals(List.of("default", "alice"), databases);
+    }
+
+    @Test
+    void authenticatedUserShouldNotBeAbleToUseOtherUserDatabase() {
+        ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> service.assertCanUseDatabase(
+                user("alice", "USER", "alice"),
+                "bill",
+                List.of("default", "alice", "bill")));
+
+        assertEquals(403, exception.getStatusCode().value());
+        assertTrue(exception.getReason().contains("cannot access database"));
     }
 
     @Test
@@ -62,6 +76,38 @@ class DatabaseAccessPolicyServiceImplTest {
             "alice",
             "create database alice;",
             List.of("default", "alice", "bill"));
+    }
+
+    @Test
+    void rootShouldSeeLoadedDatabasesAndCreateAnyDatabase() {
+        List<String> databases = service.accessibleDatabases(
+            user("root", "ADMIN", "default"),
+            List.of("default", "alice", "bill"));
+
+        assertEquals(List.of("default", "alice", "bill"), databases);
+        service.assertCanExecute(
+            user("root", "ADMIN", "default"),
+            "default",
+            "create database demo;",
+            List.of("default", "alice", "bill"));
+    }
+
+    @Test
+    void rootShouldDropOtherDatabase() {
+        service.assertCanExecute(
+            user("root", "ADMIN", "default"),
+            "default",
+            "drop database alice;",
+            List.of("default", "alice", "bill"));
+    }
+
+    @Test
+    void authenticatedUserShouldBeAbleToUseDefaultDatabase() {
+        service.assertCanExecute(
+            user("alice", "USER", "alice"),
+            "alice",
+            "use default;",
+            List.of("default", "alice"));
     }
 
     @Test
