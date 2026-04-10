@@ -23,7 +23,7 @@ class AdminUserServiceTest {
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
         AdminUserService service = new AdminUserServiceImpl(appUserMapper, currentUserProvider, rillQueryService);
         when(currentUserProvider.requireAuthenticatedUser())
-            .thenReturn(new AuthenticatedUser(user(1L, "demo", "demo@example.com", "ADMIN", "demo"), "token"));
+            .thenReturn(new AuthenticatedUser(user(1L, "root", "root@example.com", "ADMIN", "default"), "token"));
         when(appUserMapper.selectList(any())).thenReturn(List.of(user(2L, "alice", "alice@example.com", "USER", "alice")));
 
         var responses = service.listUsers();
@@ -39,7 +39,7 @@ class AdminUserServiceTest {
         RillQueryService rillQueryService = Mockito.mock(RillQueryService.class);
         AdminUserService service = new AdminUserServiceImpl(appUserMapper, currentUserProvider, rillQueryService);
         when(currentUserProvider.requireAuthenticatedUser())
-            .thenReturn(new AuthenticatedUser(user(1L, "demo", "demo@example.com", "ADMIN", "demo"), "token"));
+            .thenReturn(new AuthenticatedUser(user(1L, "root", "root@example.com", "ADMIN", "default"), "token"));
         AppUserEntity alice = user(2L, "alice", "alice@example.com", "USER", "alice");
         alice.setKernelDbProvisioned(false);
         when(appUserMapper.selectById(2L)).thenReturn(alice);

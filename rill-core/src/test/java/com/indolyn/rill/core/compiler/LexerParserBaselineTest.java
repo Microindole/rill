@@ -8,6 +8,7 @@ import com.indolyn.rill.core.sql.ast.StatementNode;
 import com.indolyn.rill.core.sql.ast.statement.AlterTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.CreateTableStatementNode;
 import com.indolyn.rill.core.sql.ast.statement.SelectStatementNode;
+import com.indolyn.rill.core.sql.ast.statement.UseDatabaseStatementNode;
 import com.indolyn.rill.core.sql.lexer.Lexer;
 import com.indolyn.rill.core.sql.lexer.Token;
 import com.indolyn.rill.core.sql.lexer.TokenType;
@@ -62,5 +63,13 @@ class LexerParserBaselineTest {
         assertEquals("users", alterTable.tableName().getName());
         assertEquals("email", alterTable.newColumnDefinition().columnName().getName());
         assertEquals("varchar", alterTable.newColumnDefinition().dataType().displayName());
+    }
+
+    @Test
+    void parserShouldAllowUseDefaultDatabaseStatement() {
+        StatementNode statement = new Parser(new Lexer("use default;").tokenize()).parse();
+
+        UseDatabaseStatementNode useDatabase = assertInstanceOf(UseDatabaseStatementNode.class, statement);
+        assertEquals("default", useDatabase.databaseName().getName());
     }
 }

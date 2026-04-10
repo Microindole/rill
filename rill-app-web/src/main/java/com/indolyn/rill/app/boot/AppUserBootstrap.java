@@ -24,7 +24,8 @@ public class AppUserBootstrap implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        ensureUser("demo", "demo@example.com", "Demo Admin", "demo123", "ADMIN", "demo", true, true);
+        ensureUser("root", "root@example.com", "Root Admin", "root123", "ADMIN", "default", true, true);
+        ensureUser("demo", "demo@example.com", "Demo User", "demo123", "USER", "demo", true, true);
         ensureUser("guest", "guest@example.com", "Guest", "guest", "GUEST", "default", true, true);
     }
 
@@ -55,6 +56,9 @@ public class AppUserBootstrap implements ApplicationRunner {
             appUserMapper.insert(user);
             return;
         }
+        existing.setDisplayName(displayName);
+        existing.setRole(role);
+        existing.setKernelDbName(kernelDbName);
         existing.setEmail(email);
         existing.setEmailVerified(emailVerified);
         existing.setKernelDbProvisioned(kernelDbProvisioned);

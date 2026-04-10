@@ -79,9 +79,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
             RequestUserContextHolder.set(new RequestUserContext(user, token, principal.jwtId()));
-            filterChain.doFilter(request, response);
         } catch (Exception e) {
             writeUnauthorized(response, "Login required");
+            return;
+        }
+
+        try {
+            filterChain.doFilter(request, response);
         } finally {
             RequestUserContextHolder.clear();
         }

@@ -2,6 +2,7 @@ package com.indolyn.rill.app.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -74,6 +75,34 @@ class JwtAuthenticationFilterTest {
         filter.doFilter(request, response, (servletRequest, servletResponse) -> {});
 
         assertEquals(401, response.getStatus());
+    }
+
+    @Test
+    void filterShouldNotRewriteDownstreamExceptionsAsUnauthorized() throws Exception {
+        AppUserMapper appUserMapper = Mockito.mock(AppUserMapper.class);
+        AppJwtSessionMapper appJwtSessionMapper = Mockito.mock(AppJwtSessionMapper.class);
+        JwtService jwtService = new JwtServiceImpl("test-secret");
+        JwtAuthenticationFilter filter =
+            new JwtAuthenticationFilter(appUserMapper, appJwtSessionMapper, jwtService, new ObjectMapper());
+
+        AppUserEntity user = user(1L, "demo", "Demo", "demo123", "USER", "demo");
+        String token = jwtService.issueToken(user, "jti-2", Instant.now().plusSeconds(3600));
+        when(appJwtSessionMapper.selectOne(any())).thenReturn(session(8L, 1L, "jti-2", false));
+        when(appUserMapper.selectById(1L)).thenReturn(user);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        IllegalStateException exception =
+            assertThrows(
+                IllegalStateException.class,
+                () -> filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+                    throw new IllegalStateException("downstream failure");
+                }));
+
+        assertEquals("downstream failure", exception.getMessage());
+        assertNull(RequestUserContextHolder.get());
     }
 
     private AppUserEntity user(
