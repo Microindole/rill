@@ -77,6 +77,12 @@ jobs:
     uses: ./.github/workflows/core-coverage.yml
     secrets: inherit
 
+  app-web-coverage:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
+    uses: ./.github/workflows/app-web-coverage.yml
+    secrets: inherit
+
   frontend-cross-platform:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflow == 'true'
