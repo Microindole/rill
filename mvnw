@@ -19,12 +19,11 @@
 # ----------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------
-# Apache Maven Wrapper startup batch script, version 3.3.3
+# Apache Maven Wrapper startup batch script, version 3.3.4
 #
 # Optional ENV vars
 # -----------------
 #   JAVA_HOME - location of a JDK home dir, required when download maven via java source
-#   JAVA21_HOME - preferred JDK 21 home for this project
 #   MVNW_REPOURL - repo url base for downloading maven distribution
 #   MVNW_USERNAME/MVNW_PASSWORD - user and password for downloading maven
 #   MVNW_VERBOSE - true: enable verbose log; debug: trace the mvnw script; others: silence the output
@@ -32,13 +31,6 @@
 
 set -euf
 [ "${MVNW_VERBOSE-}" != debug ] || set -x
-
-if [ -n "${JAVA21_HOME-}" ]; then
-  JAVA_HOME="$JAVA21_HOME"
-  export JAVA_HOME
-  PATH="$JAVA_HOME/bin:$PATH"
-  export PATH
-fi
 
 # OS specific support.
 native_path() { printf %s\\n "$1"; }
